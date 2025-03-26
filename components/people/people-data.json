@@ -1,0 +1,167 @@
+[
+  {
+    "id": 1,
+    "firstName": "Alex",
+    "lastName": "Johnson",
+    "email": "alex.johnson@example.com",
+    "phone": "+1 (555) 123-4567",
+    "department": "Engineering",
+    "position": "Senior Developer",
+    "hireDate": "2021-05-10",
+    "status": "Active"
+  },
+  {
+    "id": 2,
+    "firstName": "Samantha",
+    "lastName": "Williams",
+    "email": "samantha.williams@example.com",
+    "phone": "+1 (555) 234-5678",
+    "department": "Marketing",
+    "position": "Marketing Manager",
+    "hireDate": "2022-02-15",
+    "status": "Active"
+  },
+  {
+    "id": 3,
+    "firstName": "Michael",
+    "lastName": "Brown",
+    "email": "michael.brown@example.com",
+    "phone": "+1 (555) 345-6789",
+    "department": "HR",
+    "position": "HR Specialist",
+    "hireDate": "2020-11-03",
+    "status": "On Leave"
+  },
+  {
+    "id": 4,
+    "firstName": "Emily",
+    "lastName": "Davis",
+    "email": "emily.davis@example.com",
+    "phone": "+1 (555) 456-7890",
+    "department": "Finance",
+    "position": "Financial Analyst",
+    "hireDate": "2021-08-20",
+    "status": "Active"
+  },
+  {
+    "id": 5,
+    "firstName": "David",
+    "lastName": "Miller",
+    "email": "david.miller@example.com",
+    "phone": "+1 (555) 567-8901",
+    "department": "Sales",
+    "position": "Sales Representative",
+    "hireDate": "2022-03-15",
+    "status": "Active"
+  },
+  {
+    "id": 6,
+    "firstName": "Jennifer",
+    "lastName": "Garcia",
+    "email": "jennifer.garcia@example.com",
+    "phone": "+1 (555) 678-9012",
+    "department": "Engineering",
+    "position": "QA Engineer",
+    "hireDate": "2021-06-01",
+    "status": "Active"
+  },
+  {
+    "id": 7,
+    "firstName": "Robert",
+    "lastName": "Martinez",
+    "email": "robert.martinez@example.com",
+    "phone": "+1 (555) 789-0123",
+    "department": "Product",
+    "position": "Product Manager",
+    "hireDate": "2020-09-12",
+    "status": "Active"
+  },
+  {
+    "id": 8,
+    "firstName": "Lisa",
+    "lastName": "Rodriguez",
+    "email": "lisa.rodriguez@example.com",
+    "phone": "+1 (555) 890-1234",
+    "department": "Design",
+    "position": "UX Designer",
+    "hireDate": "2022-01-10",
+    "status": "Inactive"
+  },
+  {
+    "id": 9,
+    "firstName": "James",
+    "lastName": "Wilson",
+    "email": "james.wilson@example.com",
+    "phone": "+1 (555) 901-2345",
+    "department": "Engineering",
+    "position": "DevOps Engineer",
+    "hireDate": "2021-11-05",
+    "status": "Active"
+  },
+  {
+    "id": 10,
+    "firstName": "Maria",
+    "lastName": "Lopez",
+    "email": "maria.lopez@example.com",
+    "phone": "+1 (555) 012-3456",
+    "department": "Customer Support",
+    "position": "Support Specialist",
+    "hireDate": "2022-04-18",
+    "status": "Active"
+  },
+  {
+    "id": 11,
+    "firstName": "Thomas",
+    "lastName": "Lee",
+    "email": "thomas.lee@example.com",
+    "phone": "+1 (555) 234-5678",
+    "department": "Administration",
+    "position": "Office Manager",
+    "hireDate": "2020-07-15",
+    "status": "Active"
+  },
+  {
+    "id": 12,
+    "firstName": "Jessica",
+    "lastName": "Hernandez",
+    "email": "jessica.hernandez@example.com",
+    "phone": "+1 (555) 345-6789",
+    "department": "Legal",
+    "position": "Legal Assistant",
+    "hireDate": "2021-10-03",
+    "status": "Active"
+  },
+  {
+    "id": 13,
+    "firstName": "Daniel",
+    "lastName": "Clark",
+    "email": "daniel.clark@example.com",
+    "phone": "+1 (555) 456-7890",
+    "department": "Engineering",
+    "position": "Frontend Developer",
+    "hireDate": "2022-02-01",
+    "status": "Active"
+  },
+  {
+    "id": 14,
+    "firstName": "Sarah",
+    "lastName": "Lewis",
+    "email": "sarah.lewis@example.com",
+    "phone": "+1 (555) 567-8901",
+    "department": "Marketing",
+    "position": "Content Strategist",
+    "hireDate": "2021-01-20",
+    "status": "On Leave"
+  },
+  {
+    "id": 15,
+    "firstName": "Kevin",
+    "lastName": "Walker",
+    "email": "kevin.walker@example.com",
+    "phone": "+1 (555) 678-9012",
+    "department": "Sales",
+    "position": "Sales Manager",
+    "hireDate": "2020-08-15",
+    "status": "Active"
+  }
+] 

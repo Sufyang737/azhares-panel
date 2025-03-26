@@ -17,6 +17,9 @@ import {
   IconSearch,
   IconSettings,
   IconUsers,
+  IconCalendarEvent,
+  IconBuilding,
+  IconUserCircle,
 } from "@tabler/icons-react";
 
 import { NavDocuments } from "@/components/nav-documents";
@@ -42,8 +45,23 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: IconDashboard,
+    },
+    {
+      title: "Events",
+      url: "/dashboard/events",
+      icon: IconCalendarEvent,
+    },
+    {
+      title: "Clients",
+      url: "/dashboard/clients",
+      icon: IconBuilding,
+    },
+    {
+      title: "People",
+      url: "/dashboard/people",
+      icon: IconUserCircle,
     },
     {
       title: "Lifecycle",

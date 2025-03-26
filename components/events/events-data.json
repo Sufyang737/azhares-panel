@@ -1,0 +1,202 @@
+[
+  {
+    "id": 1,
+    "name": "Product Launch",
+    "type": "Marketing",
+    "date": "2024-05-15",
+    "location": "San Francisco",
+    "attendees": 250,
+    "budget": 15000,
+    "status": "Upcoming"
+  },
+  {
+    "id": 2,
+    "name": "Annual Conference",
+    "type": "Corporate",
+    "date": "2024-06-22",
+    "location": "New York",
+    "attendees": 500,
+    "budget": 35000,
+    "status": "Planning"
+  },
+  {
+    "id": 3,
+    "name": "Team Building",
+    "type": "Internal",
+    "date": "2024-04-10",
+    "location": "Austin",
+    "attendees": 45,
+    "budget": 5000,
+    "status": "Completed"
+  },
+  {
+    "id": 4,
+    "name": "Developer Meetup",
+    "type": "Networking",
+    "date": "2024-07-08",
+    "location": "Seattle",
+    "attendees": 120,
+    "budget": 3500,
+    "status": "Upcoming"
+  },
+  {
+    "id": 5,
+    "name": "Customer Appreciation Day",
+    "type": "Marketing",
+    "date": "2024-05-30",
+    "location": "Chicago",
+    "attendees": 200,
+    "budget": 12000,
+    "status": "Planning"
+  },
+  {
+    "id": 6,
+    "name": "Quarterly Review",
+    "type": "Corporate",
+    "date": "2024-04-01",
+    "location": "Virtual",
+    "attendees": 35,
+    "budget": 1000,
+    "status": "Completed"
+  },
+  {
+    "id": 7,
+    "name": "Industry Summit",
+    "type": "Conference",
+    "date": "2024-09-15",
+    "location": "Las Vegas",
+    "attendees": 350,
+    "budget": 28000,
+    "status": "Planning"
+  },
+  {
+    "id": 8,
+    "name": "Training Workshop",
+    "type": "Education",
+    "date": "2024-06-05",
+    "location": "Boston",
+    "attendees": 30,
+    "budget": 4500,
+    "status": "Upcoming"
+  },
+  {
+    "id": 9,
+    "name": "Product Demo",
+    "type": "Sales",
+    "date": "2024-05-12",
+    "location": "Los Angeles",
+    "attendees": 75,
+    "budget": 7500,
+    "status": "Upcoming"
+  },
+  {
+    "id": 10,
+    "name": "Charity Gala",
+    "type": "Community",
+    "date": "2024-08-20",
+    "location": "Miami",
+    "attendees": 180,
+    "budget": 22000,
+    "status": "Planning"
+  },
+  {
+    "id": 11,
+    "name": "Tech Conference",
+    "type": "Industry",
+    "date": "2024-10-05",
+    "location": "San Jose",
+    "attendees": 400,
+    "budget": 40000,
+    "status": "Planning"
+  },
+  {
+    "id": 12,
+    "name": "Team Retreat",
+    "type": "Internal",
+    "date": "2024-07-15",
+    "location": "Denver",
+    "attendees": 25,
+    "budget": 15000,
+    "status": "Upcoming"
+  },
+  {
+    "id": 13,
+    "name": "Partner Meeting",
+    "type": "Business",
+    "date": "2024-04-22",
+    "location": "Dallas",
+    "attendees": 15,
+    "budget": 2000,
+    "status": "Completed"
+  },
+  {
+    "id": 14,
+    "name": "User Group Meetup",
+    "type": "Community",
+    "date": "2024-06-18",
+    "location": "Portland",
+    "attendees": 60,
+    "budget": 3000,
+    "status": "Upcoming"
+  },
+  {
+    "id": 15,
+    "name": "Sales Kickoff",
+    "type": "Sales",
+    "date": "2024-05-02",
+    "location": "Phoenix",
+    "attendees": 120,
+    "budget": 18000,
+    "status": "Upcoming"
+  },
+  {
+    "id": 16,
+    "name": "Board Meeting",
+    "type": "Corporate",
+    "date": "2024-04-15",
+    "location": "Houston",
+    "attendees": 12,
+    "budget": 5000,
+    "status": "Completed"
+  },
+  {
+    "id": 17,
+    "name": "Holiday Party",
+    "type": "Internal",
+    "date": "2024-12-15",
+    "location": "Atlanta",
+    "attendees": 150,
+    "budget": 25000,
+    "status": "Planning"
+  },
+  {
+    "id": 18,
+    "name": "Product Training",
+    "type": "Education",
+    "date": "2024-06-30",
+    "location": "Minneapolis",
+    "attendees": 40,
+    "budget": 6000,
+    "status": "Upcoming"
+  },
+  {
+    "id": 19,
+    "name": "Investor Meeting",
+    "type": "Finance",
+    "date": "2024-05-20",
+    "location": "New York",
+    "attendees": 25,
+    "budget": 8000,
+    "status": "Upcoming"
+  },
+  {
+    "id": 20,
+    "name": "Hackathon",
+    "type": "Development",
+    "date": "2024-07-22",
+    "location": "San Francisco",
+    "attendees": 80,
+    "budget": 10000,
+    "status": "Upcoming"
+  }
+] 

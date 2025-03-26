@@ -1,0 +1,134 @@
+[
+  {
+    "id": 1,
+    "name": "Acme Corporation",
+    "contactPerson": "John Smith",
+    "email": "john@acmecorp.com",
+    "phone": "+1 (555) 123-4567",
+    "industry": "Technology",
+    "status": "Active",
+    "joinDate": "2023-01-15",
+    "totalSpent": 125000
+  },
+  {
+    "id": 2,
+    "name": "Global Industries",
+    "contactPerson": "Sarah Johnson",
+    "email": "sarah@globalind.com",
+    "phone": "+1 (555) 987-6543",
+    "industry": "Manufacturing",
+    "status": "Active",
+    "joinDate": "2022-08-10",
+    "totalSpent": 275000
+  },
+  {
+    "id": 3,
+    "name": "Sunset Restaurants",
+    "contactPerson": "Miguel Rodriguez",
+    "email": "miguel@sunsetrest.com",
+    "phone": "+1 (555) 456-7890",
+    "industry": "Food & Beverage",
+    "status": "Inactive",
+    "joinDate": "2023-03-22",
+    "totalSpent": 42000
+  },
+  {
+    "id": 4,
+    "name": "Horizon Financial",
+    "contactPerson": "Linda Chen",
+    "email": "linda@horizonfin.com",
+    "phone": "+1 (555) 234-5678",
+    "industry": "Finance",
+    "status": "Active",
+    "joinDate": "2022-05-18",
+    "totalSpent": 310000
+  },
+  {
+    "id": 5,
+    "name": "Green Earth Organics",
+    "contactPerson": "David Williams",
+    "email": "david@greenearth.com",
+    "phone": "+1 (555) 345-6789",
+    "industry": "Agriculture",
+    "status": "Active",
+    "joinDate": "2023-02-05",
+    "totalSpent": 68000
+  },
+  {
+    "id": 6,
+    "name": "TechNova Solutions",
+    "contactPerson": "Jessica Adams",
+    "email": "jessica@technova.com",
+    "phone": "+1 (555) 567-8901",
+    "industry": "Technology",
+    "status": "Active",
+    "joinDate": "2022-11-12",
+    "totalSpent": 185000
+  },
+  {
+    "id": 7,
+    "name": "Blue Ocean Shipping",
+    "contactPerson": "Robert Kim",
+    "email": "robert@blueocean.com",
+    "phone": "+1 (555) 678-9012",
+    "industry": "Logistics",
+    "status": "Inactive",
+    "joinDate": "2022-04-30",
+    "totalSpent": 92000
+  },
+  {
+    "id": 8,
+    "name": "Mountain View Hotels",
+    "contactPerson": "Emma Thompson",
+    "email": "emma@mvhotels.com",
+    "phone": "+1 (555) 789-0123",
+    "industry": "Hospitality",
+    "status": "Active",
+    "joinDate": "2023-05-20",
+    "totalSpent": 145000
+  },
+  {
+    "id": 9,
+    "name": "Stellar Media Group",
+    "contactPerson": "James Wilson",
+    "email": "james@stellarmedia.com",
+    "phone": "+1 (555) 890-1234",
+    "industry": "Media",
+    "status": "Active",
+    "joinDate": "2022-07-08",
+    "totalSpent": 78000
+  },
+  {
+    "id": 10,
+    "name": "Evergreen Construction",
+    "contactPerson": "Maria Garcia",
+    "email": "maria@evergreenconst.com",
+    "phone": "+1 (555) 901-2345",
+    "industry": "Construction",
+    "status": "Active",
+    "joinDate": "2022-09-15",
+    "totalSpent": 420000
+  },
+  {
+    "id": 11,
+    "name": "Phoenix Healthcare",
+    "contactPerson": "Thomas Lee",
+    "email": "thomas@phoenixhealth.com",
+    "phone": "+1 (555) 012-3456",
+    "industry": "Healthcare",
+    "status": "Active",
+    "joinDate": "2023-01-03",
+    "totalSpent": 265000
+  },
+  {
+    "id": 12,
+    "name": "Silver Lining Airlines",
+    "contactPerson": "Amanda Clark",
+    "email": "amanda@silverlining.com",
+    "phone": "+1 (555) 123-4567",
+    "industry": "Transportation",
+    "status": "Inactive",
+    "joinDate": "2022-06-22",
+    "totalSpent": 530000
+  }
+] 
