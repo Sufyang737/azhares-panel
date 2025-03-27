@@ -6,6 +6,7 @@ import { ActiveThemeProvider } from "@/components/active-theme";
 import { cookies } from "next/headers";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "@/lib/AuthContext";
 
 const META_THEME_COLORS = {
   light: "#ffffff",
@@ -53,8 +54,10 @@ export default async function RootLayout({
           enableColorScheme
         >
           <ActiveThemeProvider initialTheme={activeThemeValue}>
-            {children}
-            <Toaster />
+            <AuthProvider>
+              {children}
+              <Toaster />
+            </AuthProvider>
           </ActiveThemeProvider>
         </ThemeProvider>
       </body>
