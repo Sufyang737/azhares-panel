@@ -1,19 +1,49 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { IconCalendarEvent, IconUsers, IconCoin, IconMapPin } from "@tabler/icons-react";
 
 import { EventsDataTable } from "@/components/events/events-data-table";
+import { CreateEventDialog } from "@/components/events/create-event-dialog";
 import eventsData from "@/components/events/events-data.json";
 
 export default function EventsPage() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [events, setEvents] = useState(eventsData);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // En un escenario real, podríamos usar useEffect para cargar datos de la API
+  useEffect(() => {
+    // Esta es una implementación de muestra para mostrar cómo se harían las peticiones
+    // En una implementación real, haríamos una llamada fetch a nuestra API
+    // async function fetchEvents() {
+    //   try {
+    //     const response = await fetch('/api/eventos');
+    //     const result = await response.json();
+    //     if (result.success) {
+    //       setEvents(result.data);
+    //     }
+    //   } catch (error) {
+    //     console.error('Error al obtener eventos:', error);
+    //   }
+    // }
+    // fetchEvents();
+  }, [refreshTrigger]);
+
+  // Función para refrescar los datos
+  const handleEventCreated = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   // Calculate summary statistics
-  const totalEvents = eventsData.length;
-  const upcomingEvents = eventsData.filter(event => event.status === "Upcoming").length;
-  const totalAttendees = eventsData.reduce((sum, event) => sum + event.attendees, 0);
-  const totalBudget = eventsData.reduce((sum, event) => sum + event.budget, 0);
+  const totalEvents = events.length;
+  const upcomingEvents = events.filter(event => event.status === "Upcoming").length;
+  const totalAttendees = events.reduce((sum, event) => sum + event.attendees, 0);
+  const totalBudget = events.reduce((sum, event) => sum + event.budget, 0);
 
   return (
     <SidebarProvider
@@ -89,7 +119,7 @@ export default function EventsPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {new Set(eventsData.map(event => event.location)).size}
+                      {new Set(events.map(event => event.location)).size}
                     </div>
                     <p className="text-muted-foreground text-xs">
                       Unique locations
@@ -102,14 +132,11 @@ export default function EventsPage() {
                   <h2 className="text-muted-foreground text-lg font-semibold">
                     Events Dashboard
                   </h2>
-                  <Button size="sm" className="h-8">
-                    <IconCalendarEvent className="mr-2 h-4 w-4" />
-                    Add Event
-                  </Button>
+                  <CreateEventDialog onEventCreated={handleEventCreated} />
                 </div>
               </div>
               <div className="px-4 lg:px-6">
-                <EventsDataTable data={eventsData} />
+                <EventsDataTable data={events} />
               </div>
             </div>
           </div>
