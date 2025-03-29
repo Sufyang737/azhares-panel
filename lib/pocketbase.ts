@@ -65,6 +65,40 @@ export async function getUsuarios() {
   }
 }
 
+// Función para obtener solo usuarios con rol "planner"
+export async function getPlanners() {
+  try {
+    const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
+    
+    // Verificar si hay una sesión activa
+    if (pb.authStore.isValid) {
+      // Obtener solo usuarios con rol "planner"
+      const resultList = await pb.collection('usuarios').getList(1, 50, {
+        filter: 'rol = "planner"',
+        sort: 'username',
+        fields: 'id,username,email'
+      });
+      
+      return {
+        success: true,
+        planners: resultList.items
+      };
+    } else {
+      console.error('No hay sesión autenticada para obtener planners');
+      return {
+        success: false,
+        error: 'No autenticado'
+      };
+    }
+  } catch (error) {
+    console.error('Error al obtener planners:', error);
+    return {
+      success: false,
+      error: 'Error al obtener planners'
+    };
+  }
+}
+
 // Definición de tipos para eventos
 export type EventoData = {
   comentario?: string;

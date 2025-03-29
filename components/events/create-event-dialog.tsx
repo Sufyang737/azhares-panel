@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,21 +49,21 @@ const mesesEspanol = [
   "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
 ];
 
-// Lista simulada de clientes frecuentes
-const clientesFrecuentes = [
-  { id: "cliente1", nombre: "Juan Pérez" },
-  { id: "cliente2", nombre: "María González" },
-  { id: "cliente3", nombre: "Carlos Rodríguez" },
-  { id: "cliente4", nombre: "Ana Martínez" },
-  { id: "cliente5", nombre: "Roberto Sánchez" },
-];
+// Interfaz para los clientes
+interface Cliente {
+  id: string;
+  nombre: string;
+  email?: string;
+}
 
-// Lista simulada de planners
-const planners = [
-  { id: "planner1", nombre: "Sofia López" },
-  { id: "planner2", nombre: "Diego Fernández" },
-  { id: "planner3", nombre: "Valentina Torres" },
-];
+// Interfaz para los planners
+interface Planner {
+  id: string;
+  username: string;
+  email: string;
+  rol?: string;
+  rolField?: string;
+}
 
 // Definir el esquema de validación usando Zod
 const eventoFormSchema = z.object({
@@ -94,12 +94,109 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clienteNuevo, setClienteNuevo] = useState(false);
+  const [planners, setPlanners] = useState<Planner[]>([]);
+  const [loadingPlanners, setLoadingPlanners] = useState(false);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [loadingClientes, setLoadingClientes] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<EventoFormValues>({
     resolver: zodResolver(eventoFormSchema),
     defaultValues,
   });
+
+  // Cargar planners al abrir el diálogo
+  useEffect(() => {
+    async function fetchPlanners() {
+      if (!isOpen) return;
+      
+      setLoadingPlanners(true);
+      try {
+        console.log('Solicitando planners a la API...');
+        const response = await fetch('/api/usuarios/planners');
+        console.log('Respuesta de la API:', response.status, response.statusText);
+        
+        const data = await response.json();
+        console.log('Datos recibidos de planners:', data);
+        
+        if (data.success) {
+          // Si hay un mensaje, mostrarlo como toast informativo
+          if (data.message) {
+            console.log('Mensaje de la API:', data.message);
+            toast({
+              title: "Información",
+              description: data.message,
+            });
+          }
+          
+          console.log('Planners encontrados:', data.planners.length);
+          
+          // Mostrar detalle de cada planner para depuración
+          if (data.planners && data.planners.length > 0) {
+            console.log('Detalle de planners:');
+            data.planners.forEach((planner: Planner, index: number) => {
+              console.log(`Planner ${index + 1}:`, planner);
+            });
+          }
+          
+          setPlanners(data.planners);
+        } else {
+          console.error('Error al cargar planners:', data.message);
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar los planners: " + data.message,
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error('Error al cargar planners:', error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los planners",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingPlanners(false);
+      }
+    }
+    
+    fetchPlanners();
+  }, [isOpen, toast]);
+
+  // Cargar clientes al abrir el diálogo
+  useEffect(() => {
+    async function fetchClientes() {
+      if (!isOpen) return;
+      
+      setLoadingClientes(true);
+      try {
+        const response = await fetch('/api/clientes/frequent');
+        const data = await response.json();
+        
+        if (data.success) {
+          setClientes(data.clientes);
+        } else {
+          console.error('Error al cargar clientes:', data.message);
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar los clientes",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error('Error al cargar clientes:', error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los clientes",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingClientes(false);
+      }
+    }
+    
+    fetchClientes();
+  }, [isOpen, toast]);
 
   async function onSubmit(data: EventoFormValues) {
     setIsSubmitting(true);
@@ -390,18 +487,30 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
                       <Select 
                         onValueChange={field.onChange} 
                         defaultValue={field.value}
+                        disabled={loadingClientes}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar cliente" />
+                            <SelectValue placeholder={loadingClientes ? "Cargando clientes..." : "Seleccionar cliente"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {clientesFrecuentes.map(cliente => (
-                            <SelectItem key={cliente.id} value={cliente.id}>
-                              {cliente.nombre}
-                            </SelectItem>
-                          ))}
+                          {loadingClientes ? (
+                            <div className="flex items-center justify-center p-2">
+                              <IconLoader2 className="h-4 w-4 animate-spin mr-2" />
+                              <span>Cargando clientes...</span>
+                            </div>
+                          ) : clientes.length > 0 ? (
+                            clientes.map(cliente => (
+                              <SelectItem key={cliente.id} value={cliente.id}>
+                                {cliente.nombre} {cliente.email && `(${cliente.email})`}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <div className="p-2 text-center text-sm text-muted-foreground">
+                              No hay clientes disponibles
+                            </div>
+                          )}
                         </SelectContent>
                       </Select>
                       <FormDescription>
@@ -422,18 +531,32 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
+                      disabled={loadingPlanners}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar planner" />
+                          <SelectValue placeholder={loadingPlanners ? "Cargando planners..." : "Seleccionar planner"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {planners.map(planner => (
-                          <SelectItem key={planner.id} value={planner.id}>
-                            {planner.nombre}
-                          </SelectItem>
-                        ))}
+                        {loadingPlanners ? (
+                          <div className="flex items-center justify-center p-2">
+                            <IconLoader2 className="h-4 w-4 animate-spin mr-2" />
+                            <span>Cargando planners...</span>
+                          </div>
+                        ) : planners.length > 0 ? (
+                          planners.map(planner => (
+                            <SelectItem key={planner.id} value={planner.id}>
+                              {planner.username} 
+                              {planner.email ? `(${planner.email})` : ''} 
+                              {planner.rol ? ` - ${planner.rol}` : ''}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="p-2 text-center text-sm text-muted-foreground">
+                            No hay planners disponibles. Asegúrate de que los usuarios tengan el rol &ldquo;planner&rdquo; asignado.
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
