@@ -7,6 +7,9 @@ import {
   IconDotsVertical,
   IconLoader,
   IconCalendarEvent,
+  IconPencil,
+  IconTrash,
+  IconEye,
 } from "@tabler/icons-react"
 import {
   ColumnDef,
@@ -45,22 +48,72 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 
-// Define schema for event data
-export const eventSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  type: z.string(),
-  date: z.string(),
-  location: z.string(),
-  attendees: z.number(),
-  budget: z.number(),
-  status: z.string(),
+// Define schema para datos de eventos desde la API
+export const eventoSchema = z.object({
+  id: z.string(),
+  nombre: z.string(),
+  tipo: z.string(),
+  fecha: z.string().nullable().optional(),
+  estado: z.string(),
+  comentario: z.string().nullable().optional(),
+  cliente: z.object({
+    id: z.string(),
+    nombre: z.string(),
+    contacto: z.string().optional(),
+    email: z.string().optional(),
+  }).nullable().optional(),
+  planner: z.object({
+    id: z.string(),
+    nombre: z.string(),
+  }).nullable().optional(),
+  created: z.string(),
+  updated: z.string(),
 })
 
-type Event = z.infer<typeof eventSchema>
+type Evento = z.infer<typeof eventoSchema>
 
-const columns: ColumnDef<Event>[] = [
+// Función para mapear tipos de eventos a textos legibles
+function mapearTipoLegible(tipoApi: string | null | undefined): string {
+  if (!tipoApi) return "Sin definir";
+  
+  const mapaTipos: Record<string, string> = {
+    "aniversario": "Aniversario",
+    "bat-bar": "Bat/Bar Mitzvah",
+    "bautismo": "Bautismo",
+    "casamiento": "Casamiento",
+    "civil": "Civil",
+    "comunion": "Comunión",
+    "corporativo": "Corporativo",
+    "cumpleanos": "Cumpleaños",
+    "egresados": "Egresados",
+    "en-casa": "En Casa",
+    "festejo": "Festejo",
+    "fiesta15": "15 Años"
+  };
+
+  return mapaTipos[tipoApi.toLowerCase()] || tipoApi;
+}
+
+// Función para mapear estados de la API a estados visuales
+function mapearEstadoVisual(estadoApi: string | null | undefined): string {
+  if (!estadoApi) return "Pendiente";
+  
+  switch (estadoApi.toLowerCase()) {
+    case "finalizado":
+      return "Completado";
+    case "en-curso":
+      return "Pendiente";
+    case "cancelado":
+      return "Cancelado";
+    default:
+      return "Pendiente";
+  }
+}
+
+const columns: ColumnDef<Evento>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -71,7 +124,7 @@ const columns: ColumnDef<Event>[] = [
             (table.getIsSomePageRowsSelected() && "indeterminate")
           }
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
+          aria-label="Seleccionar todo"
         />
       </div>
     ),
@@ -80,7 +133,7 @@ const columns: ColumnDef<Event>[] = [
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
+          aria-label="Seleccionar fila"
         />
       </div>
     ),
@@ -88,64 +141,77 @@ const columns: ColumnDef<Event>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "name",
-    header: "Event Name",
-    cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
+    accessorKey: "nombre",
+    header: "Nombre del Evento",
+    cell: ({ row }) => <div className="font-medium">{row.getValue("nombre")}</div>,
     enableHiding: false,
   },
   {
-    accessorKey: "type",
-    header: "Type",
-    cell: ({ row }) => (
-      <div className="w-32">
-        <Badge variant="outline" className="text-muted-foreground px-1.5">
-          {row.getValue("type")}
-        </Badge>
-      </div>
-    ),
-  },
-  {
-    accessorKey: "date",
-    header: "Date",
-    cell: ({ row }) => <div>{row.getValue("date")}</div>,
-  },
-  {
-    accessorKey: "location",
-    header: "Location",
-    cell: ({ row }) => <div>{row.getValue("location")}</div>,
-  },
-  {
-    accessorKey: "attendees",
-    header: () => <div className="text-right">Attendees</div>,
-    cell: ({ row }) => <div className="text-right">{row.getValue("attendees")}</div>,
-  },
-  {
-    accessorKey: "budget",
-    header: () => <div className="text-right">Budget ($)</div>,
-    cell: ({ row }) => <div className="text-right">
-      {new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(row.getValue("budget"))}
-    </div>,
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
+    accessorKey: "tipo",
+    header: "Tipo",
     cell: ({ row }) => {
-      const status = row.getValue("status") as string
+      const tipoApi = row.getValue("tipo") as string | null | undefined;
+      const tipoLegible = mapearTipoLegible(tipoApi);
+      
       return (
-        <Badge variant="outline" className={`text-muted-foreground px-1.5 ${getStatusColor(status)}`}>
-          {status === "Completed" ? (
+        <div className="w-32">
+          <Badge variant="outline" className="text-muted-foreground px-1.5">
+            {tipoLegible}
+          </Badge>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "fecha",
+    header: "Fecha",
+    cell: ({ row }) => {
+      const fecha = row.getValue("fecha") as string | null;
+      if (!fecha) return <div className="text-muted-foreground">No definida</div>;
+      
+      try {
+        return <div>{format(parseISO(fecha), "PP", { locale: es })}</div>;
+      } catch {
+        // En caso de error de parseo de fecha, mostramos el valor sin formato
+        return <div className="text-muted-foreground">{fecha}</div>;
+      }
+    },
+  },
+  {
+    accessorKey: "cliente",
+    header: "Cliente",
+    cell: ({ row }) => {
+      const cliente = row.original.cliente;
+      return <div>{cliente ? cliente.nombre : "Sin asignar"}</div>;
+    },
+  },
+  {
+    accessorKey: "planner",
+    header: "Planner",
+    cell: ({ row }) => {
+      const planner = row.original.planner;
+      return <div>{planner ? planner.nombre : "Sin asignar"}</div>;
+    },
+  },
+  {
+    accessorKey: "estado",
+    header: "Estado",
+    cell: ({ row }) => {
+      const estadoApi = row.getValue("estado") as string | null | undefined;
+      const estado = mapearEstadoVisual(estadoApi);
+      
+      return (
+        <Badge variant="outline" className={`text-muted-foreground px-1.5 ${getStatusColor(estadoApi)}`}>
+          {estado === "Completado" ? (
             <IconCircleCheckFilled className="mr-1 fill-green-500 dark:fill-green-400" />
-          ) : status === "Upcoming" ? (
+          ) : estado === "Confirmado" ? (
             <IconCalendarEvent className="mr-1 text-blue-500" />
+          ) : estado === "Cancelado" ? (
+            <IconTrash className="mr-1 text-red-500" />
           ) : (
             <IconLoader className="mr-1 text-yellow-500" />
           )}
-          {status}
+          {estado}
         </Badge>
       )
     },
@@ -157,7 +223,7 @@ const columns: ColumnDef<Event>[] = [
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              aria-label="Open menu"
+              aria-label="Abrir menú"
               variant="ghost"
               className="data-[state=open]:bg-muted flex h-8 w-8 p-0"
             >
@@ -167,26 +233,26 @@ const columns: ColumnDef<Event>[] = [
           <DropdownMenuContent align="end" className="w-[160px]">
             <DropdownMenuItem
               onClick={() => {
-                toast.success(`Viewed details for ${row.original.name}`)
+                toast.success(`Ver detalles de ${row.original.nombre}`)
               }}
             >
-              View Details
+              <IconEye className="h-4 w-4 mr-2" /> Ver Detalles
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
-                toast.success(`Editing ${row.original.name}`)
+                toast.success(`Editando ${row.original.nombre}`)
               }}
             >
-              Edit
+              <IconPencil className="h-4 w-4 mr-2" /> Editar
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {
-                toast(`Deleted ${row.original.name}`)
+                toast(`Eliminado ${row.original.nombre}`)
               }}
               className="text-destructive focus:text-destructive"
             >
-              Delete
+              <IconTrash className="h-4 w-4 mr-2" /> Eliminar
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -196,29 +262,40 @@ const columns: ColumnDef<Event>[] = [
 ]
 
 // Helper function to get status colors
-function getStatusColor(status: string) {
-  switch (status) {
-    case "Completed":
+function getStatusColor(estado: string | null | undefined) {
+  // Convertir estados de la API a los estados visuales de la UI
+  const estadoVisual = mapearEstadoVisual(estado);
+  
+  switch (estadoVisual) {
+    case "Completado":
       return "bg-green-100/20 dark:bg-green-900/20"
-    case "Upcoming":
+    case "Confirmado":
       return "bg-blue-100/20 dark:bg-blue-900/20"
-    case "Planning":
+    case "Pendiente":
       return "bg-yellow-100/20 dark:bg-yellow-900/20"
+    case "Cancelado":
+      return "bg-red-100/20 dark:bg-red-900/20"
     default:
       return ""
   }
 }
 
 export function EventsDataTable({
-  data: initialData,
+  data: initialData
 }: {
-  data: z.infer<typeof eventSchema>[]
+  data: Evento[]
 }) {
-  const [data] = React.useState(initialData)
+  const [data, setData] = React.useState<Evento[]>(initialData)
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
+
+  // Actualizar los datos cuando cambia la prop initialData
+  React.useEffect(() => {
+    console.log("Datos recibidos en tabla:", initialData);
+    setData(initialData);
+  }, [initialData]);
 
   const table = useReactTable({
     data,
@@ -247,52 +324,52 @@ export function EventsDataTable({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-2">
           <Input
-            placeholder="Filter events..."
-            value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+            placeholder="Filtrar eventos..."
+            value={(table.getColumn("nombre")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
-              table.getColumn("name")?.setFilterValue(event.target.value)
+              table.getColumn("nombre")?.setFilterValue(event.target.value)
             }
             className="max-w-sm"
           />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="ml-auto flex gap-1">
-                Status
+                Estado
                 <IconChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuCheckboxItem
-                checked={!table.getColumn("status")?.getFilterValue()}
+                checked={!table.getColumn("estado")?.getFilterValue()}
                 onCheckedChange={() => {
-                  table.getColumn("status")?.setFilterValue(undefined)
+                  table.getColumn("estado")?.setFilterValue(undefined)
                 }}
               >
-                All
+                Todos
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
-                checked={table.getColumn("status")?.getFilterValue() === "Upcoming"}
+                checked={table.getColumn("estado")?.getFilterValue() === "en-curso"}
                 onCheckedChange={() => {
-                  table.getColumn("status")?.setFilterValue("Upcoming")
+                  table.getColumn("estado")?.setFilterValue("en-curso")
                 }}
               >
-                Upcoming
+                Pendientes
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
-                checked={table.getColumn("status")?.getFilterValue() === "Planning"}
+                checked={table.getColumn("estado")?.getFilterValue() === "finalizado"}
                 onCheckedChange={() => {
-                  table.getColumn("status")?.setFilterValue("Planning")
+                  table.getColumn("estado")?.setFilterValue("finalizado")
                 }}
               >
-                Planning
+                Completados
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
-                checked={table.getColumn("status")?.getFilterValue() === "Completed"}
+                checked={table.getColumn("estado")?.getFilterValue() === "cancelado"}
                 onCheckedChange={() => {
-                  table.getColumn("status")?.setFilterValue("Completed")
+                  table.getColumn("estado")?.setFilterValue("cancelado")
                 }}
               >
-                Completed
+                Cancelados
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -302,7 +379,8 @@ export function EventsDataTable({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="ml-auto">
-                Columns
+                Columnas
+                <IconChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -321,7 +399,19 @@ export function EventsDataTable({
                         column.toggleVisibility(!!value)
                       }
                     >
-                      {column.id}
+                      {column.id === "nombre" 
+                        ? "Nombre" 
+                        : column.id === "tipo" 
+                        ? "Tipo"
+                        : column.id === "fecha"
+                        ? "Fecha"
+                        : column.id === "cliente"
+                        ? "Cliente"
+                        : column.id === "planner"
+                        ? "Planner"
+                        : column.id === "estado"
+                        ? "Estado"
+                        : column.id}
                     </DropdownMenuCheckboxItem>
                   )
                 })}
@@ -373,7 +463,7 @@ export function EventsDataTable({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  No hay eventos para mostrar
                 </TableCell>
               </TableRow>
             )}
@@ -381,10 +471,10 @@ export function EventsDataTable({
         </Table>
       </div>
 
-      <div className="flex items-center justify-end space-x-2 py-4">
+      <div className="flex items-center justify-end space-x-2">
         <div className="text-muted-foreground flex-1 text-sm">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
+          {table.getFilteredSelectedRowModel().rows.length} de{" "}
+          {table.getFilteredRowModel().rows.length} fila(s) seleccionada(s).
         </div>
         <div className="space-x-2">
           <Button
@@ -393,7 +483,7 @@ export function EventsDataTable({
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Previous
+            Anterior
           </Button>
           <Button
             variant="outline"
@@ -401,7 +491,7 @@ export function EventsDataTable({
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Next
+            Siguiente
           </Button>
         </div>
       </div>
