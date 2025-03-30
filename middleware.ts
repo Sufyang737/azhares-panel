@@ -3,7 +3,14 @@ import PocketBase from 'pocketbase';
 
 export async function middleware(request: NextRequest) {
   // Rutas públicas que no requieren autenticación
-  const publicRoutes = ['/login', '/_next', '/favicon.ico', '/api/auth'];
+  const publicRoutes = [
+    '/login', 
+    '/_next', 
+    '/favicon.ico', 
+    '/api/auth', 
+    '/api/email/test-open',
+    '/formulario' // Añadimos la ruta del formulario como pública
+  ];
   
   // Verificar si la ruta actual está en las rutas públicas
   const isPublicPath = publicRoutes.some(route => 
@@ -87,6 +94,6 @@ export const config = {
      * 2. /_next (archivos de Next.js)
      * 3. /favicon.ico, /assets, etc. (archivos estáticos)
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|assets).*)',
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|assets|formulario).*)',
   ],
 }; 

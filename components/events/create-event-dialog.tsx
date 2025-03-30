@@ -68,11 +68,15 @@ interface Planner {
 // Definir el esquema de validación usando Zod
 const eventoFormSchema = z.object({
   nombre: z.string().min(1, "El nombre es obligatorio"),
-  tipo: z.enum(["aniversario", "boda", "corporativo", "cumpleaños", "otro"]),
+  tipo: z.enum([
+    "aniversario", "bat-bar", "bautismo", "casamiento", 
+    "civil", "comunion", "corporativo", "cumpleanos", 
+    "egresados", "en-casa", "festejo", "fiesta15"
+  ]),
   fecha: z.date({
     required_error: "La fecha es obligatoria",
   }),
-  estado: z.enum(["en-curso", "completado", "cancelado", "pendiente"]),
+  estado: z.enum(["en-curso", "finalizado", "cancelado"]),
   comentario: z.string().optional(),
   cliente_id: z.string().optional(),
   // Campos para cliente nuevo
@@ -85,8 +89,8 @@ const eventoFormSchema = z.object({
 type EventoFormValues = z.infer<typeof eventoFormSchema>;
 
 const defaultValues: Partial<EventoFormValues> = {
-  tipo: "otro",
-  estado: "pendiente",
+  tipo: "festejo",
+  estado: "en-curso",
   cliente_nuevo: false,
 };
 
@@ -240,7 +244,9 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
       if (result.success) {
         toast({
           title: "Evento creado",
-          description: "El evento se ha creado exitosamente",
+          description: clienteNuevo 
+            ? "El evento se ha creado exitosamente y se ha enviado un correo de bienvenida al cliente."
+            : "El evento se ha creado exitosamente.",
         });
         form.reset(defaultValues);
         setIsOpen(false);
@@ -331,10 +337,17 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="aniversario">Aniversario</SelectItem>
-                        <SelectItem value="boda">Boda</SelectItem>
+                        <SelectItem value="bat-bar">Bat/Bar mitzvah</SelectItem>
+                        <SelectItem value="bautismo">Bautismo</SelectItem>
+                        <SelectItem value="casamiento">Casamiento</SelectItem>
+                        <SelectItem value="civil">Civil</SelectItem>
+                        <SelectItem value="comunion">Comunión</SelectItem>
                         <SelectItem value="corporativo">Corporativo</SelectItem>
-                        <SelectItem value="cumpleaños">Cumpleaños</SelectItem>
-                        <SelectItem value="otro">Otro</SelectItem>
+                        <SelectItem value="cumpleanos">Cumpleaños</SelectItem>
+                        <SelectItem value="egresados">Egresados</SelectItem>
+                        <SelectItem value="en-casa">En Casa</SelectItem>
+                        <SelectItem value="festejo">Festejo</SelectItem>
+                        <SelectItem value="fiesta15">Fiesta de 15</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -358,9 +371,8 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="pendiente">Pendiente</SelectItem>
                         <SelectItem value="en-curso">En curso</SelectItem>
-                        <SelectItem value="completado">Completado</SelectItem>
+                        <SelectItem value="finalizado">Finalizado</SelectItem>
                         <SelectItem value="cancelado">Cancelado</SelectItem>
                       </SelectContent>
                     </Select>
@@ -472,6 +484,9 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
                         <FormControl>
                           <Input placeholder="Email del cliente" {...field} value={field.value || ""} />
                         </FormControl>
+                        <FormDescription>
+                          Se enviará un correo de bienvenida personalizado a esta dirección con los detalles del evento.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
