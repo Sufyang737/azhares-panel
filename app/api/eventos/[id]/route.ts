@@ -5,20 +5,27 @@ import PocketBase from 'pocketbase';
 const pb = new PocketBase('https://pocketbase-ykw4ks40gswowocosk80k440.srv.clostech.tech');
 
 // Obtener un evento específico
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
+  // Obtener ID desde la URL
+  const url = request.url;
+  const idFromUrl = url.split('/').pop();
+  
+  if (!idFromUrl) {
+    return NextResponse.json(
+      { success: false, error: 'ID no proporcionado' },
+      { status: 400 }
+    );
+  }
+  
   try {
-    const id = params.id;
-    const record = await pb.collection('evento').getOne(id);
+    const record = await pb.collection('evento').getOne(idFromUrl);
     
     return NextResponse.json({ 
       success: true, 
-      data: record 
+      data: record
     });
   } catch (error) {
-    console.error(`Error al obtener evento con ID ${params.id}:`, error);
+    console.error(`Error al obtener evento:`, error);
     return NextResponse.json(
       { success: false, error: 'Evento no encontrado' },
       { status: 404 }
@@ -27,46 +34,58 @@ export async function GET(
 }
 
 // Actualizar un evento
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest) {
+  const url = request.url;
+  const idFromUrl = url.split('/').pop();
+  
+  if (!idFromUrl) {
+    return NextResponse.json(
+      { success: false, error: 'ID no proporcionado' },
+      { status: 400 }
+    );
+  }
+  
   try {
-    const id = params.id;
     const data = await request.json();
     
-    const record = await pb.collection('evento').update(id, data);
+    const record = await pb.collection('evento').update(idFromUrl, data);
     
     return NextResponse.json({ 
       success: true, 
-      data: record 
+      data: record
     });
   } catch (error) {
-    console.error(`Error al actualizar evento con ID ${params.id}:`, error);
+    console.error(`Error:`, error);
     return NextResponse.json(
-      { success: false, error: 'Error al actualizar evento' },
+      { success: false, error: 'Error' },
       { status: 500 }
     );
   }
 }
 
 // Eliminar un evento
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest) {
+  const url = request.url;
+  const idFromUrl = url.split('/').pop();
+  
+  if (!idFromUrl) {
+    return NextResponse.json(
+      { success: false, error: 'ID no proporcionado' },
+      { status: 400 }
+    );
+  }
+  
   try {
-    const id = params.id;
-    await pb.collection('evento').delete(id);
+    await pb.collection('evento').delete(idFromUrl);
     
     return NextResponse.json({ 
       success: true,
-      message: 'Evento eliminado correctamente'
+      message: 'Operación simulada correctamente'
     });
   } catch (error) {
-    console.error(`Error al eliminar evento con ID ${params.id}:`, error);
+    console.error(`Error:`, error);
     return NextResponse.json(
-      { success: false, error: 'Error al eliminar evento' },
+      { success: false, error: 'Error' },
       { status: 500 }
     );
   }

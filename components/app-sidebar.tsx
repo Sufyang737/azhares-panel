@@ -9,6 +9,7 @@ import {
   IconCalendarEvent,
   IconBuilding,
   IconUserCircle,
+  IconTruck,
 } from "@tabler/icons-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -50,6 +51,11 @@ const data = {
       title: "People",
       url: "/dashboard/people",
       icon: IconUserCircle,
+    },
+    {
+      title: "Proveedores",
+      url: "/dashboard/proveedores",
+      icon: IconTruck,
     },
   ],
   navSecondary: [

@@ -61,8 +61,7 @@ export function ThemeSelector() {
       <Select value={activeTheme} onValueChange={setActiveTheme}>
         <SelectTrigger
           id="theme-selector"
-          size="sm"
-          className="justify-start *:data-[slot=select-value]:w-12"
+          className="justify-start *:data-[slot=select-value]:w-12 text-sm"
         >
           <span className="text-muted-foreground hidden sm:block">
             Select a theme:

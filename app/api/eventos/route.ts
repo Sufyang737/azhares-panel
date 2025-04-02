@@ -168,10 +168,11 @@ export async function POST(request: NextRequest) {
           });
           
           // Llamar al endpoint para enviar el email
-          const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/email/send`, {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+          const emailResponse = await fetch(`${appUrl}/api/email/send`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({
               to: data.cliente_email,
@@ -251,4 +252,203 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Handler para PATCH (actualizar evento)
+export async function PATCH(request: NextRequest) {
+  try {
+    const pb = new PocketBase(pocketbaseUrl);
+    
+    // Autenticar como administrador
+    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
+    if (adminToken) {
+      pb.authStore.save(adminToken, null);
+    } else {
+      throw new Error('Token de administrador no configurado');
+    }
+    
+    // Obtener datos del cuerpo de la solicitud
+    const data = await request.json();
+    console.log('PATCH Evento - Datos recibidos:', JSON.stringify(data, null, 2));
+    
+    // Validar que se proporcionó un ID
+    if (!data.id) {
+      console.log('PATCH Evento - Falta ID del evento');
+      return NextResponse.json(
+        { success: false, error: 'Se requiere ID del evento' },
+        { status: 400 }
+      );
+    }
+    
+    // Extraer ID y preparar datos para actualización
+    const eventId = data.id;
+    const updateData = { ...data };
+    delete updateData.id; // Eliminar ID de los datos a actualizar
+    
+    console.log(`PATCH Evento - Actualizando evento ${eventId} con:`, JSON.stringify(updateData, null, 2));
+    
+    // Si se está actualizando el cliente, verificar que existe
+    if (updateData.cliente_id) {
+      try {
+        console.log('PATCH Evento - Verificando cliente con ID:', updateData.cliente_id);
+        const cliente = await pb.collection('cliente').getOne(updateData.cliente_id);
+        console.log('PATCH Evento - Cliente encontrado:', cliente.nombre);
+      } catch (error) {
+        console.error('PATCH Evento - Error al verificar cliente:', error);
+        return NextResponse.json(
+          { success: false, error: 'Cliente no encontrado' },
+          { status: 400 }
+        );
+      }
+    }
+    
+    // Si se está actualizando el planner, verificar que existe
+    if (updateData.planner_id) {
+      try {
+        console.log('PATCH Evento - Verificando planner con ID:', updateData.planner_id);
+        const planner = await pb.collection('usuarios').getOne(updateData.planner_id);
+        console.log('PATCH Evento - Planner encontrado:', planner.username);
+      } catch (error) {
+        console.error('PATCH Evento - Error al verificar planner:', error);
+        return NextResponse.json(
+          { success: false, error: 'Planner no encontrado' },
+          { status: 400 }
+        );
+      }
+    }
+    
+    // Actualizar el evento en PocketBase
+    try {
+      const updatedRecord = await pb.collection('evento').update(eventId, updateData);
+      console.log('PATCH Evento - Evento actualizado con éxito:', updatedRecord.id);
+      
+      // Obtener el evento actualizado con sus relaciones expandidas
+      const eventoCompleto = await pb.collection('evento').getOne(updatedRecord.id, {
+        expand: 'cliente_id,planner_id'
+      });
+      
+      // Formatear la respuesta
+      const cliente = eventoCompleto.expand?.cliente_id ? {
+        id: eventoCompleto.expand.cliente_id.id,
+        nombre: eventoCompleto.expand.cliente_id.nombre,
+        contacto: eventoCompleto.expand.cliente_id.contacto,
+        email: eventoCompleto.expand.cliente_id.email
+      } : null;
+      
+      let planner = null;
+      if (eventoCompleto.expand?.planner_id) {
+        planner = {
+          id: eventoCompleto.expand.planner_id.id,
+          nombre: eventoCompleto.expand.planner_id.nombre || eventoCompleto.expand.planner_id.username || "Planner"
+        };
+      }
+      
+      const respuestaFormateada = {
+        id: eventoCompleto.id,
+        nombre: eventoCompleto.nombre,
+        tipo: eventoCompleto.tipo,
+        fecha: eventoCompleto.fecha,
+        estado: eventoCompleto.estado,
+        comentario: eventoCompleto.comentario,
+        cliente: cliente,
+        planner: planner,
+        created: eventoCompleto.created,
+        updated: eventoCompleto.updated
+      };
+      
+      return NextResponse.json({
+        success: true,
+        data: respuestaFormateada
+      });
+    } catch (error) {
+      console.error('PATCH Evento - Error al actualizar evento:', error);
+      
+      // Intentar obtener detalles del error
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      
+      return NextResponse.json(
+        { success: false, error: `Error al actualizar evento: ${errorMessage}` },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error('PATCH Evento - Error general:', error);
+    return NextResponse.json(
+      { success: false, error: 'Error al procesar la solicitud' },
+      { status: 500 }
+    );
+  }
+}
+
+// Handler para DELETE (eliminar evento)
+export async function DELETE(request: NextRequest) {
+  try {
+    const pb = new PocketBase(pocketbaseUrl);
+    
+    // Autenticar como administrador
+    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
+    if (adminToken) {
+      pb.authStore.save(adminToken, null);
+    } else {
+      throw new Error('Token de administrador no configurado');
+    }
+    
+    // Obtener el ID del evento a eliminar desde la URL
+    const url = new URL(request.url);
+    const eventId = url.searchParams.get('id');
+    
+    if (!eventId) {
+      console.log('DELETE Evento - Falta ID del evento');
+      return NextResponse.json(
+        { success: false, error: 'Se requiere ID del evento' },
+        { status: 400 }
+      );
+    }
+    
+    console.log(`DELETE Evento - Intentando eliminar evento ${eventId}`);
+    
+    try {
+      // Intentar eliminar el evento directamente
+      await pb.collection('evento').delete(eventId);
+      console.log('DELETE Evento - Evento eliminado con éxito');
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Evento eliminado correctamente'
+      });
+    } catch (error) {
+      // Verificar si el error es porque el evento no existe (404)
+      console.error('DELETE Evento - Error al eliminar evento:', error);
+      
+      if (error instanceof Error && error.toString().includes('404')) {
+        console.log('DELETE Evento - El evento ya no existe en la base de datos');
+        // Si el evento no existe, consideramos que la operación fue exitosa
+        // porque el objetivo final (que el evento no exista) se ha cumplido
+        return NextResponse.json({
+          success: true,
+          message: 'Evento no encontrado o ya eliminado'
+        });
+      }
+      
+      // Para otros tipos de errores, devolvemos un error normal
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      
+      return NextResponse.json(
+        { success: false, error: `Error al eliminar evento: ${errorMessage}` },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error('DELETE Evento - Error general:', error);
+    return NextResponse.json(
+      { success: false, error: 'Error al procesar la solicitud' },
+      { status: 500 }
+    );
+  }
 } 
+
+
+//En pusa, Cencelado, En curso, finalizado
+
+// agregar fecha 
+// en el formulario enviar el template prearmado para el tipo de evento

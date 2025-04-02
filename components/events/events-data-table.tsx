@@ -3,13 +3,10 @@
 import * as React from "react"
 import {
   IconChevronDown,
-  IconCircleCheckFilled,
   IconDotsVertical,
-  IconLoader,
-  IconCalendarEvent,
-  IconPencil,
   IconTrash,
   IconEye,
+  IconEdit,
 } from "@tabler/icons-react"
 import {
   ColumnDef,
@@ -18,8 +15,6 @@ import {
   VisibilityState,
   flexRender,
   getCoreRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -38,6 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import {
@@ -50,27 +46,32 @@ import {
 } from "@/components/ui/table"
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { EditEventForm } from "./edit-event-form"
 
 // Define schema para datos de eventos desde la API
 export const eventoSchema = z.object({
   id: z.string(),
   nombre: z.string(),
   tipo: z.string(),
-  fecha: z.string().nullable().optional(),
+  fecha: z.string().nullable(),
   estado: z.string(),
-  comentario: z.string().nullable().optional(),
+  comentario: z.string().nullable(),
   cliente: z.object({
     id: z.string(),
-    nombre: z.string(),
-    contacto: z.string().optional(),
-    email: z.string().optional(),
-  }).nullable().optional(),
+    nombre: z.string()
+  }).nullable(),
   planner: z.object({
     id: z.string(),
-    nombre: z.string(),
-  }).nullable().optional(),
-  created: z.string(),
-  updated: z.string(),
+    nombre: z.string()
+  }).nullable()
 })
 
 type Evento = z.infer<typeof eventoSchema>
@@ -97,186 +98,18 @@ function mapearTipoLegible(tipoApi: string | null | undefined): string {
   return mapaTipos[tipoApi.toLowerCase()] || tipoApi;
 }
 
-// Función para mapear estados de la API a estados visuales
-function mapearEstadoVisual(estadoApi: string | null | undefined): string {
-  if (!estadoApi) return "Pendiente";
-  
-  switch (estadoApi.toLowerCase()) {
-    case "finalizado":
-      return "Completado";
-    case "en-curso":
-      return "Pendiente";
-    case "cancelado":
-      return "Cancelado";
+function getEstadoColor(estado: string) {
+  switch (estado.toLowerCase()) {
+    case 'confirmado':
+      return 'bg-green-100 text-green-800 hover:bg-green-200';
+    case 'pendiente':
+      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+    case 'cancelado':
+      return 'bg-red-100 text-red-800 hover:bg-red-200';
+    case 'completado':
+      return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
     default:
-      return "Pendiente";
-  }
-}
-
-const columns: ColumnDef<Evento>[] = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <div className="flex items-center justify-center">
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Seleccionar todo"
-        />
-      </div>
-    ),
-    cell: ({ row }) => (
-      <div className="flex items-center justify-center">
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Seleccionar fila"
-        />
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "nombre",
-    header: "Nombre del Evento",
-    cell: ({ row }) => <div className="font-medium">{row.getValue("nombre")}</div>,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "tipo",
-    header: "Tipo",
-    cell: ({ row }) => {
-      const tipoApi = row.getValue("tipo") as string | null | undefined;
-      const tipoLegible = mapearTipoLegible(tipoApi);
-      
-      return (
-        <div className="w-32">
-          <Badge variant="outline" className="text-muted-foreground px-1.5">
-            {tipoLegible}
-          </Badge>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "fecha",
-    header: "Fecha",
-    cell: ({ row }) => {
-      const fecha = row.getValue("fecha") as string | null;
-      if (!fecha) return <div className="text-muted-foreground">No definida</div>;
-      
-      try {
-        return <div>{format(parseISO(fecha), "PP", { locale: es })}</div>;
-      } catch {
-        // En caso de error de parseo de fecha, mostramos el valor sin formato
-        return <div className="text-muted-foreground">{fecha}</div>;
-      }
-    },
-  },
-  {
-    accessorKey: "cliente",
-    header: "Cliente",
-    cell: ({ row }) => {
-      const cliente = row.original.cliente;
-      return <div>{cliente ? cliente.nombre : "Sin asignar"}</div>;
-    },
-  },
-  {
-    accessorKey: "planner",
-    header: "Planner",
-    cell: ({ row }) => {
-      const planner = row.original.planner;
-      return <div>{planner ? planner.nombre : "Sin asignar"}</div>;
-    },
-  },
-  {
-    accessorKey: "estado",
-    header: "Estado",
-    cell: ({ row }) => {
-      const estadoApi = row.getValue("estado") as string | null | undefined;
-      const estado = mapearEstadoVisual(estadoApi);
-      
-      return (
-        <Badge variant="outline" className={`text-muted-foreground px-1.5 ${getStatusColor(estadoApi)}`}>
-          {estado === "Completado" ? (
-            <IconCircleCheckFilled className="mr-1 fill-green-500 dark:fill-green-400" />
-          ) : estado === "Confirmado" ? (
-            <IconCalendarEvent className="mr-1 text-blue-500" />
-          ) : estado === "Cancelado" ? (
-            <IconTrash className="mr-1 text-red-500" />
-          ) : (
-            <IconLoader className="mr-1 text-yellow-500" />
-          )}
-          {estado}
-        </Badge>
-      )
-    },
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              aria-label="Abrir menú"
-              variant="ghost"
-              className="data-[state=open]:bg-muted flex h-8 w-8 p-0"
-            >
-              <IconDotsVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[160px]">
-            <DropdownMenuItem
-              onClick={() => {
-                toast.success(`Ver detalles de ${row.original.nombre}`)
-              }}
-            >
-              <IconEye className="h-4 w-4 mr-2" /> Ver Detalles
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                toast.success(`Editando ${row.original.nombre}`)
-              }}
-            >
-              <IconPencil className="h-4 w-4 mr-2" /> Editar
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => {
-                toast(`Eliminado ${row.original.nombre}`)
-              }}
-              className="text-destructive focus:text-destructive"
-            >
-              <IconTrash className="h-4 w-4 mr-2" /> Eliminar
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
-    },
-  },
-]
-
-// Helper function to get status colors
-function getStatusColor(estado: string | null | undefined) {
-  // Convertir estados de la API a los estados visuales de la UI
-  const estadoVisual = mapearEstadoVisual(estado);
-  
-  switch (estadoVisual) {
-    case "Completado":
-      return "bg-green-100/20 dark:bg-green-900/20"
-    case "Confirmado":
-      return "bg-blue-100/20 dark:bg-blue-900/20"
-    case "Pendiente":
-      return "bg-yellow-100/20 dark:bg-yellow-900/20"
-    case "Cancelado":
-      return "bg-red-100/20 dark:bg-red-900/20"
-    default:
-      return ""
+      return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
   }
 }
 
@@ -290,6 +123,10 @@ export function EventsDataTable({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false)
+  const [eventToDelete, setEventToDelete] = React.useState<string | null>(null)
+  const [editDialogOpen, setEditDialogOpen] = React.useState(false)
+  const [eventToEdit, setEventToEdit] = React.useState<Evento | null>(null)
 
   // Actualizar los datos cuando cambia la prop initialData
   React.useEffect(() => {
@@ -297,26 +134,203 @@ export function EventsDataTable({
     setData(initialData);
   }, [initialData]);
 
+  const handleDeleteEvent = (id: string) => {
+    setEventToDelete(id);
+    setDeleteDialogOpen(true);
+  }
+  
+  const handleEditEvent = (event: Evento) => {
+    setEventToEdit(event);
+    setEditDialogOpen(true);
+  }
+  
+  const handleEditSuccess = () => {
+    setEditDialogOpen(false);
+    // Recargar la página para obtener los datos actualizados
+    window.location.reload();
+  }
+  
+  const confirmDelete = async () => {
+    if (!eventToDelete) return;
+    
+    try {
+      const response = await fetch(`/api/eventos?id=${eventToDelete}`, {
+        method: 'DELETE',
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success("Evento eliminado correctamente");
+        // Actualizar la lista de eventos eliminando el evento borrado
+        setData((prevEvents) => prevEvents.filter(event => event.id !== eventToDelete));
+      } else {
+        toast.error(`Error al eliminar: ${result.error || 'Error desconocido'}`);
+      }
+    } catch (error) {
+      console.error('Error al eliminar evento:', error);
+      toast.error("Error al comunicarse con el servidor");
+    } finally {
+      setDeleteDialogOpen(false);
+      setEventToDelete(null);
+    }
+  }
+
+  const columns: ColumnDef<Evento>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <div className="flex items-center justify-center">
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected()
+                ? true
+                : table.getIsSomePageRowsSelected()
+                ? "indeterminate"
+                : false
+            }
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Seleccionar todo"
+          />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center justify-center">
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Seleccionar fila"
+          />
+        </div>
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "nombre",
+      header: "Nombre del Evento",
+      cell: ({ row }) => <div className="font-medium">{row.getValue("nombre")}</div>,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "tipo",
+      header: "Tipo",
+      cell: ({ row }) => {
+        const tipoApi = row.getValue("tipo") as string;
+        const tipoLegible = mapearTipoLegible(tipoApi);
+        
+        return (
+          <div className="w-32">
+            <Badge variant="outline" className="text-muted-foreground px-1.5">
+              {tipoLegible}
+            </Badge>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "fecha",
+      header: "Fecha",
+      cell: ({ row }) => {
+        const fecha = row.getValue("fecha") as string | null;
+        if (!fecha) return <div className="text-muted-foreground">No definida</div>;
+        
+        try {
+          return <div>{format(parseISO(fecha), "PP", { locale: es })}</div>;
+        } catch {
+          // En caso de error de parseo de fecha, mostramos el valor sin formato
+          return <div className="text-muted-foreground">{fecha}</div>;
+        }
+      },
+    },
+    {
+      accessorKey: "cliente",
+      header: "Cliente",
+      cell: ({ row }) => {
+        const cliente = row.original.cliente;
+        return <div>{cliente ? cliente.nombre : "Sin asignar"}</div>;
+      },
+    },
+    {
+      accessorKey: "planner",
+      header: "Planner",
+      cell: ({ row }) => {
+        const planner = row.original.planner;
+        return <div>{planner ? planner.nombre : "Sin asignar"}</div>;
+      },
+    },
+    {
+      accessorKey: "estado",
+      header: "Estado",
+      cell: ({ row }) => {
+        const estado = row.getValue("estado") as string;
+        return (
+          <Badge className={getEstadoColor(estado)}>
+            {estado}
+          </Badge>
+        );
+      },
+    },
+    {
+      id: "acciones",
+      header: "Acciones",
+      cell: ({ row }) => {
+        const event = row.original;
+        
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Abrir menú</span>
+                <IconDotsVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => navigator.clipboard.writeText(event.id)}
+              >
+                <IconEye className="mr-2 h-4 w-4" />
+                <span>Ver detalles</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleEditEvent(event)}
+              >
+                <IconEdit className="mr-2 h-4 w-4" />
+                <span>Editar evento</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => handleDeleteEvent(event.id)}
+                className="text-red-600 focus:bg-red-50"
+              >
+                <IconTrash className="mr-2 h-4 w-4" />
+                <span>Eliminar</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      },
+    },
+  ];
+
   const table = useReactTable({
     data,
     columns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
     },
-    enableRowSelection: true,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
   })
 
   return (
@@ -348,17 +362,17 @@ export function EventsDataTable({
                 Todos
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
-                checked={table.getColumn("estado")?.getFilterValue() === "en-curso"}
+                checked={table.getColumn("estado")?.getFilterValue() === "pendiente"}
                 onCheckedChange={() => {
-                  table.getColumn("estado")?.setFilterValue("en-curso")
+                  table.getColumn("estado")?.setFilterValue("pendiente")
                 }}
               >
                 Pendientes
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
-                checked={table.getColumn("estado")?.getFilterValue() === "finalizado"}
+                checked={table.getColumn("estado")?.getFilterValue() === "completado"}
                 onCheckedChange={() => {
-                  table.getColumn("estado")?.setFilterValue("finalizado")
+                  table.getColumn("estado")?.setFilterValue("completado")
                 }}
               >
                 Completados
@@ -495,6 +509,54 @@ export function EventsDataTable({
           </Button>
         </div>
       </div>
+
+      {/* Diálogo de confirmación para eliminar */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar eliminación</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Diálogo para editar evento */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Editar evento</DialogTitle>
+            <DialogDescription>
+              Modifica los detalles del evento y guarda los cambios cuando hayas terminado.
+            </DialogDescription>
+          </DialogHeader>
+          {eventToEdit && (
+            <EditEventForm 
+              initialData={{
+                id: eventToEdit.id,
+                nombre: eventToEdit.nombre,
+                tipo: eventToEdit.tipo,
+                fecha: eventToEdit.fecha ? new Date(eventToEdit.fecha) : undefined,
+                estado: eventToEdit.estado,
+                comentario: eventToEdit.comentario || "",
+                cliente_id: eventToEdit.cliente?.id,
+                planner_id: eventToEdit.planner?.id,
+              }}
+              onSuccess={handleEditSuccess}
+              onCancel={() => setEditDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

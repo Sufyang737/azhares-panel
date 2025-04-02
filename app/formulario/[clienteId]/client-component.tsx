@@ -777,7 +777,7 @@ export default function FormularioClienteComponent({ clienteId }: FormularioClie
                                   onSelect={field.onChange}
                                   locale={es}
                                   initialFocus
-                                  captionLayout="dropdown-buttons"
+                                  captionLayout="dropdown"
                                   fromYear={1930}
                                   toYear={2024}
                                 />

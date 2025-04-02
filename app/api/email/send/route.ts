@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { NextRequest, NextResponse } from 'next/server';
-import WelcomeEmail from '@/components/emails/welcome-template';
+// No usaremos el componente de React directamente
+// import { WelcomeEmail } from '@/components/emails/welcome-template';
 
 // Inicializar Resend con la API key
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -22,6 +23,77 @@ interface EmailRequest {
   plannerName?: string;
   clienteId?: string;
   formUrl?: string;
+}
+
+// Función para generar el HTML del email
+function generateEmailHtml(props: {
+  clientName: string;
+  eventName: string;
+  eventDate: string;
+  plannerName: string;
+  clienteId?: string;
+  formUrl?: string;
+}) {
+  const {
+    clientName,
+    eventName,
+    eventDate,
+    plannerName,
+    formUrl
+  } = props;
+  
+  const formularioButton = formUrl 
+    ? `<div style="margin: 32px 0; text-align: center;">
+         <p style="color: #1a1a1a; font-size: 16px; line-height: 1.5; margin: 12px 0;">
+           Para brindarle un mejor servicio, necesitamos algunos datos adicionales. Por favor, complete el siguiente formulario:
+         </p>
+         <a href="${formUrl}" style="background-color: #5e17eb; border-radius: 4px; color: #fff; font-size: 15px; font-weight: bold; text-decoration: none; text-align: center; display: block; padding: 12px 16px; margin: 0 auto; width: 220px;">
+           Completar mis datos
+         </a>
+       </div>`
+    : '';
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Bienvenido a Azhares Panel</title>
+      </head>
+      <body style="background-color: #ffffff; font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen-Sans,Ubuntu,Cantarell,'Helvetica Neue',sans-serif;">
+        <div style="margin: 0 auto; padding: 20px 0 48px; max-width: 580px;">
+          <h1 style="color: #1a1a1a; font-size: 24px; font-weight: 600; line-height: 1.3; margin: 0 0 24px;">¡Bienvenido a Azhares Panel!</h1>
+          <p style="color: #1a1a1a; font-size: 16px; line-height: 1.5; margin: 12px 0;">
+            Estimado/a ${clientName},
+          </p>
+          <p style="color: #1a1a1a; font-size: 16px; line-height: 1.5; margin: 12px 0;">
+            ¡Nos complace darle la bienvenida a Azhares Panel! Su evento ha sido registrado exitosamente en nuestro sistema.
+          </p>
+          <p style="color: #1a1a1a; font-size: 16px; line-height: 1.5; margin: 12px 0;">
+            Detalles de su evento:
+          </p>
+          <div style="color: #1a1a1a; font-size: 14px; line-height: 1.5; margin: 24px 0; padding: 24px; background-color: #f7f7f7; border-radius: 4px;">
+            • Nombre del evento: ${eventName}<br />
+            • Fecha: ${eventDate}<br />
+            • Planificador asignado: ${plannerName}
+          </div>
+          
+          ${formularioButton}
+          
+          <p style="color: #1a1a1a; font-size: 16px; line-height: 1.5; margin: 12px 0;">
+            Nuestro equipo está comprometido a hacer de su evento una experiencia inolvidable. Su planificador asignado se pondrá en contacto con usted próximamente para discutir los detalles.
+          </p>
+          <p style="color: #1a1a1a; font-size: 16px; line-height: 1.5; margin: 12px 0;">
+            Si tiene alguna pregunta o inquietud inmediata, no dude en contactarnos.
+          </p>
+          <p style="color: #666666; font-size: 14px; line-height: 1.5; margin: 24px 0 0;">
+            Saludos cordiales,<br />
+            El equipo de Azhares
+          </p>
+        </div>
+      </body>
+    </html>
+  `;
 }
 
 export async function POST(request: NextRequest) {
@@ -93,18 +165,25 @@ export async function POST(request: NextRequest) {
         isDevelopment: isDevelopment
       }, null, 2));
 
+      // Crear los props para el email
+      const emailProps = {
+        clientName: body.clientName || 'Cliente',
+        eventName: body.eventName || 'Evento',
+        eventDate: formattedDate || 'Fecha por confirmar',
+        plannerName: body.plannerName || 'Sin asignar',
+        clienteId: body.clienteId,
+        formUrl: formUrl,
+      };
+
+      // Generar el HTML del email
+      const htmlContent = generateEmailHtml(emailProps);
+
+      // Enviar el email
       const { data, error } = await resend.emails.send({
         from: 'Azhares Panel <onboarding@resend.dev>',
         to: [actualRecipient],
         subject: body.subject || `¡Bienvenido a Azhares Panel!${isDevelopment ? ' [TEST]' : ''}`,
-        react: WelcomeEmail({
-          clientName: body.clientName || 'Cliente',
-          eventName: body.eventName || 'Evento',
-          eventDate: formattedDate || 'Fecha por confirmar',
-          plannerName: body.plannerName || 'Sin asignar',
-          clienteId: body.clienteId,
-          formUrl: formUrl,
-        }),
+        html: htmlContent
       });
 
       if (error) {

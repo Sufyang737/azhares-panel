@@ -1,52 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import PocketBase from 'pocketbase';
 
-// Handler para POST (crear persona)
-export async function POST(request: NextRequest) {
-  try {
-    // Inicialización de PocketBase usando la variable de entorno
-    const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
-    
-    // Autenticar como administrador
-    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
-    if (adminToken) {
-      pb.authStore.save(adminToken, null);
-    } else {
-      throw new Error('Token de administrador no configurado');
-    }
-    
-    const data = await request.json();
-    
-    // Validar los campos requeridos mínimos
-    if (!data.nombre || !data.email) {
-      return NextResponse.json(
-        { success: false, error: 'Se requieren al menos nombre y email' },
-        { status: 400 }
-      );
-    }
-    
-    // Crear la persona en PocketBase
-    const record = await pb.collection('personas').create(data);
-    
-    return NextResponse.json({ 
-      success: true, 
-      data: record,
-      id: record.id
-    });
-  } catch (error) {
-    console.error('Error al crear persona:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error al crear persona' },
-      { status: 500 }
-    );
-  }
-}
+// Inicialización de PocketBase usando la variable de entorno
+const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || 'https://pocketbase-ykw4ks40gswowocosk80k440.srv.clostech.tech';
 
 // Handler para GET (obtener personas)
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Inicialización de PocketBase usando la variable de entorno
-    const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
+    const pb = new PocketBase(pocketbaseUrl);
     
     // Autenticar como administrador
     const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
@@ -56,18 +17,259 @@ export async function GET() {
       throw new Error('Token de administrador no configurado');
     }
     
-    const personas = await pb.collection('personas').getList(1, 50, {
-      sort: '-created',
+    // Obtener parámetros de consulta para paginación, filtrado, etc.
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const limit = parseInt(url.searchParams.get('limit') || '50');
+    const search = url.searchParams.get('search') || '';
+    const sort = url.searchParams.get('sort') || '-created';
+    
+    // Construir opciones de filtro para la consulta
+    const filter = search 
+      ? `nombre ~ "${search}" || apellido ~ "${search}" || email ~ "${search}" || telefono ~ "${search}"`
+      : '';
+    
+    console.log('GET Personas - Parámetros:', { page, limit, search, sort, filter });
+    
+    // Obtener personas con paginación y filtros
+    const personas = await pb.collection('personas').getList(page, limit, {
+      sort: sort,
+      filter: filter,
+      expand: 'cliente_id' // Expandir la relación para obtener los datos del cliente
     });
     
+    // Transformar los datos si es necesario
+    const personasFormateadas = personas.items.map(persona => {
+      return {
+        id: persona.id,
+        nombre: persona.nombre || '',
+        apellido: persona.apellido || '',
+        telefono: persona.telefono || '',
+        email: persona.email || '',
+        cumpleanio: persona.cumpleanio || null,
+        pais: persona.pais || '',
+        ciudad: persona.ciudad || '',
+        instagram: persona.instagram || '',
+        direccion: persona.direccion || '',
+        comentario: persona.comentario || '',
+        tipo_persona: persona.tipo_persona || null,
+        cliente_id: persona.cliente_id || null,
+        cliente: persona.expand?.cliente_id ? {
+          id: persona.expand.cliente_id.id,
+          nombre: persona.expand.cliente_id.nombre
+        } : null,
+        relacion: persona.relacion || null,
+        created: persona.created,
+        updated: persona.updated
+      };
+    });
+    
+    // Devolver respuesta con paginación
     return NextResponse.json({ 
       success: true, 
-      data: personas.items
+      data: personasFormateadas,
+      pagination: {
+        page: personas.page,
+        totalPages: personas.totalPages,
+        totalItems: personas.totalItems,
+        perPage: personas.perPage
+      }
     });
   } catch (error) {
     console.error('Error al obtener personas:', error);
     return NextResponse.json(
       { success: false, error: 'Error al obtener personas' },
+      { status: 500 }
+    );
+  }
+}
+
+// Handler para POST (crear persona)
+export async function POST(request: NextRequest) {
+  try {
+    const pb = new PocketBase(pocketbaseUrl);
+    
+    // Autenticar como administrador
+    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
+    if (adminToken) {
+      pb.authStore.save(adminToken, null);
+    } else {
+      throw new Error('Token de administrador no configurado');
+    }
+    
+    // Obtener datos del cuerpo de la solicitud
+    const data = await request.json();
+    console.log('POST Persona - Datos recibidos:', JSON.stringify(data, null, 2));
+    
+    // Validar campos requeridos
+    if (!data.nombre || !data.apellido) {
+      console.log('POST Persona - Faltan campos requeridos');
+      return NextResponse.json(
+        { success: false, error: 'Se requieren al menos nombre y apellido' },
+        { status: 400 }
+      );
+    }
+    
+    // Procesar "none" como null para cliente_id
+    if (data.cliente_id === "none") {
+      data.cliente_id = null;
+    }
+    
+    // Crear la persona en PocketBase
+    try {
+      const record = await pb.collection('personas').create(data);
+      console.log('POST Persona - Persona creada con ID:', record.id);
+      
+      return NextResponse.json({
+        success: true,
+        data: record,
+        id: record.id
+      });
+    } catch (error) {
+      console.error('POST Persona - Error al crear persona:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      
+      return NextResponse.json(
+        { success: false, error: `Error al crear persona: ${errorMessage}` },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error('POST Persona - Error general:', error);
+    return NextResponse.json(
+      { success: false, error: 'Error al procesar la solicitud' },
+      { status: 500 }
+    );
+  }
+}
+
+// Handler para PATCH (actualizar persona)
+export async function PATCH(request: NextRequest) {
+  try {
+    const pb = new PocketBase(pocketbaseUrl);
+    
+    // Autenticar como administrador
+    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
+    if (adminToken) {
+      pb.authStore.save(adminToken, null);
+    } else {
+      throw new Error('Token de administrador no configurado');
+    }
+    
+    // Obtener datos del cuerpo de la solicitud
+    const data = await request.json();
+    console.log('PATCH Persona - Datos recibidos:', JSON.stringify(data, null, 2));
+    
+    // Validar que se proporcionó un ID
+    if (!data.id) {
+      console.log('PATCH Persona - Falta ID de la persona');
+      return NextResponse.json(
+        { success: false, error: 'Se requiere ID de la persona' },
+        { status: 400 }
+      );
+    }
+    
+    // Procesar "none" como null para cliente_id
+    if (data.cliente_id === "none") {
+      data.cliente_id = null;
+    }
+    
+    // Extraer ID y preparar datos para actualización
+    const personaId = data.id;
+    const updateData = { ...data };
+    delete updateData.id; // Eliminar ID de los datos a actualizar
+    
+    console.log(`PATCH Persona - Actualizando persona ${personaId} con:`, JSON.stringify(updateData, null, 2));
+    
+    // Actualizar la persona en PocketBase
+    try {
+      const updatedRecord = await pb.collection('personas').update(personaId, updateData);
+      console.log('PATCH Persona - Persona actualizada con éxito:', updatedRecord.id);
+      
+      return NextResponse.json({
+        success: true,
+        data: updatedRecord
+      });
+    } catch (error) {
+      console.error('PATCH Persona - Error al actualizar persona:', error);
+      
+      // Intentar obtener detalles del error
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      
+      return NextResponse.json(
+        { success: false, error: `Error al actualizar persona: ${errorMessage}` },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error('PATCH Persona - Error general:', error);
+    return NextResponse.json(
+      { success: false, error: 'Error al procesar la solicitud' },
+      { status: 500 }
+    );
+  }
+}
+
+// Handler para DELETE (eliminar persona)
+export async function DELETE(request: NextRequest) {
+  try {
+    const pb = new PocketBase(pocketbaseUrl);
+    
+    // Autenticar como administrador
+    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
+    if (adminToken) {
+      pb.authStore.save(adminToken, null);
+    } else {
+      throw new Error('Token de administrador no configurado');
+    }
+    
+    // Obtener el ID de la persona a eliminar desde la URL
+    const url = new URL(request.url);
+    const personaId = url.searchParams.get('id');
+    
+    if (!personaId) {
+      console.log('DELETE Persona - Falta ID de la persona');
+      return NextResponse.json(
+        { success: false, error: 'Se requiere ID de la persona' },
+        { status: 400 }
+      );
+    }
+    
+    console.log(`DELETE Persona - Intentando eliminar persona ${personaId}`);
+    
+    try {
+      // Intentar eliminar la persona
+      await pb.collection('personas').delete(personaId);
+      console.log('DELETE Persona - Persona eliminada con éxito');
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Persona eliminada correctamente'
+      });
+    } catch (error) {
+      // Verificar si el error es porque la persona no existe (404)
+      console.error('DELETE Persona - Error al eliminar persona:', error);
+      
+      if (error instanceof Error && error.toString().includes('404')) {
+        console.log('DELETE Persona - La persona ya no existe en la base de datos');
+        return NextResponse.json({
+          success: true,
+          message: 'Persona no encontrada o ya eliminada'
+        });
+      }
+      
+      // Para otros tipos de errores, devolvemos un error normal
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      
+      return NextResponse.json(
+        { success: false, error: `Error al eliminar persona: ${errorMessage}` },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error('DELETE Persona - Error general:', error);
+    return NextResponse.json(
+      { success: false, error: 'Error al procesar la solicitud' },
       { status: 500 }
     );
   }

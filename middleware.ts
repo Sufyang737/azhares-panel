@@ -9,7 +9,9 @@ export async function middleware(request: NextRequest) {
     '/favicon.ico', 
     '/api/auth', 
     '/api/email/test-open',
-    '/formulario' // Añadimos la ruta del formulario como pública
+    '/api/email/send',
+    '/formulario', // Formulario público
+    '/api/formulario'  // API del formulario público
   ];
   
   // Verificar si la ruta actual está en las rutas públicas
@@ -93,7 +95,10 @@ export const config = {
      * 1. /api/auth (endpoints de autenticación)
      * 2. /_next (archivos de Next.js)
      * 3. /favicon.ico, /assets, etc. (archivos estáticos)
+     * 4. /formulario (formulario público y todas sus rutas)
+     * 5. /api/email/send (endpoint para envío de emails)
+     * 6. /api/formulario (API del formulario público)
      */
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|assets|formulario).*)',
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|assets|formulario|api/email/send|api/formulario).*)',
   ],
 }; 
