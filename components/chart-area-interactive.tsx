@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
+import { useState, useEffect } from "react"
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
@@ -29,120 +30,136 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group"
+import { Contabilidad } from "@/app/dashboard/contabilidad/page"
+
+// Custom hook para obtener cotización del dólar blue
+const useDolarBlue = () => {
+  const [dolarBlue, setDolarBlue] = useState<{ compra: number, venta: number } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchDolarBlue = async () => {
+      setLoading(true)
+      try {
+        const response = await fetch('https://dolarapi.com/v1/dolares/blue')
+        if (!response.ok) {
+          throw new Error(`Error al obtener cotización: ${response.status}`)
+        }
+        const data = await response.json()
+        setDolarBlue({
+          compra: data.compra,
+          venta: data.venta
+        })
+      } catch (err) {
+        console.error('Error fetching dolar blue:', err)
+        setError(err instanceof Error ? err.message : 'Error desconocido')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDolarBlue()
+  }, [])
+
+  return { dolarBlue, loading, error }
+}
 
 export const description = "An interactive area chart"
 
-const chartData = [
-  { date: "2024-04-01", desktop: 222, mobile: 150 },
-  { date: "2024-04-02", desktop: 97, mobile: 180 },
-  { date: "2024-04-03", desktop: 167, mobile: 120 },
-  { date: "2024-04-04", desktop: 242, mobile: 260 },
-  { date: "2024-04-05", desktop: 373, mobile: 290 },
-  { date: "2024-04-06", desktop: 301, mobile: 340 },
-  { date: "2024-04-07", desktop: 245, mobile: 180 },
-  { date: "2024-04-08", desktop: 409, mobile: 320 },
-  { date: "2024-04-09", desktop: 59, mobile: 110 },
-  { date: "2024-04-10", desktop: 261, mobile: 190 },
-  { date: "2024-04-11", desktop: 327, mobile: 350 },
-  { date: "2024-04-12", desktop: 292, mobile: 210 },
-  { date: "2024-04-13", desktop: 342, mobile: 380 },
-  { date: "2024-04-14", desktop: 137, mobile: 220 },
-  { date: "2024-04-15", desktop: 120, mobile: 170 },
-  { date: "2024-04-16", desktop: 138, mobile: 190 },
-  { date: "2024-04-17", desktop: 446, mobile: 360 },
-  { date: "2024-04-18", desktop: 364, mobile: 410 },
-  { date: "2024-04-19", desktop: 243, mobile: 180 },
-  { date: "2024-04-20", desktop: 89, mobile: 150 },
-  { date: "2024-04-21", desktop: 137, mobile: 200 },
-  { date: "2024-04-22", desktop: 224, mobile: 170 },
-  { date: "2024-04-23", desktop: 138, mobile: 230 },
-  { date: "2024-04-24", desktop: 387, mobile: 290 },
-  { date: "2024-04-25", desktop: 215, mobile: 250 },
-  { date: "2024-04-26", desktop: 75, mobile: 130 },
-  { date: "2024-04-27", desktop: 383, mobile: 420 },
-  { date: "2024-04-28", desktop: 122, mobile: 180 },
-  { date: "2024-04-29", desktop: 315, mobile: 240 },
-  { date: "2024-04-30", desktop: 454, mobile: 380 },
-  { date: "2024-05-01", desktop: 165, mobile: 220 },
-  { date: "2024-05-02", desktop: 293, mobile: 310 },
-  { date: "2024-05-03", desktop: 247, mobile: 190 },
-  { date: "2024-05-04", desktop: 385, mobile: 420 },
-  { date: "2024-05-05", desktop: 481, mobile: 390 },
-  { date: "2024-05-06", desktop: 498, mobile: 520 },
-  { date: "2024-05-07", desktop: 388, mobile: 300 },
-  { date: "2024-05-08", desktop: 149, mobile: 210 },
-  { date: "2024-05-09", desktop: 227, mobile: 180 },
-  { date: "2024-05-10", desktop: 293, mobile: 330 },
-  { date: "2024-05-11", desktop: 335, mobile: 270 },
-  { date: "2024-05-12", desktop: 197, mobile: 240 },
-  { date: "2024-05-13", desktop: 197, mobile: 160 },
-  { date: "2024-05-14", desktop: 448, mobile: 490 },
-  { date: "2024-05-15", desktop: 473, mobile: 380 },
-  { date: "2024-05-16", desktop: 338, mobile: 400 },
-  { date: "2024-05-17", desktop: 499, mobile: 420 },
-  { date: "2024-05-18", desktop: 315, mobile: 350 },
-  { date: "2024-05-19", desktop: 235, mobile: 180 },
-  { date: "2024-05-20", desktop: 177, mobile: 230 },
-  { date: "2024-05-21", desktop: 82, mobile: 140 },
-  { date: "2024-05-22", desktop: 81, mobile: 120 },
-  { date: "2024-05-23", desktop: 252, mobile: 290 },
-  { date: "2024-05-24", desktop: 294, mobile: 220 },
-  { date: "2024-05-25", desktop: 201, mobile: 250 },
-  { date: "2024-05-26", desktop: 213, mobile: 170 },
-  { date: "2024-05-27", desktop: 420, mobile: 460 },
-  { date: "2024-05-28", desktop: 233, mobile: 190 },
-  { date: "2024-05-29", desktop: 78, mobile: 130 },
-  { date: "2024-05-30", desktop: 340, mobile: 280 },
-  { date: "2024-05-31", desktop: 178, mobile: 230 },
-  { date: "2024-06-01", desktop: 178, mobile: 200 },
-  { date: "2024-06-02", desktop: 470, mobile: 410 },
-  { date: "2024-06-03", desktop: 103, mobile: 160 },
-  { date: "2024-06-04", desktop: 439, mobile: 380 },
-  { date: "2024-06-05", desktop: 88, mobile: 140 },
-  { date: "2024-06-06", desktop: 294, mobile: 250 },
-  { date: "2024-06-07", desktop: 323, mobile: 370 },
-  { date: "2024-06-08", desktop: 385, mobile: 320 },
-  { date: "2024-06-09", desktop: 438, mobile: 480 },
-  { date: "2024-06-10", desktop: 155, mobile: 200 },
-  { date: "2024-06-11", desktop: 92, mobile: 150 },
-  { date: "2024-06-12", desktop: 492, mobile: 420 },
-  { date: "2024-06-13", desktop: 81, mobile: 130 },
-  { date: "2024-06-14", desktop: 426, mobile: 380 },
-  { date: "2024-06-15", desktop: 307, mobile: 350 },
-  { date: "2024-06-16", desktop: 371, mobile: 310 },
-  { date: "2024-06-17", desktop: 475, mobile: 520 },
-  { date: "2024-06-18", desktop: 107, mobile: 170 },
-  { date: "2024-06-19", desktop: 341, mobile: 290 },
-  { date: "2024-06-20", desktop: 408, mobile: 450 },
-  { date: "2024-06-21", desktop: 169, mobile: 210 },
-  { date: "2024-06-22", desktop: 317, mobile: 270 },
-  { date: "2024-06-23", desktop: 480, mobile: 530 },
-  { date: "2024-06-24", desktop: 132, mobile: 180 },
-  { date: "2024-06-25", desktop: 141, mobile: 190 },
-  { date: "2024-06-26", desktop: 434, mobile: 380 },
-  { date: "2024-06-27", desktop: 448, mobile: 490 },
-  { date: "2024-06-28", desktop: 149, mobile: 200 },
-  { date: "2024-06-29", desktop: 103, mobile: 160 },
-  { date: "2024-06-30", desktop: 446, mobile: 400 },
-]
-
+// Configuración del gráfico
 const chartConfig = {
-  visitors: {
-    label: "Visitors",
+  ingresos: {
+    label: "Ingresos",
+    color: "rgb(74, 222, 128)", // Verde brillante
   },
-  desktop: {
-    label: "Desktop",
-    color: "var(--primary)",
-  },
-  mobile: {
-    label: "Mobile",
-    color: "var(--primary)",
+  egresos: {
+    label: "Egresos",
+    color: "rgb(248, 113, 113)", // Rojo brillante
   },
 } satisfies ChartConfig
 
-export function ChartAreaInteractive() {
+// Tipado para los datos del gráfico
+interface ChartDataItem {
+  date: string;
+  ingresos: number;
+  egresos: number;
+}
+
+// Función para procesar los datos de contabilidad y transformarlos para el gráfico
+const processContabilidadData = (registros: Contabilidad[], timeRange: string, dolarBlue: { compra: number, venta: number } | null): ChartDataItem[] => {
+  if (!registros || registros.length === 0) {
+    return [];
+  }
+
+  // Filtrar por rango de tiempo
+  const referenceDate = new Date();
+  let daysToSubtract = 90;
+  if (timeRange === "30d") {
+    daysToSubtract = 30;
+  } else if (timeRange === "7d") {
+    daysToSubtract = 7;
+  }
+  
+  const startDate = new Date(referenceDate);
+  startDate.setDate(startDate.getDate() - daysToSubtract);
+  
+  // Filtrar registros dentro del rango de tiempo
+  const filteredRegistros = registros.filter(registro => {
+    const fechaRegistro = new Date(registro.fechaEfectuado || registro.fechaEspera);
+    return fechaRegistro >= startDate;
+  });
+  
+  // Agrupar por fecha y tipo (cobro/pago)
+  const entriesByDate: Record<string, { ingresos: number, egresos: number }> = {};
+  
+  // Crear entradas para cada día del rango (para asegurar continuidad en el gráfico)
+  const tempDate = new Date(startDate);
+  while (tempDate <= referenceDate) {
+    const dateStr = tempDate.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    entriesByDate[dateStr] = { ingresos: 0, egresos: 0 };
+    tempDate.setDate(tempDate.getDate() + 1);
+  }
+  
+  // Agregar los datos reales
+  filteredRegistros.forEach(registro => {
+    const fecha = new Date(registro.fechaEfectuado || registro.fechaEspera);
+    const dateStr = fecha.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+    
+    // Asegurarse de que existe la entrada para esa fecha
+    if (!entriesByDate[dateStr]) {
+      entriesByDate[dateStr] = { ingresos: 0, egresos: 0 };
+    }
+    
+    // Convertir a pesos argentinos si es necesario
+    let montoEnPesos = registro.montoEspera || 0;
+    if (registro.moneda === 'usd') {
+      // Usar el valor real del dólar blue
+      const tasaCambio = dolarBlue?.venta || 1000; // Valor por defecto si no hay cotización
+      montoEnPesos = montoEnPesos * tasaCambio;
+    }
+    
+    // Acumular según el tipo
+    if (registro.type === 'cobro') {
+      entriesByDate[dateStr].ingresos += montoEnPesos;
+    } else if (registro.type === 'pago') {
+      entriesByDate[dateStr].egresos += montoEnPesos;
+    }
+  });
+  
+  // Convertir a array y ordenar por fecha
+  const result = Object.entries(entriesByDate).map(([date, values]) => ({
+    date,
+    ...values
+  })).sort((a, b) => a.date.localeCompare(b.date));
+  
+  return result;
+};
+
+export function ChartAreaInteractive({ registros = [] }: { registros?: Contabilidad[] }) {
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState("90d")
+  const { dolarBlue, loading: dolarLoading } = useDolarBlue()
 
   React.useEffect(() => {
     if (isMobile) {
@@ -150,29 +167,28 @@ export function ChartAreaInteractive() {
     }
   }, [isMobile])
 
-  const filteredData = chartData.filter((item) => {
-    const date = new Date(item.date)
-    const referenceDate = new Date("2024-06-30")
-    let daysToSubtract = 90
-    if (timeRange === "30d") {
-      daysToSubtract = 30
-    } else if (timeRange === "7d") {
-      daysToSubtract = 7
-    }
-    const startDate = new Date(referenceDate)
-    startDate.setDate(startDate.getDate() - daysToSubtract)
-    return date >= startDate
-  })
+  // Procesar datos para el gráfico
+  const chartData = React.useMemo(() => {
+    return processContabilidadData(registros, timeRange, dolarBlue);
+  }, [registros, timeRange, dolarBlue]);
+
+  // Calcular el dominio del eje Y basado en los datos
+  const yDomain = React.useMemo(() => {
+    if (!chartData.length) return [0, 100];
+    const allValues = chartData.flatMap(item => [item.ingresos, item.egresos]);
+    const maxValue = Math.max(...allValues);
+    return [0, maxValue * 1.1]; // Añadir 10% de margen superior
+  }, [chartData]);
 
   return (
     <Card className="@container/card">
       <CardHeader>
-        <CardTitle>Total Visitors</CardTitle>
+        <CardTitle>Movimientos Financieros</CardTitle>
         <CardDescription>
           <span className="hidden @[540px]/card:block">
-            Total for the last 3 months
+            Ingresos y egresos en el tiempo
           </span>
-          <span className="@[540px]/card:hidden">Last 3 months</span>
+          <span className="@[540px]/card:hidden">Flujo financiero</span>
         </CardDescription>
         <CardAction>
           <ToggleGroup
@@ -182,108 +198,124 @@ export function ChartAreaInteractive() {
             variant="outline"
             className="hidden *:data-[slot=toggle-group-item]:!px-4 @[767px]/card:flex"
           >
-            <ToggleGroupItem value="90d">Last 3 months</ToggleGroupItem>
-            <ToggleGroupItem value="30d">Last 30 days</ToggleGroupItem>
-            <ToggleGroupItem value="7d">Last 7 days</ToggleGroupItem>
+            <ToggleGroupItem value="90d">Últimos 3 meses</ToggleGroupItem>
+            <ToggleGroupItem value="30d">Últimos 30 días</ToggleGroupItem>
+            <ToggleGroupItem value="7d">Últimos 7 días</ToggleGroupItem>
           </ToggleGroup>
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger
               className="flex w-40 **:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[767px]/card:hidden text-sm"
               aria-label="Select a value"
             >
-              <SelectValue placeholder="Last 3 months" />
+              <SelectValue placeholder="Últimos 3 meses" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="90d" className="rounded-lg">
-                Last 3 months
-              </SelectItem>
-              <SelectItem value="30d" className="rounded-lg">
-                Last 30 days
-              </SelectItem>
-              <SelectItem value="7d" className="rounded-lg">
-                Last 7 days
-              </SelectItem>
+            <SelectContent>
+              <SelectItem value="90d">Últimos 3 meses</SelectItem>
+              <SelectItem value="30d">Últimos 30 días</SelectItem>
+              <SelectItem value="7d">Últimos 7 días</SelectItem>
             </SelectContent>
           </Select>
         </CardAction>
       </CardHeader>
-      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+      <CardContent>
         <ChartContainer
           config={chartConfig}
           className="aspect-auto h-[250px] w-full"
         >
-          <AreaChart data={filteredData}>
-            <defs>
-              <linearGradient id="fillDesktop" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-desktop)"
-                  stopOpacity={1.0}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-desktop)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-              <linearGradient id="fillMobile" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-mobile)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-mobile)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-            </defs>
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="date"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              minTickGap={32}
-              tickFormatter={(value) => {
-                const date = new Date(value)
-                return date.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })
-              }}
-            />
-            <ChartTooltip
-              cursor={false}
-              defaultIndex={isMobile ? -1 : 10}
-              content={
-                <ChartTooltipContent
-                  labelFormatter={(value) => {
-                    return new Date(value).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })
-                  }}
-                  indicator="dot"
-                />
-              }
-            />
-            <Area
-              dataKey="mobile"
-              type="natural"
-              fill="url(#fillMobile)"
-              stroke="var(--color-mobile)"
-              stackId="a"
-            />
-            <Area
-              dataKey="desktop"
-              type="natural"
-              fill="url(#fillDesktop)"
-              stroke="var(--color-desktop)"
-              stackId="a"
-            />
-          </AreaChart>
+          {chartData.length > 0 ? (
+            <AreaChart 
+              data={chartData}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="fillIngresos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="rgb(74, 222, 128)" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="rgb(74, 222, 128)" stopOpacity={0.1} />
+                </linearGradient>
+                <linearGradient id="fillEgresos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="rgb(248, 113, 113)" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="rgb(248, 113, 113)" stopOpacity={0.1} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={32}
+                tickFormatter={function formatXAxis(value) {
+                  const date = new Date(value)
+                  return date.toLocaleDateString("es-AR", {
+                    month: "short",
+                    day: "numeric",
+                  })
+                }}
+              />
+              <YAxis 
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickFormatter={function formatYAxis(value) {
+                  return `$${new Intl.NumberFormat('es-AR', { 
+                    notation: 'compact',
+                    compactDisplay: 'short'
+                  }).format(value)}`;
+                }}
+                domain={yDomain}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={function formatLabel(value) {
+                      return new Date(value as string).toLocaleDateString("es-AR", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric"
+                      })
+                    }}
+                    formatter={function formatValue(value, name) {
+                      const numericValue = Number(value);
+                      const formatted = `$${new Intl.NumberFormat('es-AR').format(numericValue)}`;
+                      const label = name === 'ingresos' ? 'Ingresos' : 'Egresos';
+                      const color = name === 'ingresos' ? 'rgb(74, 222, 128)' : 'rgb(248, 113, 113)';
+                      return [
+                        <span key="value" style={{ color: color, fontWeight: 'bold' }}>{formatted}</span>,
+                        <span key="name" style={{ color: color }}>{label}</span>
+                      ]
+                    }}
+                    indicator="dot"
+                    className="bg-background/80 backdrop-blur-sm border-muted-foreground/20 shadow-lg"
+                  />
+                }
+              />
+              <Area
+                dataKey="ingresos"
+                type="monotone"
+                fill="url(#fillIngresos)"
+                stroke="rgb(74, 222, 128)"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 2 }}
+                stackId="1"
+              />
+              <Area
+                dataKey="egresos"
+                type="monotone"
+                fill="url(#fillEgresos)"
+                stroke="rgb(248, 113, 113)"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 6, strokeWidth: 2 }}
+                stackId="2"
+              />
+            </AreaChart>
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-muted-foreground text-sm">No hay datos disponibles para este período</p>
+            </div>
+          )}
         </ChartContainer>
       </CardContent>
     </Card>

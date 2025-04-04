@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { IconPlus } from "@tabler/icons-react"
 
@@ -12,13 +11,22 @@ import { NewProveedorDialog } from "@/components/proveedores/new-proveedor-dialo
 import { EditProveedorDialog } from "@/components/proveedores/edit-proveedor-dialog"
 import { ViewProveedorDialog } from "@/components/proveedores/view-proveedor-dialog"
 import { DeleteProveedorDialog } from "@/components/proveedores/delete-proveedor-dialog"
-import { type Proveedor } from "@/components/proveedores/proveedores-data-table"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+
+// Definimos el tipo Proveedor aquí para evitar problemas de importación
+export interface Proveedor {
+  id: string;
+  nombre: string;
+  contacto: string;
+  telefono: string;
+  email: string;
+  direccion: string;
+  tipo: string;
+  notas: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function ProveedoresPage() {
-  const router = useRouter()
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
   const [loading, setLoading] = useState(true)
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false)
@@ -119,48 +127,31 @@ export default function ProveedoresPage() {
   }
   
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <div className="px-4 lg:px-6">
-                <div className="flex justify-between items-center">
-                  <h1 className="text-3xl font-bold tracking-tight">Proveedores</h1>
-                  <Button onClick={() => setIsNewDialogOpen(true)}>
-                    <IconPlus className="mr-2 h-4 w-4" />
-                    Nuevo Proveedor
-                  </Button>
-                </div>
-                
-                <Tabs defaultValue="todos" className="w-full mt-6">
-                  <TabsList>
-                    <TabsTrigger value="todos">Todos los Proveedores</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="todos" className="mt-6">
-                    <ProveedoresDataTable 
-                      data={proveedores} 
-                      loading={loading} 
-                      onDelete={handleDeleteClick}
-                      onEdit={handleEdit}
-                      onView={handleView}
-                    />
-                  </TabsContent>
-                </Tabs>
-              </div>
-            </div>
-          </div>
+    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+      <div className="px-4 lg:px-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold tracking-tight">Proveedores</h1>
+          <Button onClick={() => setIsNewDialogOpen(true)}>
+            <IconPlus className="mr-2 h-4 w-4" />
+            Nuevo Proveedor
+          </Button>
         </div>
-      </SidebarInset>
+        
+        <Tabs defaultValue="todos" className="w-full mt-6">
+          <TabsList>
+            <TabsTrigger value="todos">Todos los Proveedores</TabsTrigger>
+          </TabsList>
+          <TabsContent value="todos" className="mt-6">
+            <ProveedoresDataTable 
+              data={proveedores} 
+              loading={loading} 
+              onDelete={handleDeleteClick}
+              onEdit={handleEdit}
+              onView={handleView}
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
       
       {/* Diálogo para crear un nuevo proveedor */}
       <NewProveedorDialog 
@@ -191,6 +182,6 @@ export default function ProveedoresPage() {
         onOpenChange={setIsDeleteDialogOpen}
         onProveedorDeleted={handleDelete}
       />
-    </SidebarProvider>
+    </div>
   )
 } 

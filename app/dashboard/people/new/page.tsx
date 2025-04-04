@@ -1,25 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
 import { toast } from "sonner"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { CalendarIcon } from "@radix-ui/react-icons"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { cn } from "@/lib/utils"
-import { Calendar } from "@/components/ui/calendar"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import { IconArrowLeft } from "@tabler/icons-react"
+
+import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
@@ -29,11 +21,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { IconArrowLeft, IconDeviceFloppy, IconUserPlus } from "@tabler/icons-react"
-import Link from "next/link"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -41,40 +30,52 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { CalendarIcon } from "@radix-ui/react-icons"
 
-// Tipos de persona disponibles
+// Lista de tipos de persona
 const tiposPersona = [
-  { value: "Cliente Principal", label: "Cliente Principal" },
-  { value: "Padre", label: "Padre" },
-  { value: "Madre", label: "Madre" },
-  { value: "Hijo", label: "Hijo" },
-  { value: "Hija", label: "Hija" },
-  { value: "Familiar", label: "Familiar" },
-  { value: "Otro", label: "Otro" },
+  { value: "cliente principal", label: "Cliente Principal" },
+  { value: "contacto", label: "Contacto" },
+  { value: "padre", label: "Padre" },
+  { value: "madre", label: "Madre" },
+  { value: "hijo", label: "Hijo/a" },
+  { value: "familiar", label: "Familiar" },
+  { value: "amigo", label: "Amigo/a" },
+  { value: "empleado", label: "Empleado" },
+  { value: "proveedor", label: "Proveedor" },
+  { value: "otro", label: "Otro" },
 ]
 
-// El esquema de validación para el formulario
+// Esquema de validación
 const formSchema = z.object({
-  nombre: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres" }),
-  apellido: z.string().optional().nullable(),
-  telefono: z.string().optional().nullable(),
-  email: z.string().email({ message: "Email inválido" }).optional().nullable(),
-  cumpleanio: z.date().optional().nullable(),
-  pais: z.string().optional().nullable(),
-  ciudad: z.string().optional().nullable(),
-  instagram: z.string().optional().nullable(),
-  direccion: z.string().optional().nullable(),
-  comentario: z.string().optional().nullable(),
-  tipo_persona: z.string().optional().nullable(),
-  cliente_id: z.string().optional().nullable(),
+  nombre: z.string().min(2, {
+    message: "El nombre debe tener al menos 2 caracteres",
+  }),
+  apellido: z.string().optional(),
+  telefono: z.string().optional(),
+  email: z.string().email({
+    message: "Por favor ingrese un email válido",
+  }).optional().or(z.literal("")),
+  cumpleanio: z.date().optional(),
+  pais: z.string().optional(),
+  ciudad: z.string().optional(),
+  instagram: z.string().optional(),
+  direccion: z.string().optional(),
+  comentario: z.string().optional(),
+  tipo_persona: z.string().optional(),
+  cliente_id: z.string().optional(),
 })
 
-interface Cliente {
-  id: string;
-  nombre: string;
-}
-
 type FormValues = z.infer<typeof formSchema>
+
+// Interfaz para los clientes en el select
+interface Cliente {
+  id: string
+  nombre: string
+}
 
 export default function NewPersonPage() {
   const router = useRouter()
@@ -126,360 +127,329 @@ export default function NewPersonPage() {
     },
   })
 
+  // Manejar el envío del formulario
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true)
+
     try {
-      // Preparar objeto para crear
-      const personaData = {
-        nombre: values.nombre,
-        apellido: values.apellido || null,
-        telefono: values.telefono || null,
-        email: values.email || null,
-        cumpleanio: values.cumpleanio ? format(values.cumpleanio, 'yyyy-MM-dd') : null,
-        pais: values.pais || null,
-        ciudad: values.ciudad || null,
-        instagram: values.instagram || null,
-        direccion: values.direccion || null,
-        comentario: values.comentario || null,
-        tipo_persona: values.tipo_persona || null,
-        cliente_id: values.cliente_id || null,
+      // Preparar objeto para enviar a la API
+      const personData = {
+        ...values,
+        cumpleanio: values.cumpleanio 
+          ? format(values.cumpleanio, 'yyyy-MM-dd') 
+          : undefined,
+        // Si se seleccionó "none", enviar null
+        cliente_id: values.cliente_id === "none" ? null : values.cliente_id || null,
       }
 
-      const response = await fetch(`/api/personas`, {
+      const response = await fetch('/api/personas', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(personaData),
+        body: JSON.stringify(personData),
       })
 
       const result = await response.json()
 
       if (result.success) {
         toast.success('Persona creada correctamente')
-        // Redirigir a la lista de personas
         router.push('/dashboard/people')
       } else {
-        toast.error(`Error al crear persona: ${result.error || 'Error desconocido'}`)
+        toast.error(`Error al crear: ${result.error || 'Error desconocido'}`)
       }
     } catch (error) {
       console.error('Error creando persona:', error)
-      toast.error('Error de conexión al crear persona')
+      toast.error('Error de conexión al crear')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-col flex-1">
-          <div className="@container/main flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                asChild
-              >
-                <Link href="/dashboard/people">
-                  <IconArrowLeft className="mr-2 h-4 w-4" />
-                  Volver
-                </Link>
-              </Button>
-              <div>
-                <h1 className="text-xl font-semibold">Nueva Persona</h1>
-                <p className="text-sm text-muted-foreground">
-                  Crear una nueva persona en el sistema
-                </p>
-              </div>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Información Personal</CardTitle>
-                <CardDescription>
-                  Introduce los datos de la persona. Solo el nombre es obligatorio.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="nombre"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Nombre *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Nombre" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="apellido"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Apellido</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Apellido" {...field} value={field.value || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="tipo_persona"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Tipo de Persona</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
-                              defaultValue={field.value || undefined}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Seleccionar tipo" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {tiposPersona.map((tipo) => (
-                                  <SelectItem key={tipo.value} value={tipo.value}>
-                                    {tipo.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="cliente_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Cliente Asociado</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
-                              defaultValue={field.value || undefined}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder={loadingClientes ? "Cargando..." : "Seleccionar cliente"} />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="none">Ninguno</SelectItem>
-                                {clientes.map((cliente) => (
-                                  <SelectItem key={cliente.id} value={cliente.id}>
-                                    {cliente.nombre}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Correo electrónico</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="correo@ejemplo.com" {...field} value={field.value || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="telefono"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Teléfono</FormLabel>
-                            <FormControl>
-                              <Input placeholder="+34 600 123 456" {...field} value={field.value || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="cumpleanio"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel>Fecha de cumpleaños</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                      "pl-3 text-left font-normal",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                  >
-                                    {field.value ? (
-                                      format(field.value, "PP", { locale: es })
-                                    ) : (
-                                      <span>Seleccionar fecha</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value || undefined}
-                                  onSelect={field.onChange}
-                                  disabled={(date) =>
-                                    date > new Date()
-                                  }
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="instagram"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Instagram</FormLabel>
-                            <FormControl>
-                              <Input placeholder="@usuario" {...field} value={field.value || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="ciudad"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Ciudad</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Ciudad" {...field} value={field.value || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="pais"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>País</FormLabel>
-                            <FormControl>
-                              <Input placeholder="País" {...field} value={field.value || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="direccion"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Dirección</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Calle, número, código postal..." {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="comentario"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Comentarios</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Añade información adicional aquí..."
-                              {...field}
-                              value={field.value || ""}
-                              className="min-h-[100px]"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="flex gap-4 justify-end">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => router.push('/dashboard/people')}
-                        disabled={isSubmitting}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? (
-                          "Guardando..."
-                        ) : (
-                          <>
-                            <IconDeviceFloppy className="mr-2 h-4 w-4" />
-                            Guardar Persona
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
+    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+      <div className="px-4 lg:px-6">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            asChild
+          >
+            <Link href="/dashboard/people">
+              <IconArrowLeft className="mr-2 h-4 w-4" />
+              Volver
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-xl font-semibold">Nueva Persona</h1>
+            <p className="text-sm text-muted-foreground">
+              Crear una nueva persona en el sistema
+            </p>
           </div>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+      
+      <div className="px-4 lg:px-6">
+        <div className="rounded-lg border p-4 md:p-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="nombre"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nombre" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="apellido"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Apellido</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Apellido" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="tipo_persona"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Persona</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar tipo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {tiposPersona.map((tipo) => (
+                            <SelectItem key={tipo.value} value={tipo.value}>
+                              {tipo.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cliente_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cliente Asociado</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={loadingClientes ? "Cargando..." : "Seleccionar cliente"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Ninguno</SelectItem>
+                          {clientes.map((cliente) => (
+                            <SelectItem key={cliente.id} value={cliente.id}>
+                              {cliente.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Cliente al que está asociada esta persona.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Correo electrónico</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="ejemplo@correo.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="telefono"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Teléfono</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+34 600 000 000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="cumpleanio"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Cumpleaños</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP", { locale: es })
+                              ) : (
+                                <span>Seleccionar fecha</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            locale={es}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="instagram"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Instagram</FormLabel>
+                      <FormControl>
+                        <Input placeholder="@usuario" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="ciudad"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ciudad</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Madrid" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="pais"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>País</FormLabel>
+                      <FormControl>
+                        <Input placeholder="España" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="direccion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Dirección completa" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="comentario"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Comentarios</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Notas adicionales" 
+                        className="min-h-[100px]" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end space-x-4">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => router.push('/dashboard/people')}
+                  disabled={isSubmitting}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Guardando..." : "Guardar Persona"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
+      </div>
+    </div>
   )
 } 

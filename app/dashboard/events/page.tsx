@@ -1,160 +1,170 @@
 "use client"
 
-import { useState, useEffect } from "react";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SiteHeader } from "@/components/site-header";
+import { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { IconCalendarEvent, IconUsers, IconMapPin, IconCoin } from "@tabler/icons-react";
+import { IconCalendarEvent, IconUsers, IconCalendarCheck, IconCalendarStats } from "@tabler/icons-react";
+import { EventsDataTable, eventoSchema } from "@/components/events/events-data-table";
+import { Spinner } from '@/components/ui/spinner';
+import { z } from 'zod';
+import Link from 'next/link';
 
-import { EventsDataTable } from "@/components/events/events-data-table";
-import { CreateEventDialog } from "@/components/events/create-event-dialog";
+// Schema para validar la respuesta de la API
+const apiResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.array(eventoSchema)
+});
 
-// Interfaz para la estructura de un evento
-interface Evento {
-  id: string;
-  nombre: string;
-  tipo: string;
-  fecha: string;
-  estado: string;
-  comentario?: string;
-  cliente?: {
-    id: string;
-    nombre: string;
-    contacto?: string;
-    email?: string;
-  } | null;
-  planner?: {
-    id: string;
-    nombre: string;
-  } | null;
-  created: string;
-  updated: string;
-}
+type Evento = z.infer<typeof eventoSchema>;
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Evento[]>([]);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Calcular estadísticas
+  const totalEvents = events.length;
+  const upcomingEvents = events.filter(event => {
+    const eventDate = new Date(event.fecha);
+    const today = new Date();
+    return eventDate > today;
+  }).length;
+  
+  const pastEvents = events.filter(event => {
+    const eventDate = new Date(event.fecha);
+    const today = new Date();
+    return eventDate <= today;
+  }).length;
+  
+  // Calcular clientes únicos
+  const uniqueClients = new Set(events.map(event => 
+    event.cliente?.id
+  ).filter(Boolean)).size;
+  
+  // Función para obtener eventos desde la API
+  const fetchEvents = async () => {
+    setLoading(true);
+    setError(null);
 
-  // Cargar eventos desde el API
-  useEffect(() => {
-    async function fetchEvents() {
-      try {
-        const response = await fetch('/api/eventos');
-        const result = await response.json();
-        if (result.success) {
-          console.log("Datos recibidos de la API:", result.data);
-          setEvents(result.data);
-        }
-      } catch (error) {
-        console.error('Error al obtener eventos:', error);
+    try {
+      const response = await fetch('/api/events');
+      
+      if (!response.ok) {
+        throw new Error(`Error en la petición: ${response.status}`);
       }
+      
+      const data = await response.json();
+      console.log("Datos recibidos de la API:", data);
+      
+      // Validar respuesta con Zod
+      const validatedData = apiResponseSchema.parse(data);
+      setEvents(validatedData.data);
+      
+    } catch (err) {
+      console.error('Error fetching events:', err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setLoading(false);
     }
-    
-    fetchEvents();
-  }, [refreshTrigger]);
-
-  // Función para refrescar los datos
-  const handleEventCreated = () => {
-    setRefreshTrigger(prev => prev + 1);
   };
 
-  // Calculate summary statistics
-  const totalEvents = events.length;
-  const upcomingEvents = events.filter(event => event.estado === "en-curso").length;
-  const uniqueClients = new Set(events.map(event => event.cliente?.id).filter(Boolean)).size;
-  const locations = 1; // Placeholder
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <div className="grid gap-4 px-4 md:grid-cols-2 lg:grid-cols-4 lg:px-6">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Events
-                    </CardTitle>
-                    <IconCalendarEvent className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{totalEvents}</div>
-                    <p className="text-muted-foreground text-xs">
-                      {upcomingEvents} upcoming
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Clients
-                    </CardTitle>
-                    <IconUsers className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{uniqueClients}</div>
-                    <p className="text-muted-foreground text-xs">
-                      Across all events
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Revenue
-                    </CardTitle>
-                    <IconCoin className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">-</div>
-                    <p className="text-muted-foreground text-xs">
-                      Not implemented
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Event Locations
-                    </CardTitle>
-                    <IconMapPin className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {locations}
-                    </div>
-                    <p className="text-muted-foreground text-xs">
-                      Unique locations
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-              <div className="px-4 lg:px-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-muted-foreground text-lg font-semibold">
-                    Events Dashboard
-                  </h2>
-                  <CreateEventDialog onEventCreated={handleEventCreated} />
-                </div>
-              </div>
-              <div className="px-4 lg:px-6">
-                <EventsDataTable data={events} />
-              </div>
-            </div>
-          </div>
+    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+      <div className="grid gap-4 px-4 md:grid-cols-2 lg:grid-cols-4 lg:px-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Events
+            </CardTitle>
+            <IconCalendarEvent className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalEvents}</div>
+            <p className="text-muted-foreground text-xs">
+              {upcomingEvents} upcoming
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Clients
+            </CardTitle>
+            <IconUsers className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{uniqueClients}</div>
+            <p className="text-muted-foreground text-xs">
+              Across all events
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Upcoming Events
+            </CardTitle>
+            <IconCalendarCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{upcomingEvents}</div>
+            <p className="text-muted-foreground text-xs">
+              Events scheduled in the future
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Past Events
+            </CardTitle>
+            <IconCalendarStats className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pastEvents}</div>
+            <p className="text-muted-foreground text-xs">
+              Completed events
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="px-4 lg:px-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold tracking-tight">
+            Events Calendar
+          </h2>
+          <Button size="sm" className="h-8" asChild>
+            <Link href="/dashboard/events/new">
+              <IconCalendarEvent className="mr-2 h-4 w-4" />
+              Add Event
+            </Link>
+          </Button>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+      <div className="px-4 lg:px-6">
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Spinner size="lg" />
+          </div>
+        ) : error ? (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-8 text-center">
+            <p className="text-destructive">Error: {error}</p>
+            <Button 
+              variant="outline"
+              className="mt-4" 
+              onClick={() => fetchEvents()}
+            >
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <EventsDataTable data={events} />
+        )}
+      </div>
+    </div>
   );
 } 

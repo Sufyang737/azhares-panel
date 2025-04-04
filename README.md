@@ -31,6 +31,13 @@ The Azhares Panel (Orcish Dashboard) is a sleek and modern dashboard built with 
   - Employee profiles and contact information
   - Role assignments and permissions
 
+- **Financial Management**
+  - Complete accounting system for income and expenses
+  - Currency conversion with DolarApi.com integration
+  - Interactive financial visualization charts
+  - Financial summary cards with real-time data
+  - Categorized financial records for better organization
+
 - **Modern UI/UX**
   - Responsive design with mobile support
   - Dark and light mode themes
@@ -55,6 +62,76 @@ The dashboard implements a comprehensive authentication system using PocketBase:
   - Route-based access control via middleware
   - Redirection to login for unauthenticated users
   - Return to original page after successful authentication
+
+## Sistema de Contabilidad
+
+El sistema de contabilidad en Azhares Panel permite una gestión completa de los ingresos y egresos, con las siguientes funcionalidades:
+
+### Características Principales
+
+- **Registro de Movimientos Financieros**
+  - Creación, edición, visualización y eliminación de registros contables
+  - Categorización de movimientos (eventos, servicios, equipos, etc.)
+  - Clasificación por tipo de movimiento (cobros y pagos)
+  - Asignación a clientes, proveedores, eventos o equipos
+
+- **Visualización de Datos Financieros**
+  - Gráfico interactivo de ingresos y egresos
+  - Selección de rangos temporales (7 días, 30 días, 3 meses)
+  - Tarjetas de resumen financiero con totales actualizados
+  - Tabla de datos con filtros y opciones de visualización
+
+- **Manejo de Monedas**
+  - Soporte para pesos argentinos (ARS) y dólares estadounidenses (USD)
+  - Conversión automática de monedas utilizando la API de DolarApi.com
+  - Visualización de totales en ambas monedas
+
+### Estructura de los Registros Contables
+
+La colección `contabilidad` almacena la información de todos los movimientos financieros:
+
+- **ID**: Identificador único (generado automáticamente)
+- **type**: Tipo de movimiento (`cobro` o `pago`)
+- **categoria**: Categoría del movimiento (evento, servicios, equipos, etc.)
+- **subcargo**: Subcategoría específica (comisión, adelanto, etc.)
+- **detalle**: Descripción detallada del movimiento
+- **especie**: Forma de pago (efectivo, transferencia, otro)
+- **moneda**: Divisa utilizada (ARS o USD)
+- **montoEspera**: Monto del movimiento
+- **fechaEspera**: Fecha esperada del movimiento
+- **fechaEfectuado**: Fecha de efectivización (null si está pendiente)
+- **dolarEsperado**: Cotización del dólar al momento del registro
+- **comentario**: Notas adicionales sobre el movimiento
+- **cliente_id**: ID del cliente relacionado (opcional)
+- **proveedor_id**: ID del proveedor relacionado (opcional)
+- **evento_id**: ID del evento relacionado (opcional)
+- **equipo_id**: ID del equipo relacionado (opcional)
+- **created**: Fecha de creación del registro
+- **updated**: Fecha de última actualización del registro
+
+### Gráfico de Movimientos Financieros
+
+El componente `ChartAreaInteractive` muestra un gráfico de área que permite visualizar los ingresos y egresos a lo largo del tiempo. Características:
+
+- **Filtrado por período**: Permite seleccionar diferentes rangos temporales (últimos 7 días, 30 días o 3 meses)
+- **Visualización adaptativa**: Diseño responsivo que se adapta a diferentes tamaños de pantalla
+- **Tooltip interactivo**: Muestra información detallada al pasar el cursor sobre los puntos del gráfico
+- **Leyenda de colores**: Utiliza verde para los ingresos y rojo para los egresos
+- **Procesamiento automático de datos**: Convierte montos en dólares a pesos argentinos para una visualización unificada
+- **Agrupación por fecha**: Consolida múltiples movimientos del mismo día para una visualización más clara
+
+### Integración con APIs Externas
+
+La integración con DolarApi.com permite obtener la cotización del dólar blue para realizar conversiones automáticas entre USD y ARS, lo que proporciona una visión más precisa de los flujos financieros.
+
+### Uso del Sistema de Contabilidad
+
+1. Accede a la sección "Contabilidad" desde el menú lateral.
+2. Visualiza el resumen financiero en las tarjetas superiores.
+3. Explora el gráfico de ingresos y egresos, ajustando el rango temporal según necesites.
+4. Utiliza las pestañas para filtrar los registros por tipo (todos, cobros, pagos, pendientes).
+5. Crea nuevos registros con el botón "Nuevo Registro".
+6. Edita, visualiza o elimina registros existentes utilizando los iconos de acción en la tabla.
 
 ## Getting Started
 
@@ -230,3 +307,107 @@ Al crear una nueva persona desde el formulario, el sistema:
 5. El cliente puede agregar tantas personas relacionadas como desee
 6. Al finalizar, el cliente es dirigido a una página de agradecimiento
 7. La relación bidireccional entre cliente y todas las personas se actualiza automáticamente
+
+## Contabilidad y Gestión Financiera
+
+El sistema incluye un módulo completo de contabilidad que permite gestionar ingresos y egresos, con las siguientes características:
+
+### Gestión de Registros Contables
+
+- **Registros de Ingresos y Egresos**
+  - Creación de registros de cobros y pagos
+  - Categorización por tipo de movimiento
+  - Soporte para múltiples monedas (ARS y USD)
+  - Integración con cotización del dólar blue en tiempo real
+
+- **Categorización y Detalles**
+  - Categorías personalizables para ingresos y egresos
+  - Subcategorías para mejor organización
+  - Detalles descriptivos para cada registro
+  - Comentarios opcionales para información adicional
+
+- **Vinculación con Otras Entidades**
+  - Registros vinculados a clientes
+  - Registros vinculados a proveedores
+  - Registros vinculados a eventos
+  - Registros vinculados a equipos
+
+### Visualización y Análisis
+
+- **Resumen Financiero**
+  - Tarjetas de resumen con totales de ingresos y egresos
+  - Desglose por moneda (ARS y USD)
+  - Conversión automática a pesos argentinos
+  - Actualización en tiempo real
+
+- **Gráfico Interactivo**
+  - Visualización de tendencias financieras
+  - Filtros por período (7 días, 30 días, 90 días)
+  - Separación de ingresos y egresos
+  - Diseño responsive con adaptación a móviles
+
+### Características del Gráfico
+
+El gráfico interactivo (`ChartAreaInteractive`) proporciona:
+
+- **Visualización de Datos**
+  - Gráfico de área para mostrar tendencias
+  - Separación clara entre ingresos y egresos
+  - Escala temporal personalizable
+  - Tooltips informativos al interactuar
+
+- **Filtros Temporales**
+  - Últimos 7 días (vista móvil por defecto)
+  - Últimos 30 días
+  - Últimos 90 días (vista desktop por defecto)
+
+- **Diseño Responsive**
+  - Adaptación automática a diferentes tamaños de pantalla
+  - Interfaz optimizada para móviles
+  - Controles táctiles amigables
+  - Visualización clara en cualquier dispositivo
+
+### Integración con DolarApi.com
+
+El sistema se integra con DolarApi.com para obtener la cotización del dólar blue en tiempo real:
+
+- **Actualización Automática**
+  - Cotización actualizada al crear/editar registros
+  - Conversión automática de USD a ARS
+  - Visualización de cotizaciones de compra y venta
+  - Manejo de estados de carga y errores
+
+- **Beneficios**
+  - Precisión en la conversión de monedas
+  - Actualización en tiempo real de valores
+  - Mejor toma de decisiones financieras
+  - Registro histórico de cotizaciones
+
+### Estructura de Datos
+
+La colección `contabilidad` almacena los registros financieros con los siguientes campos:
+
+- **Campos Básicos**
+  - `id`: Identificador único
+  - `type`: Tipo de registro (cobro/pago)
+  - `especie`: Forma de pago (efectivo/transferencia/etc.)
+  - `moneda`: Moneda del registro (ARS/USD)
+  - `montoEspera`: Monto del registro
+
+- **Categorización**
+  - `categoria`: Categoría principal
+  - `subcargo`: Subcategoría
+  - `detalle`: Descripción detallada
+  - `comentario`: Notas adicionales
+
+- **Fechas**
+  - `fechaEspera`: Fecha esperada del movimiento
+  - `fechaEfectuado`: Fecha real del movimiento
+  - `created`: Fecha de creación del registro
+  - `updated`: Fecha de última actualización
+
+- **Vinculaciones**
+  - `cliente_id`: ID del cliente relacionado
+  - `proveedor_id`: ID del proveedor relacionado
+  - `evento_id`: ID del evento relacionado
+  - `equipo_id`: ID del equipo relacionado
