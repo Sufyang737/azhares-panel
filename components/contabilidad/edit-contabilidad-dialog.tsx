@@ -222,11 +222,36 @@ export function EditContabilidadDialog({
       const fetchRelatedData = async () => {
         setIsLoadingData(true)
         try {
-          // ... existing fetch code for clients, proveedores, eventos, equipos ...
-          
+          // Cargar clientes
+          const clientesResponse = await fetch('/api/clientes')
+          if (clientesResponse.ok) {
+            const data = await clientesResponse.json()
+            setClientes(data.items || [])
+          }
+
+          // Cargar proveedores
+          const proveedoresResponse = await fetch('/api/proveedores')
+          if (proveedoresResponse.ok) {
+            const data = await proveedoresResponse.json()
+            setProveedores(data.items || [])
+          }
+
+          // Cargar eventos
+          const eventosResponse = await fetch('/api/eventos')
+          if (eventosResponse.ok) {
+            const data = await eventosResponse.json()
+            setEventos(data.items || [])
+          }
+
+          // Cargar equipos
+          const equiposResponse = await fetch('/api/equipos')
+          if (equiposResponse.ok) {
+            const data = await equiposResponse.json()
+            setEquipos(data.items || [])
+          }
+
           // Cargar categorías
           fetchCategorias()
-          
         } catch (error) {
           console.error('Error al cargar datos relacionados:', error)
           toast.error('Error al cargar algunos datos relacionados')
@@ -270,31 +295,39 @@ export function EditContabilidadDialog({
         values.fechaEfectuado = null;
       }
       
-      // Agregar dolarEsperado
+      // Convertir valores "none" a null para las relaciones y asegurar que los IDs sean strings válidos
       const formattedValues = {
         ...values,
-        dolarEsperado: montoDolares
+        dolarEsperado: montoDolares,
+        // Asegurar que los IDs sean null si no hay selección
+        cliente_id: values.cliente_id === "none" ? null : values.cliente_id,
+        proveedor_id: values.proveedor_id === "none" ? null : values.proveedor_id,
+        evento_id: values.evento_id === "none" ? null : values.evento_id,
+        equipo_id: values.equipo_id === "none" ? null : values.equipo_id,
+        // Asegurar que los campos opcionales sean null si están vacíos
+        subcargo: values.subcargo || null,
+        detalle: values.detalle || null,
+        comentario: values.comentario || null,
+        // Asegurar que las fechas estén en el formato correcto
+        fechaEspera: values.fechaEspera.toISOString(),
+        fechaEfectuado: values.fechaEfectuado ? values.fechaEfectuado.toISOString() : null,
       };
       
       // Preparar FormData para enviar a la API
       const formData = new FormData();
       
-      // Agregar todos los campos al FormData
+      // Agregar solo los campos que no son null
       Object.entries(formattedValues).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
-          if (value instanceof Date) {
-            formData.append(key, value.toISOString());
-          } else {
-            formData.append(key, String(value));
-          }
+          formData.append(key, String(value));
         }
       });
       
-      console.log("Enviando datos a API para actualizar:", Object.fromEntries(formData.entries()));
+      console.log("Enviando datos a API:", Object.fromEntries(formData.entries()));
       
       // Enviar datos a la API
-      const response = await fetch(`/api/contabilidad?id=${values.id}`, {
-        method: 'PUT',
+      const response = await fetch(`/api/contabilidad${values.id ? `?id=${values.id}` : ''}`, {
+        method: values.id ? 'PUT' : 'POST',
         body: formData,
       });
       
@@ -766,10 +799,26 @@ export function EditContabilidadDialog({
                       name="cliente_id"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Cliente ID</FormLabel>
-                          <FormControl>
-                            <Input placeholder="ID del cliente" {...field} value={field.value || ""} />
-                          </FormControl>
+                          <FormLabel>Cliente</FormLabel>
+                          <Select
+                            disabled={isLoadingData}
+                            onValueChange={field.onChange}
+                            value={field.value || "none"}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar cliente" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">Sin cliente</SelectItem>
+                              {clientes.map((cliente) => (
+                                <SelectItem key={cliente.id} value={cliente.id}>
+                                  {cliente.nombre}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -780,10 +829,26 @@ export function EditContabilidadDialog({
                       name="proveedor_id"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Proveedor ID</FormLabel>
-                          <FormControl>
-                            <Input placeholder="ID del proveedor" {...field} value={field.value || ""} />
-                          </FormControl>
+                          <FormLabel>Proveedor</FormLabel>
+                          <Select
+                            disabled={isLoadingData}
+                            onValueChange={field.onChange}
+                            value={field.value || "none"}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar proveedor" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">Sin proveedor</SelectItem>
+                              {proveedores.map((proveedor) => (
+                                <SelectItem key={proveedor.id} value={proveedor.id}>
+                                  {proveedor.nombre}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -796,10 +861,26 @@ export function EditContabilidadDialog({
                       name="evento_id"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Evento ID</FormLabel>
-                          <FormControl>
-                            <Input placeholder="ID del evento" {...field} value={field.value || ""} />
-                          </FormControl>
+                          <FormLabel>Evento</FormLabel>
+                          <Select
+                            disabled={isLoadingData}
+                            onValueChange={field.onChange}
+                            value={field.value || "none"}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar evento" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">Sin evento</SelectItem>
+                              {eventos.map((evento) => (
+                                <SelectItem key={evento.id} value={evento.id}>
+                                  {evento.nombre}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -810,10 +891,26 @@ export function EditContabilidadDialog({
                       name="equipo_id"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Equipo ID</FormLabel>
-                          <FormControl>
-                            <Input placeholder="ID del equipo" {...field} value={field.value || ""} />
-                          </FormControl>
+                          <FormLabel>Equipo</FormLabel>
+                          <Select
+                            disabled={isLoadingData}
+                            onValueChange={field.onChange}
+                            value={field.value || "none"}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar equipo" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">Sin equipo</SelectItem>
+                              {equipos.map((equipo) => (
+                                <SelectItem key={equipo.id} value={equipo.id}>
+                                  {equipo.nombre}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}

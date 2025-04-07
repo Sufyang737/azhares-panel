@@ -7,7 +7,8 @@ import {
   IconDownload, 
   IconCoins, 
   IconCash, 
-  IconTrendingUp 
+  IconTrendingUp, 
+  IconEdit 
 } from "@tabler/icons-react";
 
 import { ChartAreaInteractive } from "@/components/chart-area-interactive";
