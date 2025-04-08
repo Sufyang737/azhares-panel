@@ -21,7 +21,7 @@ export function AppSidebar() {
   return (
     <div className="flex h-screen w-64 flex-col border-r bg-card">
       <div className="flex h-14 items-center border-b px-4">
-        <span className="font-semibold">Orcish Communications</span>
+        <span className="font-semibold">Azares Master</span>
       </div>
       
       <div className="flex-1 overflow-auto p-3">

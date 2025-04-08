@@ -55,7 +55,7 @@ export function ShadcnSidebar({ className }: SidebarProps) {
     >
       <div className="flex h-14 items-center border-b px-4 justify-between">
         {!isCollapsed && (
-          <span className="font-semibold">Orcish Communications</span>
+          <span className="font-semibold">Azares Master</span>
         )}
         <Button 
           variant="ghost" 
