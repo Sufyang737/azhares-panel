@@ -1,0 +1,94 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { AppSidebar } from "@/components/app-sidebar";
+import { ChartAreaInteractive } from "@/components/chart-area-interactive";
+import { SiteHeader } from "@/components/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { AccountingSectionCards } from "./components/section-cards";
+import { CreateRecordDialog } from "./components/create-record-dialog";
+import { ContabilidadTable } from "./components/contabilidad-table";
+import { ScheduledRecordsDialog } from "./components/scheduled-records-dialog";
+import { DailyCashDialog } from "./components/daily-cash-dialog";
+import { EventReportDialog } from "./components/event-report-dialog";
+import { MonthlyReportDialog } from "./components/monthly-report-dialog";
+import { getContabilidadRecords } from "@/app/services/contabilidad";
+
+export default function ContabilidadPage() {
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadRecords = async () => {
+    setLoading(true);
+    try {
+      const data = await getContabilidadRecords({
+        sort: '-created',
+        expand: 'cliente_id,proveedor_id,evento_id,equipo_id'
+      });
+      console.log('Registros cargados:', data);
+      setRecords(data?.items || []);
+    } catch (error) {
+      console.error("Error loading records:", error);
+      setRecords([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRecords();
+  }, []);
+
+  const handleRecordUpdate = () => {
+    loadRecords();
+  };
+
+  return (
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <AppSidebar variant="inset" />
+      <SidebarInset>
+        <SiteHeader />
+        <div className="flex flex-1 flex-col">
+          <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+              <AccountingSectionCards records={records} />
+              <div className="px-4 lg:px-6">
+                <ChartAreaInteractive records={records} />
+              </div>
+              <div className="px-4 lg:px-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold">Registros Contables</h2>
+                  <div className="flex items-center gap-2">
+                    <EventReportDialog records={records} />
+                    <MonthlyReportDialog records={records} />
+                    <DailyCashDialog records={records} />
+                    <ScheduledRecordsDialog 
+                      records={records}
+                      onRecordUpdate={handleRecordUpdate}
+                    />
+                    <CreateRecordDialog onRecordCreated={handleRecordUpdate} />
+                  </div>
+                </div>
+                {loading ? (
+                  <div className="text-center py-4">Cargando registros...</div>
+                ) : (
+                  <ContabilidadTable 
+                    records={records} 
+                    onRecordUpdate={handleRecordUpdate}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
+  );
+} 

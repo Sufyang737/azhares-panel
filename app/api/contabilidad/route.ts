@@ -1,0 +1,315 @@
+import { NextRequest, NextResponse } from "next/server";
+import PocketBase, { ClientResponseError } from "pocketbase";
+
+if (!process.env.NEXT_PUBLIC_POCKETBASE_URL) {
+  throw new Error('NEXT_PUBLIC_POCKETBASE_URL is not defined in environment variables');
+}
+
+const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
+
+export async function POST(req: NextRequest) {
+  try {
+    // Autenticar como administrador
+    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
+    if (adminToken) {
+      pb.authStore.save(adminToken, null);
+    } else {
+      throw new Error('Token de administrador no configurado');
+    }
+    
+    const body = await req.json();
+    console.log('Datos recibidos en POST:', body);
+
+    // Validate required fields and their values
+    const requiredFields = ["type", "especie", "moneda", "categoria", "subcargo", "detalle", "montoEspera"];
+    for (const field of requiredFields) {
+      if (!body[field] && body[field] !== 0) {
+        return NextResponse.json(
+          { error: `El campo ${field} es requerido` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate enum values
+    if (body.type && !["cobro", "pago"].includes(body.type)) {
+      return NextResponse.json(
+        { error: "El campo 'type' debe ser 'cobro' o 'pago'" },
+        { status: 400 }
+      );
+    }
+
+    if (body.especie && !["efectivo", "trasferencia"].includes(body.especie)) {
+      return NextResponse.json(
+        { error: "El campo 'especie' debe ser 'efectivo' o 'trasferencia'" },
+        { status: 400 }
+      );
+    }
+
+    if (body.moneda && !["ars", "usd"].includes(body.moneda)) {
+      return NextResponse.json(
+        { error: "El campo 'moneda' debe ser 'ars' o 'usd'" },
+        { status: 400 }
+      );
+    }
+
+    if (body.categoria && !["evento", "oficina"].includes(body.categoria)) {
+      return NextResponse.json(
+        { error: "El campo 'categoria' debe ser 'evento' u 'oficina'" },
+        { status: 400 }
+      );
+    }
+
+    if (body.subcargo && !["clientes", "otros", "proveedores", "sueldos"].includes(body.subcargo)) {
+      return NextResponse.json(
+        { error: "El campo 'subcargo' debe ser 'clientes', 'otros', 'proveedores' o 'sueldos'" },
+        { status: 400 }
+      );
+    }
+
+    if (body.detalle && !["comision", "handy", "honorarios", "maquillaje", "planner", "staff", "viandas"].includes(body.detalle)) {
+      return NextResponse.json(
+        { error: "El campo 'detalle' debe ser uno de los valores permitidos" },
+        { status: 400 }
+      );
+    }
+
+    // Create the record with proper type handling
+    const data = {
+      type: body.type,
+      especie: body.especie,
+      moneda: body.moneda,
+      categoria: body.categoria,
+      subcargo: body.subcargo,
+      detalle: body.detalle,
+      montoEspera: Number(body.montoEspera),
+      fechaEspera: body.fechaEspera || new Date().toISOString(),
+      dolarEsperado: body.dolarEsperado ? Number(body.dolarEsperado) : 0,
+      // Only include optional fields if they have a value
+      ...(body.comentario ? { comentario: body.comentario } : {}),
+      ...(body.fechaEfectuado ? { fechaEfectuado: body.fechaEfectuado } : {}),
+      // Only include relation fields if they have a valid value
+      ...(body.cliente_id && body.cliente_id !== "RELATION_RECORD_ID" ? { cliente_id: body.cliente_id } : {}),
+      ...(body.proveedor_id && body.proveedor_id !== "RELATION_RECORD_ID" ? { proveedor_id: body.proveedor_id } : {}),
+      ...(body.evento_id && body.evento_id !== "RELATION_RECORD_ID" ? { evento_id: body.evento_id } : {}),
+      ...(body.equipo_id && body.equipo_id !== "RELATION_RECORD_ID" ? { equipo_id: body.equipo_id } : {})
+    };
+
+    console.log('Intentando crear registro con datos:', data);
+    const record = await pb.collection('contabilidad').create(data);
+    console.log('Registro creado:', record);
+
+    return NextResponse.json(record);
+  } catch (error) {
+    console.error('Error creating accounting record:', error);
+    
+    if (error instanceof ClientResponseError) {
+      console.error('PocketBase error details:', error.response.data);
+      return NextResponse.json(
+        { 
+          error: error.message,
+          details: error.response.data
+        },
+        { status: 400 }
+      );
+    }
+    
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: 'Error al crear el registro contable' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    // Autenticar como administrador
+    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
+    if (adminToken) {
+      pb.authStore.save(adminToken, null);
+    } else {
+      throw new Error('Token de administrador no configurado');
+    }
+
+    const { searchParams } = new URL(req.url);
+    
+    // Get all query parameters
+    const page = parseInt(searchParams.get('page') || '1');
+    const perPage = parseInt(searchParams.get('perPage') || '50');
+    const sort = searchParams.get('sort') || '-created';
+    const filter = searchParams.get('filter') || '';
+    const expand = searchParams.get('expand') || '';
+    const skipTotal = searchParams.get('skipTotal') === 'true';
+
+    console.log('=== INICIO GET CONTABILIDAD ===');
+    console.log('URL de PocketBase:', process.env.NEXT_PUBLIC_POCKETBASE_URL);
+    console.log('Estado de autenticación:', {
+      isValid: pb.authStore.isValid,
+      token: pb.authStore.token ? 'presente' : 'ausente'
+    });
+    console.log('Parámetros de búsqueda:', {
+      page,
+      perPage,
+      sort,
+      filter,
+      expand,
+      skipTotal
+    });
+
+    try {
+      // Intentar obtener todos los registros directamente
+      const records = await pb.collection('contabilidad').getFullList({
+        sort,
+        filter,
+        expand,
+      });
+
+      console.log(`API: Se encontraron ${records.length} registros`);
+      
+      if (records.length === 0) {
+        console.log('API: No se encontraron registros. Verificando permisos de colección...');
+        const collection = await pb.collections.getOne('contabilidad');
+        console.log('API: Permisos de colección:', {
+          listRule: collection.listRule,
+          viewRule: collection.viewRule,
+          createRule: collection.createRule,
+          updateRule: collection.updateRule,
+          deleteRule: collection.deleteRule
+        });
+      }
+
+      // Si skipTotal es false y se requiere paginación, convertir a formato paginado
+      if (!skipTotal) {
+        const start = (page - 1) * perPage;
+        const end = start + perPage;
+        const paginatedRecords = records.slice(start, end);
+        
+        return NextResponse.json({
+          items: paginatedRecords,
+          page,
+          perPage,
+          totalItems: records.length,
+          totalPages: Math.ceil(records.length / perPage)
+        });
+      }
+
+      return NextResponse.json({ items: records });
+    } catch (error) {
+      console.error('Error al obtener registros de PocketBase:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error fetching accounting records:', error);
+    
+    if (error instanceof ClientResponseError) {
+      return NextResponse.json(
+        { 
+          error: error.message,
+          details: error.response.data
+        },
+        { status: error.status }
+      );
+    }
+
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Error al obtener los registros contables' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    // Inicialización de PocketBase usando la variable de entorno
+    const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
+    
+    // Autenticar como administrador
+    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
+    if (adminToken) {
+      pb.authStore.save(adminToken, null);
+    } else {
+      throw new Error('Token de administrador no configurado');
+    }
+    
+    const body = await req.json();
+    const { id, ...updateData } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Se requiere el ID del registro' },
+        { status: 400 }
+      );
+    }
+
+    const record = await pb.collection('contabilidad').update(id, updateData);
+
+    return NextResponse.json(record);
+  } catch (error) {
+    console.error('Error updating accounting record:', error);
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+    return NextResponse.json(
+      { error: 'Error al actualizar el registro contable' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    // Inicialización de PocketBase usando la variable de entorno
+    const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
+    
+    // Autenticar como administrador
+    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
+    if (adminToken) {
+      pb.authStore.save(adminToken, null);
+    } else {
+      throw new Error('Token de administrador no configurado');
+    }
+    
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Se requiere el ID del registro' },
+        { status: 400 }
+      );
+    }
+
+    await pb.collection('contabilidad').delete(id);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting accounting record:', error);
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+    return NextResponse.json(
+      { error: 'Error al eliminar el registro contable' },
+      { status: 500 }
+    );
+  }
+} 
