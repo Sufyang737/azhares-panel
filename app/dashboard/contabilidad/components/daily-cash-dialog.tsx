@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { format, isValid, parseISO, startOfDay, endOfDay, isToday } from "date-fns";
@@ -71,11 +72,23 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
   // Calcular totales
   const totals = todayRecords.reduce((acc: CashTotals, record) => {
     const amount = record.montoEspera;
-    const especie = record.especie as 'efectivo' | 'transferencia';
-    const moneda = record.moneda as 'ars' | 'usd';
+    const especie = record.especie.toLowerCase();
+    const moneda = record.moneda.toLowerCase();
     const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
 
-    acc[especie][moneda][type] += amount;
+    // Validar que especie y moneda sean valores válidos
+    if (especie !== 'efectivo' && especie !== 'transferencia') {
+      console.warn(`Especie inválida: ${especie}`);
+      return acc;
+    }
+
+    if (moneda !== 'ars' && moneda !== 'usd') {
+      console.warn(`Moneda inválida: ${moneda}`);
+      return acc;
+    }
+
+    // Ahora TypeScript sabe que especie y moneda son valores válidos
+    acc[especie as 'efectivo' | 'transferencia'][moneda as 'ars' | 'usd'][type] += amount;
     return acc;
   }, {
     efectivo: {
@@ -103,110 +116,62 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
       </DialogTrigger>
       <DialogContent className="max-w-4xl w-[95vw]">
         <DialogHeader>
-          <DialogTitle>Caja del Día - {format(new Date(), 'EEEE d MMMM yyyy', { locale: es })}</DialogTitle>
-          <DialogDescription className="grid grid-cols-2 gap-4 pt-4">
-            <div className="space-y-4">
-              <div className="rounded-lg border p-4">
-                <h3 className="font-semibold mb-3">Efectivo</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span>ARS</span>
-                    <div className="space-y-1 text-right">
-                      <div className="text-green-600">+ {formatCurrency(totals.efectivo.ars.ingresos, 'ars')}</div>
-                      <div className="text-red-600">- {formatCurrency(totals.efectivo.ars.egresos, 'ars')}</div>
-                      <div className="font-bold border-t pt-1">
-                        = {formatCurrency(totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos, 'ars')}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>USD</span>
-                    <div className="space-y-1 text-right">
-                      <div className="text-green-600">+ {formatCurrency(totals.efectivo.usd.ingresos, 'usd')}</div>
-                      <div className="text-red-600">- {formatCurrency(totals.efectivo.usd.egresos, 'usd')}</div>
-                      <div className="font-bold border-t pt-1">
-                        = {formatCurrency(totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos, 'usd')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg border p-4">
-                <h3 className="font-semibold mb-3">Transferencia</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span>ARS</span>
-                    <div className="space-y-1 text-right">
-                      <div className="text-green-600">+ {formatCurrency(totals.transferencia.ars.ingresos, 'ars')}</div>
-                      <div className="text-red-600">- {formatCurrency(totals.transferencia.ars.egresos, 'ars')}</div>
-                      <div className="font-bold border-t pt-1">
-                        = {formatCurrency(totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos, 'ars')}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>USD</span>
-                    <div className="space-y-1 text-right">
-                      <div className="text-green-600">+ {formatCurrency(totals.transferencia.usd.ingresos, 'usd')}</div>
-                      <div className="text-red-600">- {formatCurrency(totals.transferencia.usd.egresos, 'usd')}</div>
-                      <div className="font-bold border-t pt-1">
-                        = {formatCurrency(totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos, 'usd')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-lg border p-4">
-              <h3 className="font-semibold mb-3">Movimientos del Día</h3>
-              <div className="max-h-[400px] overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Especie</TableHead>
-                      <TableHead>Moneda</TableHead>
-                      <TableHead>Monto</TableHead>
-                      <TableHead>Hora</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {todayRecords.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                          No hay movimientos hoy
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      todayRecords.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell>
-                            <Badge variant={record.type === 'cobro' ? 'default' : 'destructive'}>
-                              {record.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{record.especie}</TableCell>
-                          <TableCell>
-                            <Badge variant={record.moneda === 'usd' ? 'outline' : 'secondary'}>
-                              {record.moneda.toUpperCase()}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-mono">
-                            {formatCurrency(record.montoEspera, record.moneda)}
-                          </TableCell>
-                          <TableCell>
-                            {record.fechaEfectuado ? format(parseISO(record.fechaEfectuado), 'HH:mm') : 'N/A'}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          </DialogDescription>
+          <DialogTitle>Resumen de Efectivo Diario</DialogTitle>
         </DialogHeader>
+        
+        <div className="grid grid-cols-2 gap-4 pt-4">
+          <div className="space-y-4">
+            <div className="rounded-lg border p-4">
+              <h3 className="font-semibold mb-3">Efectivo</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span>ARS</span>
+                  <span className="font-medium">{formatCurrency(totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos, 'ARS')}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>USD</span>
+                  <span className="font-medium">{formatCurrency(totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos, 'USD')}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="rounded-lg border p-4">
+              <h3 className="font-semibold mb-3">Transferencias</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span>ARS</span>
+                  <span className="font-medium">{formatCurrency(totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos, 'ARS')}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>USD</span>
+                  <span className="font-medium">{formatCurrency(totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos, 'USD')}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border p-4">
+              <h3 className="font-semibold mb-3">Total</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span>ARS</span>
+                  <span className="font-medium">{formatCurrency(totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos + totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos, 'ARS')}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>USD</span>
+                  <span className="font-medium">{formatCurrency(totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos + totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos, 'USD')}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cerrar
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

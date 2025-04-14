@@ -234,9 +234,6 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    // Inicialización de PocketBase usando la variable de entorno
-    const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
-    
     // Autenticar como administrador
     const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
     if (adminToken) {
@@ -245,8 +242,9 @@ export async function PATCH(req: NextRequest) {
       throw new Error('Token de administrador no configurado');
     }
     
-    const body = await req.json();
-    const { id, ...updateData } = body;
+    // Obtener el ID de los parámetros de consulta
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
 
     if (!id) {
       return NextResponse.json(
@@ -255,17 +253,36 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const record = await pb.collection('contabilidad').update(id, updateData);
+    // Obtener los datos a actualizar del cuerpo de la solicitud
+    const updateData = await req.json();
+    console.log('=== INICIO PATCH CONTABILIDAD ===');
+    console.log('ID:', id);
+    console.log('Datos a actualizar:', updateData);
 
-    return NextResponse.json(record);
+    try {
+      const record = await pb.collection('contabilidad').update(id, updateData);
+      console.log('Registro actualizado exitosamente:', record);
+      return NextResponse.json(record);
+    } catch (error) {
+      console.error('Error al actualizar en PocketBase:', error);
+      if (error instanceof ClientResponseError) {
+        return NextResponse.json(
+          { error: error.message, details: error.response.data },
+          { status: error.status }
+        );
+      }
+      throw error;
+    }
   } catch (error) {
-    console.error('Error updating accounting record:', error);
+    console.error('Error en PATCH contabilidad:', error);
+    
     if (error instanceof Error) {
       return NextResponse.json(
         { error: error.message },
         { status: 500 }
       );
     }
+    
     return NextResponse.json(
       { error: 'Error al actualizar el registro contable' },
       { status: 500 }

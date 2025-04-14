@@ -202,28 +202,42 @@ export async function getFullContabilidadList(options: {
   }
 }
 
-export async function updateContabilidadRecord(id: string, data: Partial<ContabilidadRecord>) {
-  console.log('Actualizando registro:', id, data);
-  
-  try {
-    const token = pb.authStore.token;
-    if (!token) {
-      throw new Error('No hay sesión activa');
-    }
+export async function updateContabilidadRecord(
+  id: string,
+  data: Partial<ContabilidadRecord>
+): Promise<ContabilidadRecord> {
+  console.log('=== INICIO updateContabilidadRecord ===');
+  console.log('ID:', id);
+  console.log('Datos a actualizar:', data);
 
-    const record = await pb.collection('contabilidad').update(id, {
-      ...data,
-      fechaEfectuado: data.fechaEfectuado || new Date().toISOString()
+  // Obtener el token de autenticación de PocketBase
+  const token = pb.authStore.token;
+  if (!token) {
+    throw new Error('No hay sesión activa');
+  }
+
+  try {
+    const response = await fetch(`/api/contabilidad?id=${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify(data),
     });
 
-    console.log('Registro actualizado:', record);
-    return record;
-  } catch (error) {
-    console.error('Error al actualizar el registro:', error);
-    if (error instanceof Error) {
-      throw new Error(`Error al actualizar el registro: ${error.message}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error en updateContabilidadRecord:', errorData);
+      throw new Error(errorData.error || 'Error al actualizar el registro');
     }
-    throw new Error('Error inesperado al actualizar el registro');
+
+    const updatedRecord = await response.json();
+    console.log('Registro actualizado exitosamente:', updatedRecord);
+    return updatedRecord;
+  } catch (error) {
+    console.error('Error en updateContabilidadRecord:', error);
+    throw error;
   }
 }
 

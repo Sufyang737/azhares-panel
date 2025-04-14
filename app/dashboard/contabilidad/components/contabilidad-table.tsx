@@ -13,10 +13,18 @@ import { Badge } from "@/components/ui/badge";
 import { format, isValid, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2, Check, Edit, MoreHorizontal } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
 import { CreateRecordDialog } from "./create-record-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ContabilidadTableProps {
   records: ContabilidadRecord[];
@@ -77,6 +85,26 @@ export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTable
       });
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleMarkAsCollected = async (record: ContabilidadRecord) => {
+    try {
+      await updateContabilidadRecord(record.id, {
+        fechaEfectuado: new Date().toISOString(),
+      });
+      
+      toast({
+        title: "Registro actualizado",
+        description: "El registro ha sido marcado como cobrado/pagado.",
+      });
+    } catch (error) {
+      console.error('Error al marcar como cobrado:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el registro.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -149,26 +177,29 @@ export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTable
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right space-x-2">
-                  <CreateRecordDialog 
-                    mode="edit"
-                    recordToEdit={record}
-                    onRecordCreated={onRecordUpdate}
-                  />
-                  {!record.fechaEfectuado && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-green-500 hover:text-green-600"
-                      disabled={updatingId === record.id}
-                      onClick={() => handleMarkAsCompleted(record)}
-                    >
-                      {updatingId === record.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <CheckCircle className="h-4 w-4" />
-                      )}
-                    </Button>
-                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Abrir menú</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => handleMarkAsCollected(record)}
+                        disabled={!!record.fechaEfectuado}
+                      >
+                        <Check className="mr-2 h-4 w-4" />
+                        Marcar como {record.type === "ingreso" ? "cobrado" : "pagado"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar registro
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))

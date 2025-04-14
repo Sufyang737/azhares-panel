@@ -69,46 +69,59 @@ interface EventTotals {
 export function EventReportDialog({ records }: EventReportDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [selectedClient, setSelectedClient] = useState<string>('all');
 
-  // Log records for debugging
-  useEffect(() => {
-    console.log('EventReportDialog - Records:', records);
-    console.log('EventReportDialog - Records with events:', records.filter(r => r.evento_id));
-  }, [records]);
+  // Obtener lista única de clientes
+  const clients = [...new Set(records
+    .filter(r => r.cliente_id)
+    .map(r => ({ id: r.cliente_id, nombre: r.cliente_id?.nombre })))
+  ];
+
+  // Obtener lista única de eventos
+  const allEvents = [...new Set(records
+    .filter(r => r.evento_id)
+    .map(r => ({ 
+      id: r.evento_id.id, 
+      nombre: r.evento_id.nombre || 'Evento sin nombre',
+      cliente_id: r.cliente_id
+    })))
+  ];
 
   // Agrupar registros por evento
-  const eventRecords = records.reduce((acc, record) => {
-    if (!record.evento_id) return acc;
-    
-    const eventId = record.evento_id.id;
-    if (!eventId) return acc;
+  const eventRecords = records
+    .filter(record => selectedClient === 'all' || record.cliente_id === selectedClient)
+    .reduce((acc, record) => {
+      if (!record.evento_id) return acc;
+      
+      const eventId = record.evento_id.id;
+      if (!eventId) return acc;
 
-    if (!acc[eventId]) {
-      acc[eventId] = {
-        ingresos: { ars: 0, usd: 0 },
-        egresos: { ars: 0, usd: 0 },
-        records: [],
-        nombre: record.evento_id.nombre || 'Evento sin nombre'
-      };
-    }
+      if (!acc[eventId]) {
+        acc[eventId] = {
+          ingresos: { ars: 0, usd: 0 },
+          egresos: { ars: 0, usd: 0 },
+          records: [],
+          nombre: record.evento_id.nombre || 'Evento sin nombre'
+        };
+      }
 
-    const moneda = record.moneda.toLowerCase() as 'ars' | 'usd';
-    const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
-    acc[eventId][type][moneda] += record.montoEspera;
-    acc[eventId].records.push(record);
+      const moneda = record.moneda.toLowerCase() as 'ars' | 'usd';
+      const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
+      acc[eventId][type][moneda] += record.montoEspera;
+      acc[eventId].records.push(record);
 
-    return acc;
-  }, {} as Record<string, EventTotals & { nombre: string }>);
-
-  // Log event records for debugging
-  useEffect(() => {
-    console.log('EventReportDialog - Event records:', eventRecords);
-  }, [eventRecords]);
+      return acc;
+    }, {} as Record<string, EventTotals & { nombre: string }>);
 
   const selectedEventData = selectedEvent ? eventRecords[selectedEvent] : null;
+  const filteredEvents = selectedClient === 'all' 
+    ? allEvents 
+    : allEvents.filter(event => event.cliente_id === selectedClient);
 
-  // Si no hay eventos, mostrar mensaje
-  const hasEvents = Object.keys(eventRecords).length > 0;
+  // Reset selected event when client changes
+  useEffect(() => {
+    setSelectedEvent(null);
+  }, [selectedClient]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -116,34 +129,35 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
         <Button variant="outline" className="gap-2">
           <BarChart3 className="h-4 w-4" />
           Reporte por Evento
-          {hasEvents && (
-            <Badge variant="secondary" className="ml-2">
-              {Object.keys(eventRecords).length}
-            </Badge>
-          )}
+          <Badge variant="secondary" className="ml-2">
+            {allEvents.length}
+          </Badge>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl w-[95vw]">
-        <DialogHeader>
-          <DialogTitle>Reporte por Evento</DialogTitle>
-          <DialogDescription>
-            {!hasEvents ? (
-              <div className="text-center py-4">
-                No hay registros asociados a eventos
-              </div>
-            ) : (
-              <div className="mt-4 mb-6">
+        <DialogHeader className="pb-4 border-b">
+          <DialogTitle className="text-2xl font-bold">Reporte por Evento</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6 py-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            {clients.length > 0 && (
+              <div className="w-full sm:w-auto">
+                <label className="text-sm font-medium mb-2 block text-muted-foreground">
+                  Filtrar por Cliente
+                </label>
                 <Select
-                  value={selectedEvent || ''}
-                  onValueChange={(value) => setSelectedEvent(value)}
+                  value={selectedClient}
+                  onValueChange={(value) => setSelectedClient(value)}
                 >
-                  <SelectTrigger className="w-[300px]">
-                    <SelectValue placeholder="Selecciona un evento" />
+                  <SelectTrigger className="w-full sm:w-[300px]">
+                    <SelectValue placeholder="Seleccionar cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(eventRecords).map(([id, data]) => (
-                      <SelectItem key={id} value={id}>
-                        {data.nombre}
+                    <SelectItem value="all">Todos los clientes</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.nombre}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -151,100 +165,133 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
               </div>
             )}
 
-            {selectedEventData && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <div className="rounded-lg border p-4">
-                    <h3 className="font-semibold mb-3">Resumen del Evento</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium mb-2">ARS</h4>
-                        <div className="space-y-1">
-                          <div className="flex justify-between">
-                            <span>Ingresos:</span>
-                            <span className="text-green-600">{formatCurrency(selectedEventData.ingresos.ars, 'ars')}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Egresos:</span>
-                            <span className="text-red-600">{formatCurrency(selectedEventData.egresos.ars, 'ars')}</span>
-                          </div>
-                          <div className="flex justify-between font-bold border-t pt-1">
-                            <span>Balance:</span>
-                            <span className={selectedEventData.ingresos.ars - selectedEventData.egresos.ars >= 0 ? 'text-green-600' : 'text-red-600'}>
-                              {formatCurrency(selectedEventData.ingresos.ars - selectedEventData.egresos.ars, 'ars')}
-                            </span>
-                          </div>
+            {filteredEvents.length > 0 && (
+              <div className="w-full sm:w-auto">
+                <label className="text-sm font-medium mb-2 block text-muted-foreground">
+                  Seleccionar Evento
+                </label>
+                <Select
+                  value={selectedEvent || ''}
+                  onValueChange={(value) => setSelectedEvent(value)}
+                >
+                  <SelectTrigger className="w-full sm:w-[300px]">
+                    <SelectValue placeholder="Seleccionar evento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredEvents.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
+                        {event.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {filteredEvents.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground bg-muted/10 rounded-lg">
+              <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+              <p className="text-lg font-medium">No hay eventos disponibles</p>
+              {selectedClient !== 'all' && (
+                <p className="text-sm">
+                  para el cliente seleccionado
+                </p>
+              )}
+            </div>
+          ) : selectedEventData && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                <div className="rounded-lg border p-6 bg-card">
+                  <h3 className="text-lg font-semibold mb-4">Resumen del Evento</h3>
+                  <div className="space-y-6">
+                    <div className="bg-muted/10 rounded-md p-4">
+                      <h4 className="font-medium mb-3 text-muted-foreground">ARS</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Ingresos</span>
+                          <span className="text-green-600 font-medium">{formatCurrency(selectedEventData.ingresos.ars, 'ars')}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Egresos</span>
+                          <span className="text-red-600 font-medium">{formatCurrency(selectedEventData.egresos.ars, 'ars')}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t">
+                          <span className="font-medium">Balance</span>
+                          <span className={`font-bold ${selectedEventData.ingresos.ars - selectedEventData.egresos.ars >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(selectedEventData.ingresos.ars - selectedEventData.egresos.ars, 'ars')}
+                          </span>
                         </div>
                       </div>
+                    </div>
 
-                      <div>
-                        <h4 className="font-medium mb-2">USD</h4>
-                        <div className="space-y-1">
-                          <div className="flex justify-between">
-                            <span>Ingresos:</span>
-                            <span className="text-green-600">{formatCurrency(selectedEventData.ingresos.usd, 'usd')}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Egresos:</span>
-                            <span className="text-red-600">{formatCurrency(selectedEventData.egresos.usd, 'usd')}</span>
-                          </div>
-                          <div className="flex justify-between font-bold border-t pt-1">
-                            <span>Balance:</span>
-                            <span className={selectedEventData.ingresos.usd - selectedEventData.egresos.usd >= 0 ? 'text-green-600' : 'text-red-600'}>
-                              {formatCurrency(selectedEventData.ingresos.usd - selectedEventData.egresos.usd, 'usd')}
-                            </span>
-                          </div>
+                    <div className="bg-muted/10 rounded-md p-4">
+                      <h4 className="font-medium mb-3 text-muted-foreground">USD</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Ingresos</span>
+                          <span className="text-green-600 font-medium">{formatCurrency(selectedEventData.ingresos.usd, 'usd')}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Egresos</span>
+                          <span className="text-red-600 font-medium">{formatCurrency(selectedEventData.egresos.usd, 'usd')}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t">
+                          <span className="font-medium">Balance</span>
+                          <span className={`font-bold ${selectedEventData.ingresos.usd - selectedEventData.egresos.usd >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(selectedEventData.ingresos.usd - selectedEventData.egresos.usd, 'usd')}
+                          </span>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="rounded-lg border p-4">
-                  <h3 className="font-semibold mb-3">Movimientos del Evento</h3>
-                  <div className="max-h-[400px] overflow-y-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Tipo</TableHead>
-                          <TableHead>Especie</TableHead>
-                          <TableHead>Moneda</TableHead>
-                          <TableHead>Monto</TableHead>
-                          <TableHead>Estado</TableHead>
+              <div className="rounded-lg border p-6 bg-card">
+                <h3 className="text-lg font-semibold mb-4">Movimientos del Evento</h3>
+                <div className="max-h-[500px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Especie</TableHead>
+                        <TableHead>Moneda</TableHead>
+                        <TableHead className="text-right">Monto</TableHead>
+                        <TableHead>Estado</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedEventData.records.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell>
+                            <Badge variant={record.type === 'cobro' ? 'default' : 'destructive'} className="capitalize">
+                              {record.type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="capitalize">{record.especie}</TableCell>
+                          <TableCell>
+                            <Badge variant={record.moneda === 'usd' ? 'outline' : 'secondary'}>
+                              {record.moneda.toUpperCase()}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            {formatCurrency(record.montoEspera, record.moneda)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={record.fechaEfectuado ? 'success' : 'secondary'} className="capitalize">
+                              {record.fechaEfectuado ? 'Efectuado' : 'Pendiente'}
+                            </Badge>
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {selectedEventData.records.map((record) => (
-                          <TableRow key={record.id}>
-                            <TableCell>
-                              <Badge variant={record.type === 'cobro' ? 'default' : 'destructive'}>
-                                {record.type}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{record.especie}</TableCell>
-                            <TableCell>
-                              <Badge variant={record.moneda === 'usd' ? 'outline' : 'secondary'}>
-                                {record.moneda.toUpperCase()}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="font-mono">
-                              {formatCurrency(record.montoEspera, record.moneda)}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={record.fechaEfectuado ? 'success' : 'secondary'}>
-                                {record.fechaEfectuado ? 'Efectuado' : 'Pendiente'}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
-            )}
-          </DialogDescription>
-        </DialogHeader>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

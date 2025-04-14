@@ -10,7 +10,7 @@ interface AccountingSectionCardsProps {
 interface MonthlyMetrics {
   totalIngresos: { ars: number; usd: number };
   totalEgresos: { ars: number; usd: number };
-  eventosActivos: number;
+  eventosActivos: Set<string>;
   facturacionPendiente: { ars: number; usd: number };
 }
 
@@ -23,7 +23,7 @@ const calculateMonthlyMetrics = (records: ContabilidadRecord[], date: Date): Mon
     return recordDate >= startDate && recordDate <= endDate;
   });
 
-  return monthlyRecords.reduce(
+  const metrics = monthlyRecords.reduce(
     (acc: MonthlyMetrics, record) => {
       const moneda = record.moneda.toLowerCase() as 'ars' | 'usd';
       const amount = record.montoEspera;
@@ -38,7 +38,7 @@ const calculateMonthlyMetrics = (records: ContabilidadRecord[], date: Date): Mon
       }
 
       if (record.evento_id && !record.fechaEfectuado) {
-        acc.eventosActivos = new Set([...acc.eventosActivos, record.evento_id.id]).size;
+        acc.eventosActivos.add(record.evento_id);
       }
 
       return acc;
@@ -46,10 +46,15 @@ const calculateMonthlyMetrics = (records: ContabilidadRecord[], date: Date): Mon
     {
       totalIngresos: { ars: 0, usd: 0 },
       totalEgresos: { ars: 0, usd: 0 },
-      eventosActivos: 0,
+      eventosActivos: new Set<string>(),
       facturacionPendiente: { ars: 0, usd: 0 }
     }
   );
+
+  return {
+    ...metrics,
+    eventosActivos: metrics.eventosActivos
+  };
 };
 
 const calculatePercentageChange = (current: number, previous: number): number => {
@@ -70,8 +75,8 @@ export function AccountingSectionCards({ records }: AccountingSectionCardsProps)
   const previousTotalUsd = previousMetrics.totalIngresos.usd + (previousMetrics.totalIngresos.ars * arsToUsdRate);
   const ingresosTrendPercentage = calculatePercentageChange(currentTotalUsd, previousTotalUsd);
 
-  const currentEventos = currentMetrics.eventosActivos;
-  const previousEventos = previousMetrics.eventosActivos;
+  const currentEventos = currentMetrics.eventosActivos.size;
+  const previousEventos = previousMetrics.eventosActivos.size;
   const eventosTrendPercentage = calculatePercentageChange(currentEventos, previousEventos);
 
   const currentPendienteUsd = currentMetrics.facturacionPendiente.usd + 
