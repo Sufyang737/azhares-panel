@@ -45,28 +45,32 @@ import {
 // Tipos de persona disponibles
 const tiposPersona = [
   { value: "Cliente Principal", label: "Cliente Principal" },
-  { value: "Padre", label: "Padre" },
-  { value: "Madre", label: "Madre" },
-  { value: "Hijo", label: "Hijo" },
-  { value: "Hija", label: "Hija" },
+  { value: "Padre/Madre", label: "Padre/Madre" },
+  { value: "Hijo/a", label: "Hijo/a" },
   { value: "Familiar", label: "Familiar" },
   { value: "Otro", label: "Otro" },
 ]
 
 // El esquema de validación para el formulario
-const formSchema = z.object({
-  nombre: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres" }),
-  apellido: z.string().optional().nullable(),
-  telefono: z.string().optional().nullable(),
-  email: z.string().email({ message: "Email inválido" }).optional().nullable(),
-  cumpleanio: z.date().optional().nullable(),
-  pais: z.string().optional().nullable(),
-  ciudad: z.string().optional().nullable(),
-  instagram: z.string().optional().nullable(),
-  direccion: z.string().optional().nullable(),
-  comentario: z.string().optional().nullable(),
-  tipo_persona: z.string().optional().nullable(),
-  cliente_id: z.string().optional().nullable(),
+const schema = z.object({
+  nombre: z.string().min(1, "El nombre es requerido"),
+  apellido: z.string().min(1, "El apellido es requerido"),
+  tipo_persona: z.string().min(1, "El tipo de persona es requerido"),
+  telefono: z.string().nullable(),
+  instagram: z
+    .string()
+    .transform((val) => {
+      if (!val) return null;
+      return val.startsWith("@") ? val : `@${val}`;
+    })
+    .nullable(),
+  email: z.string().email("Email inválido").nullable(),
+  fecha_nacimiento: z.object({
+    dia: z.number().min(1).max(31),
+    mes: z.number().min(1).max(12)
+  }).nullable(),
+  notas: z.string().nullable(),
+  cliente_id: z.string().nullable(),
 })
 
 interface Cliente {
@@ -74,7 +78,7 @@ interface Cliente {
   nombre: string;
 }
 
-type FormValues = z.infer<typeof formSchema>
+type FormValues = z.infer<typeof schema>
 
 export default function NewPersonPage() {
   const router = useRouter()
@@ -109,19 +113,16 @@ export default function NewPersonPage() {
 
   // Inicializar el formulario
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       nombre: "",
       apellido: "",
       telefono: "",
       email: "",
-      cumpleanio: undefined,
-      pais: "",
-      ciudad: "",
-      instagram: "",
-      direccion: "",
-      comentario: "",
+      fecha_nacimiento: null,
+      notas: "",
       tipo_persona: "",
+      instagram: "",
       cliente_id: "",
     },
   })
@@ -129,21 +130,37 @@ export default function NewPersonPage() {
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true)
     try {
+      // Convertir teléfono a número si existe
+      const phoneNumber = values.telefono ? parseInt(values.telefono.replace(/\D/g, '')) : null;
+      
+      // Formatear Instagram como URL completa
+      const instagramUrl = values.instagram ? 
+        `https://instagram.com/${values.instagram.replace('@', '')}` : 
+        null;
+
       // Preparar objeto para crear
       const personaData = {
         nombre: values.nombre,
-        apellido: values.apellido || null,
-        telefono: values.telefono || null,
+        apellido: values.apellido,
+        telefono: phoneNumber,
         email: values.email || null,
-        cumpleanio: values.cumpleanio ? format(values.cumpleanio, 'yyyy-MM-dd') : null,
-        pais: values.pais || null,
-        ciudad: values.ciudad || null,
-        instagram: values.instagram || null,
-        direccion: values.direccion || null,
-        comentario: values.comentario || null,
-        tipo_persona: values.tipo_persona || null,
-        cliente_id: values.cliente_id || null,
+        cumpleanio: values.fecha_nacimiento ? 
+          // Obtener el año siguiente al actual
+          new Date(
+            new Date().getFullYear() + 1, 
+            values.fecha_nacimiento.mes - 1, 
+            values.fecha_nacimiento.dia
+          ).toISOString() : 
+          null,
+        pais: "",
+        ciudad: "",
+        instagram: instagramUrl,
+        direccion: "",
+        comentario: `Tipo de persona: ${values.tipo_persona}${values.notas ? `\n${values.notas}` : ''}`,
+        cliente_id: values.cliente_id === "none" ? null : values.cliente_id
       }
+
+      console.log('Enviando datos:', personaData);
 
       const response = await fetch(`/api/personas`, {
         method: 'POST',
@@ -219,7 +236,7 @@ export default function NewPersonPage() {
                         name="nombre"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Nombre *</FormLabel>
+                            <FormLabel className="required">Nombre</FormLabel>
                             <FormControl>
                               <Input placeholder="Nombre" {...field} />
                             </FormControl>
@@ -233,9 +250,9 @@ export default function NewPersonPage() {
                         name="apellido"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Apellido</FormLabel>
+                            <FormLabel className="required">Apellido</FormLabel>
                             <FormControl>
-                              <Input placeholder="Apellido" {...field} value={field.value || ""} />
+                              <Input placeholder="Apellido" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -249,11 +266,8 @@ export default function NewPersonPage() {
                         name="tipo_persona"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Tipo de Persona</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
-                              defaultValue={field.value || undefined}
-                            >
+                            <FormLabel className="required">Tipo de Persona</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Seleccionar tipo" />
@@ -267,109 +281,6 @@ export default function NewPersonPage() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="cliente_id"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Cliente Asociado</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
-                              defaultValue={field.value || undefined}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder={loadingClientes ? "Cargando..." : "Seleccionar cliente"} />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="none">Ninguno</SelectItem>
-                                {clientes.map((cliente) => (
-                                  <SelectItem key={cliente.id} value={cliente.id}>
-                                    {cliente.nombre}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Correo electrónico</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="correo@ejemplo.com" {...field} value={field.value || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="telefono"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Teléfono</FormLabel>
-                            <FormControl>
-                              <Input placeholder="+34 600 123 456" {...field} value={field.value || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="cumpleanio"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel>Fecha de cumpleaños</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                      "pl-3 text-left font-normal",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                  >
-                                    {field.value ? (
-                                      format(field.value, "PP", { locale: es })
-                                    ) : (
-                                      <span>Seleccionar fecha</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value || undefined}
-                                  onSelect={field.onChange}
-                                  disabled={(date) =>
-                                    date > new Date()
-                                  }
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -393,12 +304,12 @@ export default function NewPersonPage() {
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <FormField
                         control={form.control}
-                        name="ciudad"
+                        name="telefono"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Ciudad</FormLabel>
+                            <FormLabel>Teléfono</FormLabel>
                             <FormControl>
-                              <Input placeholder="Ciudad" {...field} value={field.value || ""} />
+                              <Input type="tel" placeholder="+1 234 567 8900" {...field} value={field.value || ""} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -407,13 +318,76 @@ export default function NewPersonPage() {
 
                       <FormField
                         control={form.control}
-                        name="pais"
+                        name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>País</FormLabel>
+                            <FormLabel>Email</FormLabel>
                             <FormControl>
-                              <Input placeholder="País" {...field} value={field.value || ""} />
+                              <Input type="email" placeholder="ejemplo@email.com" {...field} value={field.value || ""} />
                             </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="fecha_nacimiento"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Fecha de Cumpleaños</FormLabel>
+                            <div className="grid grid-cols-2 gap-4">
+                              <Select
+                                onValueChange={(value) => {
+                                  const currentValue = field.value || { dia: 1, mes: 1 };
+                                  field.onChange({ ...currentValue, mes: parseInt(value) });
+                                }}
+                                value={field.value?.mes?.toString()}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Mes" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="1">Enero</SelectItem>
+                                  <SelectItem value="2">Febrero</SelectItem>
+                                  <SelectItem value="3">Marzo</SelectItem>
+                                  <SelectItem value="4">Abril</SelectItem>
+                                  <SelectItem value="5">Mayo</SelectItem>
+                                  <SelectItem value="6">Junio</SelectItem>
+                                  <SelectItem value="7">Julio</SelectItem>
+                                  <SelectItem value="8">Agosto</SelectItem>
+                                  <SelectItem value="9">Septiembre</SelectItem>
+                                  <SelectItem value="10">Octubre</SelectItem>
+                                  <SelectItem value="11">Noviembre</SelectItem>
+                                  <SelectItem value="12">Diciembre</SelectItem>
+                                </SelectContent>
+                              </Select>
+
+                              <Select
+                                onValueChange={(value) => {
+                                  const currentValue = field.value || { dia: 1, mes: 1 };
+                                  field.onChange({ ...currentValue, dia: parseInt(value) });
+                                }}
+                                value={field.value?.dia?.toString()}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Día" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {Array.from({ length: 31 }, (_, i) => i + 1).map((dia) => (
+                                    <SelectItem key={dia} value={dia.toString()}>
+                                      {dia}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -422,13 +396,28 @@ export default function NewPersonPage() {
 
                     <FormField
                       control={form.control}
-                      name="direccion"
+                      name="cliente_id"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Dirección</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Calle, número, código postal..." {...field} value={field.value || ""} />
-                          </FormControl>
+                          <FormLabel>Cliente Asociado</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value || undefined}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={loadingClientes ? "Cargando..." : "Seleccionar cliente"} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">Ninguno</SelectItem>
+                              {clientes.map((cliente) => (
+                                <SelectItem key={cliente.id} value={cliente.id}>
+                                  {cliente.nombre}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -436,16 +425,16 @@ export default function NewPersonPage() {
 
                     <FormField
                       control={form.control}
-                      name="comentario"
+                      name="notas"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Comentarios</FormLabel>
+                          <FormLabel>Notas</FormLabel>
                           <FormControl>
                             <Textarea
-                              placeholder="Añade información adicional aquí..."
+                              placeholder="Notas adicionales..."
+                              className="resize-none"
                               {...field}
                               value={field.value || ""}
-                              className="min-h-[100px]"
                             />
                           </FormControl>
                           <FormMessage />

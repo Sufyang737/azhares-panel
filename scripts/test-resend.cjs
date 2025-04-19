@@ -16,7 +16,7 @@ async function main() {
     const { data, error } = await resend.emails.send({
       from: 'onboarding@resend.dev',
       to: 'administracion@azaresweb.com.ar',  // Reemplazar con tu email de prueba
-      subject: 'Test desde script - Azhares Panel',
+      subject: 'Test desde script - Azares Panel',
       html: '<p>Este es un email de prueba enviado directamente desde un script usando <strong>Resend</strong>.</p>'
     });
     

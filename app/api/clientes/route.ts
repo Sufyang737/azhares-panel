@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import PocketBase from 'pocketbase';
+import { adminPocketBase } from "@/lib/pocketbase";
 
 // Handler para POST (crear cliente)
 export async function POST(request: NextRequest) {
@@ -45,48 +46,43 @@ export async function POST(request: NextRequest) {
 // Handler para GET (obtener clientes)
 export async function GET() {
   try {
-    // Inicialización de PocketBase usando la variable de entorno
-    const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
+    const pb = await adminPocketBase();
     
-    // Autenticar como administrador
-    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
-    if (adminToken) {
-      pb.authStore.save(adminToken, null);
-    } else {
-      throw new Error('Token de administrador no configurado');
-    }
-    
-    const clientes = await pb.collection('cliente').getList(1, 50, {
+    // Obtener la lista completa de clientes con todos los campos necesarios
+    const resultList = await pb.collection('cliente').getFullList({
       sort: '-created',
+      expand: 'persona_id',
+      fields: 'id,nombre,contacto,pais,ciudad,instagram,persona_id,created,updated,expand'
     });
-    
-    // Transformar los datos para manejar valores undefined
-    const clientesFormateados = clientes.items.map(cliente => {
-      return {
-        id: cliente.id,
-        nombre: cliente.nombre || '',
-        contacto: cliente.contacto || null,
-        email: cliente.email || null,
-        telefono: cliente.telefono || null, 
-        direccion: cliente.direccion || null,
-        comentarios: cliente.comentarios || null,
-        estado: cliente.estado || 'Activo',
-        created: cliente.created,
-        updated: cliente.updated,
-        eventos: cliente.eventos || []
-      };
-    });
-    
-    return NextResponse.json({ 
-      success: true, 
+
+    console.log('DEBUG - API Clientes - Datos crudos:', JSON.stringify(resultList, null, 2));
+
+    // Transformar los datos para asegurar la estructura correcta
+    const clientesFormateados = resultList.map(cliente => ({
+      id: cliente.id,
+      nombre: cliente.nombre,
+      contacto: cliente.contacto || null,
+      pais: cliente.pais || null,
+      ciudad: cliente.ciudad || null,
+      instagram: cliente.instagram || null,
+      persona_id: cliente.persona_id || [],
+      expand: cliente.expand || {},
+      created: cliente.created,
+      updated: cliente.updated
+    }));
+
+    console.log('DEBUG - API Clientes - Datos formateados:', JSON.stringify(clientesFormateados, null, 2));
+
+    return NextResponse.json({
+      success: true,
       data: clientesFormateados
     });
   } catch (error) {
     console.error('Error al obtener clientes:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error al obtener clientes' },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      error: 'Error al obtener los clientes'
+    }, { status: 500 });
   }
 }
 

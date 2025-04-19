@@ -24,8 +24,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Azhares Panel",
-  description: "Azhares Admin Panel",
+  title: "Azares Panel",
+  description: "Azares Admin Panel",
 };
 
 export default async function RootLayout({

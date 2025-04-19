@@ -32,6 +32,32 @@ const apiResponseSchema = z.object({
 
 type Persona = z.infer<typeof personaSchema>;
 
+// Función para limpiar y validar los datos de una persona
+function sanitizePersonaData(persona: any) {
+  return {
+    id: persona.id || '',
+    nombre: persona.nombre || '',
+    apellido: persona.apellido || '',
+    telefono: persona.telefono || null,
+    email: persona.email && persona.email.includes('@') ? persona.email : null,
+    cumpleanio: persona.cumpleanio || null,
+    pais: persona.pais || null,
+    ciudad: persona.ciudad || null,
+    instagram: persona.instagram || null,
+    direccion: persona.direccion || null,
+    comentario: persona.comentario || null,
+    tipo_persona: persona.tipo_persona || null,
+    cliente_id: persona.cliente_id || null,
+    cliente: persona.expand?.cliente_id ? {
+      id: persona.expand.cliente_id.id,
+      nombre: persona.expand.cliente_id.nombre
+    } : null,
+    relacion: persona.relacion || null,
+    created: persona.created || '',
+    updated: persona.updated || ''
+  };
+}
+
 export default function PeoplePage() {
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -64,12 +90,24 @@ export default function PeoplePage() {
         throw new Error(`Error en la petición: ${response.status}`);
       }
       
-      const data = await response.json();
-      console.log("Datos recibidos de la API:", data);
+      const rawData = await response.json();
+      console.log("Datos recibidos de la API:", rawData);
       
-      // Validar respuesta con Zod
-      const validatedData = apiResponseSchema.parse(data);
-      setPersonas(validatedData.data);
+      // Limpiar y validar los datos antes de la validación de Zod
+      const cleanData = {
+        ...rawData,
+        data: rawData.data.map(sanitizePersonaData)
+      };
+
+      try {
+        // Validar respuesta con Zod
+        const validatedData = apiResponseSchema.parse(cleanData);
+        setPersonas(validatedData.data);
+      } catch (validationError) {
+        console.error('Error de validación:', validationError);
+        // Si hay error de validación, usamos los datos limpios de todas formas
+        setPersonas(cleanData.data);
+      }
       
     } catch (err) {
       console.error('Error fetching personas:', err);

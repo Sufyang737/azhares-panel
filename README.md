@@ -1,10 +1,10 @@
-# Azhares Panel (Orcish Dashboard)
+# Azares Panel (Orcish Dashboard)
 
 ![orcish-dashboard](https://github.com/user-attachments/assets/cb458deb-9ba3-435e-a39c-7f48095c85c8)
 
 ## Overview
 
-The Azhares Panel (Orcish Dashboard) is a sleek and modern dashboard built with Next.js and the Shadcn UI component library. It features a responsive design with support for both light and dark modes, along with a customizable theme selector that lets you easily switch between different color schemes.
+The Azares Panel (Orcish Dashboard) is a sleek and modern dashboard built with Next.js and the Shadcn UI component library. It features a responsive design with support for both light and dark modes, along with a customizable theme selector that lets you easily switch between different color schemes.
 
 ## Features
 

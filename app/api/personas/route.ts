@@ -34,17 +34,61 @@ export async function GET(request: NextRequest) {
     // Obtener personas con paginación y filtros
     const personas = await pb.collection('personas').getList(page, limit, {
       sort: sort,
-      filter: filter,
-      expand: 'cliente_id' // Expandir la relación para obtener los datos del cliente
+      filter: filter
     });
+    
+    // Obtener todos los clientes y sus relaciones con personas
+    const clientes = await pb.collection('cliente').getFullList({
+      fields: 'id,nombre,persona_id',
+      sort: 'nombre'
+    });
+
+    console.log('DEBUG - Clientes y sus personas:', clientes.map(c => ({
+      id: c.id,
+      nombre: c.nombre,
+      persona_id: c.persona_id
+    })));
+
+    // Crear un mapa de personas a clientes
+    const personaToClientes = new Map();
+    
+    // Procesar cada cliente y sus personas asociadas
+    clientes.forEach(cliente => {
+      // Asegurarse de que persona_id sea un array
+      const personaIds = Array.isArray(cliente.persona_id) ? cliente.persona_id : 
+                        cliente.persona_id ? [cliente.persona_id] : [];
+      
+      // Por cada persona asociada al cliente
+      personaIds.forEach(personaId => {
+        if (!personaToClientes.has(personaId)) {
+          personaToClientes.set(personaId, []);
+        }
+        personaToClientes.get(personaId).push({
+          id: cliente.id,
+          nombre: cliente.nombre
+        });
+      });
+    });
+
+    console.log('DEBUG - Mapa de personas a clientes:', 
+      Object.fromEntries([...personaToClientes.entries()].map(([k, v]) => [k, v]))
+    );
     
     // Transformar los datos si es necesario
     const personasFormateadas = personas.items.map(persona => {
+      const clientesAsociados = personaToClientes.get(persona.id) || [];
+      
+      console.log('DEBUG - Formateando persona:', {
+        id: persona.id,
+        nombre: persona.nombre,
+        clientes: clientesAsociados
+      });
+      
       return {
         id: persona.id,
         nombre: persona.nombre || '',
         apellido: persona.apellido || '',
-        telefono: persona.telefono || '',
+        telefono: persona.telefono ? String(persona.telefono) : '',
         email: persona.email || '',
         cumpleanio: persona.cumpleanio || null,
         pais: persona.pais || '',
@@ -53,11 +97,9 @@ export async function GET(request: NextRequest) {
         direccion: persona.direccion || '',
         comentario: persona.comentario || '',
         tipo_persona: persona.tipo_persona || null,
-        cliente_id: persona.cliente_id || null,
-        cliente: persona.expand?.cliente_id ? {
-          id: persona.expand.cliente_id.id,
-          nombre: persona.expand.cliente_id.nombre
-        } : null,
+        cliente_id: null, // Ya no usamos este campo
+        cliente: null, // Ya no usamos este campo
+        clientes: clientesAsociados,
         relacion: persona.relacion || null,
         created: persona.created,
         updated: persona.updated
@@ -110,14 +152,28 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Procesar "none" como null para cliente_id
-    if (data.cliente_id === "none") {
-      data.cliente_id = null;
-    }
+    // Formatear los datos según los requisitos de PocketBase
+    const formattedData = {
+      nombre: data.nombre,
+      apellido: data.apellido,
+      telefono: data.telefono ? String(data.telefono) : "", // Convertir a string si existe
+      email: data.email || "",
+      cumpleanio: data.cumpleanio ? new Date(data.cumpleanio).toISOString() : null,
+      pais: data.pais || "",
+      ciudad: data.ciudad || "",
+      instagram: data.instagram || "",
+      direccion: data.direccion || "",
+      comentario: data.comentario || "",
+      tipo_persona: data.tipo_persona || "",
+      cliente_id: data.cliente_id === "none" ? null : data.cliente_id || null,
+      relacion: data.relacion || null
+    };
+
+    console.log('POST Persona - Datos formateados:', JSON.stringify(formattedData, null, 2));
     
     // Crear la persona en PocketBase
     try {
-      const record = await pb.collection('personas').create(data);
+      const record = await pb.collection('personas').create(formattedData);
       console.log('POST Persona - Persona creada con ID:', record.id);
       
       return NextResponse.json({

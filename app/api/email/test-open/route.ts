@@ -21,7 +21,7 @@ export async function GET() {
     const { data, error } = await resend.emails.send({
       from: 'onboarding@resend.dev',
       to: 'administracion@azaresweb.com.ar',
-      subject: 'Test desde API - Azhares Panel',
+      subject: 'Test desde API - Azares Panel',
       html: '<p>Este es un email de prueba enviado desde el endpoint de API usando <strong>Resend</strong>.</p>'
     });
     

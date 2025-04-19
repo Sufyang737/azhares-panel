@@ -28,22 +28,24 @@ export const WelcomeEmail: React.FC<Readonly<WelcomeEmailProps>> = ({
   clienteId,
   formUrl,
 }) => {
-  // Construir la URL del formulario
-  const formularioUrl = formUrl || 
-    (clienteId ? `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/formulario/${encodeURIComponent(clienteId)}` : '');
+  // Usar directamente la URL proporcionada si existe
+  const formularioUrl = formUrl || '';
+
+  console.log('Email Template - URL recibida:', formUrl);
+  console.log('Email Template - URL final:', formularioUrl);
 
   return (
     <Html>
       <Head />
-      <Preview>Bienvenido a Azhares Panel - Tu evento está confirmado</Preview>
+      <Preview>Bienvenido a Azares Panel - Tu evento está confirmado</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>¡Bienvenido a Azhares Panel!</Heading>
+          <Heading style={h1}>¡Bienvenido a Azares Panel!</Heading>
           <Text style={text}>
             Estimado/a {clientName},
           </Text>
           <Text style={text}>
-            ¡Nos complace darle la bienvenida a Azhares Panel! Su evento ha sido registrado exitosamente en nuestro sistema.
+            ¡Nos complace darle la bienvenida a Azares Panel! Su evento ha sido registrado exitosamente en nuestro sistema.
           </Text>
           <Text style={text}>
             Detalles de su evento:
@@ -76,7 +78,7 @@ export const WelcomeEmail: React.FC<Readonly<WelcomeEmailProps>> = ({
           </Text>
           <Text style={footer}>
             Saludos cordiales,<br />
-            El equipo de Azhares
+            El equipo de Azares
           </Text>
         </Container>
       </Body>

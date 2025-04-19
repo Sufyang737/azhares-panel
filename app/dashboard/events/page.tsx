@@ -53,25 +53,57 @@ interface Evento {
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Evento[]>([]);
+  const [birthdays, setBirthdays] = useState<any[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<Evento | null>(null);
 
   // Cargar eventos desde el API
   useEffect(() => {
-    async function fetchEvents() {
+    async function fetchData() {
       try {
-        const response = await fetch('/api/eventos');
-        const result = await response.json();
-        if (result.success) {
-          console.log("Datos recibidos de la API:", result.data);
-          setEvents(result.data);
+        // Obtener eventos
+        const eventResponse = await fetch('/api/eventos');
+        const eventResult = await eventResponse.json();
+        if (eventResult.success) {
+          console.log("Datos de eventos recibidos:", eventResult.data);
+          setEvents(eventResult.data);
+        }
+
+        // Obtener personas para cumpleaños
+        const personasResponse = await fetch('/api/personas');
+        const personasResult = await personasResponse.json();
+        if (personasResult.success) {
+          console.log("Datos de personas recibidos:", personasResult.data);
+          // Filtrar solo las personas con cumpleaños
+          const birthdayEvents = personasResult.data
+            .filter((persona: any) => persona.cumpleanio)
+            .map((persona: any) => {
+              const birthDate = new Date(persona.cumpleanio);
+              const currentYear = new Date().getFullYear();
+              // Crear fecha del cumpleaños para este año
+              const thisYearBirthday = new Date(currentYear, birthDate.getMonth(), birthDate.getDate());
+              
+              return {
+                id: `birthday-${persona.id}`,
+                title: `🎂 Cumpleaños de ${persona.nombre} ${persona.apellido}`,
+                start: thisYearBirthday,
+                end: thisYearBirthday,
+                allDay: true,
+                resource: {
+                  tipo: 'cumpleaños',
+                  estado: 'cumpleaños',
+                  persona: persona
+                }
+              };
+            });
+          setBirthdays(birthdayEvents);
         }
       } catch (error) {
-        console.error('Error al obtener eventos:', error);
+        console.error('Error al obtener datos:', error);
       }
     }
     
-    fetchEvents();
+    fetchData();
   }, [refreshTrigger]);
 
   // Función para refrescar los datos
@@ -86,21 +118,26 @@ export default function EventsPage() {
   const locations = 1; // Placeholder
 
   // Convertir eventos para el calendario
-  const calendarEvents = events.map(event => ({
-    id: event.id,
-    title: event.nombre,
-    start: new Date(event.fecha),
-    end: new Date(event.fecha),
-    allDay: true,
-    resource: event,
-  }));
+  const calendarEvents = [
+    ...events.map(event => ({
+      id: event.id,
+      title: event.nombre,
+      start: new Date(event.fecha),
+      end: new Date(event.fecha),
+      allDay: true,
+      resource: event,
+    })),
+    ...birthdays
+  ];
 
   // Manejador para cuando se hace clic en un evento
   const handleSelectEvent = (event: any) => {
-    // El evento viene del calendario, necesitamos obtener el evento original
-    const originalEvent = events.find(e => e.id === event.id);
-    if (originalEvent) {
-      setSelectedEvent(originalEvent);
+    // Solo mostrar detalles si no es un cumpleaños
+    if (!event.id.startsWith('birthday-')) {
+      const originalEvent = events.find(e => e.id === event.id);
+      if (originalEvent) {
+        setSelectedEvent(originalEvent);
+      }
     }
   };
 
@@ -231,7 +268,11 @@ export default function EventsPage() {
                         onSelectEvent={handleSelectEvent}
                         eventPropGetter={(event) => ({
                           style: {
-                            backgroundColor: event.resource?.estado === 'en-curso' ? '#22c55e' : '#64748b',
+                            backgroundColor: event.resource?.tipo === 'cumpleaños' 
+                              ? '#ec4899' // rosa para cumpleaños
+                              : event.resource?.estado === 'en-curso' 
+                                ? '#22c55e' 
+                                : '#64748b',
                             cursor: 'pointer'
                           },
                         })}

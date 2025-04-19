@@ -179,7 +179,8 @@ export async function POST(request: NextRequest) {
               subject: `¡Bienvenido/a! Tu evento "${data.nombre}" ha sido registrado`,
               clientName: data.cliente_nombre,
               eventName: data.nombre,
-              eventDate: fechaFormateada
+              eventDate: fechaFormateada,
+              clienteId: clienteRecord.id
             })
           });
           
