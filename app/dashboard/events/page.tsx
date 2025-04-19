@@ -6,9 +6,28 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { IconCalendarEvent, IconUsers, IconMapPin, IconCoin } from "@tabler/icons-react";
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { es } from 'date-fns/locale';
+import "react-big-calendar/lib/css/react-big-calendar.css";
 
 import { EventsDataTable } from "@/components/events/events-data-table";
 import { CreateEventDialog } from "@/components/events/create-event-dialog";
+import { EventDetailsDialog } from "../../../components/events/event-details-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// Configuración del localizador para el calendario
+const locales = {
+  'es': es,
+}
+
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales,
+});
 
 // Interfaz para la estructura de un evento
 interface Evento {
@@ -35,6 +54,7 @@ interface Evento {
 export default function EventsPage() {
   const [events, setEvents] = useState<Evento[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [selectedEvent, setSelectedEvent] = useState<Evento | null>(null);
 
   // Cargar eventos desde el API
   useEffect(() => {
@@ -64,6 +84,25 @@ export default function EventsPage() {
   const upcomingEvents = events.filter(event => event.estado === "en-curso").length;
   const uniqueClients = new Set(events.map(event => event.cliente?.id).filter(Boolean)).size;
   const locations = 1; // Placeholder
+
+  // Convertir eventos para el calendario
+  const calendarEvents = events.map(event => ({
+    id: event.id,
+    title: event.nombre,
+    start: new Date(event.fecha),
+    end: new Date(event.fecha),
+    allDay: true,
+    resource: event,
+  }));
+
+  // Manejador para cuando se hace clic en un evento
+  const handleSelectEvent = (event: any) => {
+    // El evento viene del calendario, necesitamos obtener el evento original
+    const originalEvent = events.find(e => e.id === event.id);
+    if (originalEvent) {
+      setSelectedEvent(originalEvent);
+    }
+  };
 
   return (
     <SidebarProvider
@@ -149,10 +188,70 @@ export default function EventsPage() {
                 </div>
               </div>
               <div className="px-4 lg:px-6">
-                <EventsDataTable data={events} />
+                <Tabs defaultValue="calendar" className="w-full">
+                  <TabsList>
+                    <TabsTrigger value="calendar">Calendario</TabsTrigger>
+                    <TabsTrigger value="table">Tabla</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="calendar" className="mt-4">
+                    <div className="rounded-lg border bg-card">
+                      <Calendar
+                        localizer={localizer}
+                        events={calendarEvents}
+                        startAccessor="start"
+                        endAccessor="end"
+                        style={{ height: 600 }}
+                        culture='es'
+                        messages={{
+                          next: "Siguiente",
+                          previous: "Anterior",
+                          today: "Hoy",
+                          month: "Mes",
+                          week: "Semana",
+                          day: "Día",
+                          agenda: "Agenda",
+                          date: "Fecha",
+                          time: "Hora",
+                          event: "Evento",
+                          noEventsInRange: "No hay eventos en este rango",
+                          showMore: (total) => `+ Ver ${total} más`,
+                          allDay: "Todo el día"
+                        }}
+                        formats={{
+                          monthHeaderFormat: 'MMMM yyyy',
+                          dayHeaderFormat: 'dddd d [de] MMMM',
+                          dayRangeHeaderFormat: ({ start, end }) =>
+                            `${format(start, 'd [de] MMMM', { locale: es })} – ${format(end, 'd [de] MMMM', { locale: es })}`,
+                          agendaHeaderFormat: ({ start, end }) =>
+                            `${format(start, 'd [de] MMMM', { locale: es })} – ${format(end, 'd [de] MMMM', { locale: es })}`,
+                        }}
+                        views={['month', 'week', 'day', 'agenda']}
+                        defaultView="month"
+                        popup
+                        onSelectEvent={handleSelectEvent}
+                        eventPropGetter={(event) => ({
+                          style: {
+                            backgroundColor: event.resource?.estado === 'en-curso' ? '#22c55e' : '#64748b',
+                            cursor: 'pointer'
+                          },
+                        })}
+                      />
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="table">
+                    <EventsDataTable data={events} />
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
           </div>
+          {/* Diálogo de detalles del evento */}
+          <EventDetailsDialog
+            event={selectedEvent}
+            isOpen={!!selectedEvent}
+            onClose={() => setSelectedEvent(null)}
+            onEventUpdated={handleEventCreated}
+          />
         </div>
       </SidebarInset>
     </SidebarProvider>

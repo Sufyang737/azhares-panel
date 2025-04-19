@@ -302,19 +302,40 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
     
     setIsSubmitting(true);
     try {
-      let submitData = {
+      // Asegurarnos de que las fechas estén en el día correcto
+      const fechaEspera = new Date(
+        values.fechaEspera.getFullYear(),
+        values.fechaEspera.getMonth(),
+        values.fechaEspera.getDate(),
+        12, 0, 0
+      );
+
+      const fechaEfectuado = values.esEsperado ? null : new Date();
+      if (fechaEfectuado) {
+        fechaEfectuado.setHours(12, 0, 0, 0);
+      }
+
+      const baseData = {
         ...values,
-        fechaEspera: values.fechaEspera.toISOString(),
+        fechaEspera: fechaEspera.toISOString(),
+        fechaEfectuado: fechaEfectuado?.toISOString() || null,
         cliente_id: values.cliente_id === "none" ? "" : values.cliente_id,
         proveedor_id: values.proveedor_id === "none" ? "" : values.proveedor_id,
         evento_id: values.evento_id === "none" ? "" : values.evento_id,
         equipo_id: values.equipo_id === "none" ? "" : values.equipo_id,
       };
 
-      // Si es pago y oficina, eliminamos el campo detalle
+      let submitData;
+      // Si es pago y oficina, creamos un nuevo objeto sin el campo detalle
       if (values.type === 'pago' && values.categoria === 'oficina') {
-        const { detalle, ...dataWithoutDetalle } = submitData;
+        const { detalle, ...dataWithoutDetalle } = baseData;
         submitData = dataWithoutDetalle;
+      } else {
+        // En otros casos, incluimos el detalle
+        submitData = {
+          ...baseData,
+          detalle: values.detalle
+        };
       }
       
       if (mode === 'edit' && recordToEdit) {
@@ -486,35 +507,31 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                   name="fechaEspera"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel>📅 Fecha *</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal text-sm",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "dd/MM/yyyy")
-                              ) : (
-                                <span>Seleccionar</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            locale={es}
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <FormLabel>📅 Fecha</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              // Crear la fecha usando los componentes locales
+                              const [year, month, day] = e.target.value.split('-').map(Number);
+                              const date = new Date(year, month - 1, day, 12, 0, 0);
+                              field.onChange(date);
+                            } else {
+                              // Si no hay valor, usar la fecha actual
+                              const now = new Date();
+                              const today = new Date(
+                                now.getFullYear(),
+                                now.getMonth(),
+                                now.getDate(),
+                                12, 0, 0
+                              );
+                              field.onChange(today);
+                            }
+                          }}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -532,9 +549,11 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                         />
                       </FormControl>
                       <div className="space-y-0.5">
-                        <FormLabel>⏳ Fecha Esperada</FormLabel>
+                        <FormLabel>⏳ Fecha Programada</FormLabel>
                         <FormDescription className="text-xs">
-                          Marcar si la fecha es estimada
+                          {field.value 
+                            ? "Esta fecha es programada (el pago aún no se realizó)"
+                            : "Esta fecha es efectiva (el pago ya se realizó)"}
                         </FormDescription>
                       </div>
                     </FormItem>

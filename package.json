@@ -49,6 +49,7 @@
     "nodemailer": "^6.10.0",
     "pocketbase": "^0.25.2",
     "react": "^19.0.0",
+    "react-big-calendar": "^1.18.0",
     "react-day-picker": "^9.6.3",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.55.0",
