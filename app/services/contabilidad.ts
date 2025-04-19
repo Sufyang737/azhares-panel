@@ -2,23 +2,29 @@ import { pb } from '@/app/lib/pocketbase';
 
 export type ContabilidadRecord = {
   id: string;
+  created: string;
+  updated: string;
   type: 'cobro' | 'pago';
   especie: 'efectivo' | 'trasferencia';
   moneda: 'ars' | 'usd';
   categoria: 'evento' | 'oficina';
-  subcargo: 'clientes' | 'otros' | 'proveedores' | 'sueldos';
-  detalle: 'comision' | 'handy' | 'honorarios' | 'maquillaje' | 'planner' | 'staff' | 'viandas';
+  subcargo: 'clientes' | 'otros' | 'proveedores' | 'sueldos' | 'mensajeria' | 
+    'cambio-divisas' | 'ajuste-caja' | 'obra-social-empleada' | 
+    'mantencion-cuenta-corriente' | 'seguro-galicia' | 'tarjeta-credito' | 
+    'deriva' | 'expensas' | 'alquiler' | 'prepaga' | 'contador' | 
+    'mantenimiento-pc' | 'impuestos' | 'servicio' | 'regaleria' | 'compras';
+  detalle?: 'compra-usd' | 'comision' | 'handy' | 'honorarios' | 'maquillaje' | 
+    'planner' | 'staff' | 'viandas' | 'venta-usd' | 'viatico' | 'seguro';
   montoEspera: number;
   dolarEsperado: number;
   fechaEspera: string;
   fechaEfectuado?: string;
+  comentario: string;
   cliente_id?: string;
   proveedor_id?: string;
   evento_id?: string;
   equipo_id?: string;
-  comentario?: string;
-  created: string;
-  updated: string;
+  esEsperado: boolean;
 };
 
 export async function createContabilidadRecord(data: Omit<ContabilidadRecord, 'id' | 'created' | 'updated'>) {
@@ -125,8 +131,8 @@ export async function getContabilidadRecords(options: { sort?: string; expand?: 
 
     const response = await fetch('/api/contabilidad?' + new URLSearchParams({
       sort: options.sort || '-created',
-      expand: options.expand || 'evento_id',
-      fields: '*,evento_id.id,evento_id.nombre,cliente_id.nombre,proveedor_id.nombre,equipo_id.nombre'
+      expand: 'cliente_id,evento_id',
+      fields: '*,evento_id.id,evento_id.nombre,cliente_id.id,cliente_id.nombre,proveedor_id.nombre,equipo_id.nombre'
     }), {
       headers: {
         'Authorization': token

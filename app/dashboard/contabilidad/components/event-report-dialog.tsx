@@ -72,29 +72,48 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
   const [selectedClient, setSelectedClient] = useState<string>('all');
 
   // Obtener lista única de clientes
-  const clients = [...new Set(records
-    .filter(r => r.cliente_id)
-    .map(r => ({ id: r.cliente_id, nombre: r.cliente_id?.nombre })))
-  ];
+  const clients = records
+    .filter(r => r.cliente_id && r.cliente_id.nombre)
+    .reduce((acc, record) => {
+      const clientId = record.cliente_id?.id || record.cliente_id;
+      const clientName = record.cliente_id?.nombre;
+      
+      if (!acc.some(c => c.id === clientId) && clientName) {
+        acc.push({ 
+          id: clientId,
+          nombre: clientName
+        });
+      }
+      return acc;
+    }, [] as Array<{ id: string; nombre: string }>)
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   // Obtener lista única de eventos
-  const allEvents = [...new Set(records
+  const allEvents = records
     .filter(r => r.evento_id)
-    .map(r => ({ 
-      id: r.evento_id.id, 
-      nombre: r.evento_id.nombre || 'Evento sin nombre',
-      cliente_id: r.cliente_id
-    })))
-  ];
+    .reduce((acc, record) => {
+      const eventId = record.evento_id?.id;
+      const eventName = record.evento_id?.nombre;
+      const clientId = record.cliente_id?.id;
+      
+      if (eventId && eventName && !acc.some(e => e.id === eventId)) {
+        acc.push({
+          id: eventId,
+          nombre: eventName,
+          cliente_id: clientId
+        });
+      }
+      return acc;
+    }, [] as Array<{ id: string; nombre: string; cliente_id?: string }>)
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   // Agrupar registros por evento
   const eventRecords = records
     .filter(record => selectedClient === 'all' || record.cliente_id === selectedClient)
     .reduce((acc, record) => {
-      if (!record.evento_id) return acc;
+      if (!record.evento_id?.id) return acc;
       
       const eventId = record.evento_id.id;
-      if (!eventId) return acc;
 
       if (!acc[eventId]) {
         acc[eventId] = {
@@ -165,28 +184,26 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
               </div>
             )}
 
-            {filteredEvents.length > 0 && (
-              <div className="w-full sm:w-auto">
-                <label className="text-sm font-medium mb-2 block text-muted-foreground">
-                  Seleccionar Evento
-                </label>
-                <Select
-                  value={selectedEvent || ''}
-                  onValueChange={(value) => setSelectedEvent(value)}
-                >
-                  <SelectTrigger className="w-full sm:w-[300px]">
-                    <SelectValue placeholder="Seleccionar evento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredEvents.map((event) => (
-                      <SelectItem key={event.id} value={event.id}>
-                        {event.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="w-full sm:w-auto">
+              <label className="text-sm font-medium mb-2 block text-muted-foreground">
+                Seleccionar Evento
+              </label>
+              <Select
+                value={selectedEvent || ''}
+                onValueChange={(value) => setSelectedEvent(value)}
+              >
+                <SelectTrigger className="w-full sm:w-[300px]">
+                  <SelectValue placeholder="Seleccionar evento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredEvents.map((event) => (
+                    <SelectItem key={event.id} value={event.id}>
+                      {event.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {filteredEvents.length === 0 ? (

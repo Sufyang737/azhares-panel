@@ -65,30 +65,62 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
   // Filtrar registros del día actual que estén efectuados
   const todayRecords = records.filter(record => {
     if (!record.fechaEfectuado) return false;
-    const effectiveDate = parseISO(record.fechaEfectuado);
-    return isToday(effectiveDate);
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const effectiveDate = new Date(record.fechaEfectuado);
+    
+    return effectiveDate >= today && effectiveDate < tomorrow;
   });
+
+  console.log('Registros encontrados para hoy:', todayRecords.length);
+  console.log('Registros del día:', todayRecords);
 
   // Calcular totales
   const totals = todayRecords.reduce((acc: CashTotals, record) => {
-    const amount = record.montoEspera;
-    const especie = record.especie.toLowerCase();
-    const moneda = record.moneda.toLowerCase();
-    const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
+    try {
+      const amount = record.montoEspera || 0;
+      const especie = record.especie?.toLowerCase();
+      const moneda = record.moneda?.toLowerCase();
+      const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
 
-    // Validar que especie y moneda sean valores válidos
-    if (especie !== 'efectivo' && especie !== 'transferencia') {
-      console.warn(`Especie inválida: ${especie}`);
-      return acc;
+      // Validar que los valores sean correctos
+      if (especie !== 'efectivo' && especie !== 'transferencia') {
+        console.warn('Especie inválida:', especie, record);
+        return acc;
+      }
+
+      if (moneda !== 'ars' && moneda !== 'usd') {
+        console.warn('Moneda inválida:', moneda, record);
+        return acc;
+      }
+
+      // Asegurarnos de que la estructura existe
+      if (!acc[especie]) {
+        acc[especie] = {
+          ars: { ingresos: 0, egresos: 0 },
+          usd: { ingresos: 0, egresos: 0 }
+        };
+      }
+
+      if (!acc[especie][moneda]) {
+        acc[especie][moneda] = { ingresos: 0, egresos: 0 };
+      }
+
+      if (!acc[especie][moneda][type]) {
+        acc[especie][moneda][type] = 0;
+      }
+
+      // Sumar el monto
+      acc[especie][moneda][type] += amount;
+      console.log(`Sumando ${amount} a ${especie} ${moneda} ${type}`);
+    } catch (error) {
+      console.error('Error procesando registro:', record, error);
     }
-
-    if (moneda !== 'ars' && moneda !== 'usd') {
-      console.warn(`Moneda inválida: ${moneda}`);
-      return acc;
-    }
-
-    // Ahora TypeScript sabe que especie y moneda son valores válidos
-    acc[especie as 'efectivo' | 'transferencia'][moneda as 'ars' | 'usd'][type] += amount;
     return acc;
   }, {
     efectivo: {

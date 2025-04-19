@@ -60,14 +60,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (body.subcargo && !["clientes", "otros", "proveedores", "sueldos"].includes(body.subcargo)) {
+    const validSubcargos = [
+      "clientes", "otros", "proveedores", "sueldos", "mensajeria",
+      "cambio-divisas", "ajuste-caja", "obra-social-empleada",
+      "mantencion-cuenta-corriente", "seguro-galicia", "tarjeta-credito",
+      "deriva", "expensas", "alquiler", "prepaga", "contador",
+      "mantenimiento-pc", "impuestos", "servicio", "regaleria", "compras"
+    ];
+
+    if (body.subcargo && !validSubcargos.includes(body.subcargo)) {
       return NextResponse.json(
-        { error: "El campo 'subcargo' debe ser 'clientes', 'otros', 'proveedores' o 'sueldos'" },
+        { error: `El campo 'subcargo' debe ser uno de los siguientes valores: ${validSubcargos.join(", ")}` },
         { status: 400 }
       );
     }
 
-    if (body.detalle && !["comision", "handy", "honorarios", "maquillaje", "planner", "staff", "viandas"].includes(body.detalle)) {
+    const validDetalles = [
+      "compra-usd", "comision", "handy", "honorarios", "maquillaje",
+      "planner", "staff", "viandas", "venta-usd", "viatico", "seguro"
+    ];
+
+    if (body.detalle && !validDetalles.includes(body.detalle)) {
       return NextResponse.json(
         { error: "El campo 'detalle' debe ser uno de los valores permitidos" },
         { status: 400 }

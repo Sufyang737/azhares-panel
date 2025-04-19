@@ -51,8 +51,13 @@ type FormData = {
   especie: 'efectivo' | 'trasferencia';
   moneda: 'ars' | 'usd';
   categoria: 'evento' | 'oficina';
-  subcargo: 'clientes' | 'otros' | 'proveedores' | 'sueldos';
-  detalle: 'comision' | 'handy' | 'honorarios' | 'maquillaje' | 'planner' | 'staff' | 'viandas';
+  subcargo: 'clientes' | 'otros' | 'proveedores' | 'sueldos' | 'mensajeria' | 
+    'cambio-divisas' | 'ajuste-caja' | 'obra-social-empleada' | 
+    'mantencion-cuenta-corriente' | 'seguro-galicia' | 'tarjeta-credito' | 
+    'deriva' | 'expensas' | 'alquiler' | 'prepaga' | 'contador' | 
+    'mantenimiento-pc' | 'impuestos' | 'servicio' | 'regaleria' | 'compras';
+  detalle: 'compra-usd' | 'comision' | 'handy' | 'honorarios' | 'maquillaje' | 
+    'planner' | 'staff' | 'viandas' | 'venta-usd' | 'viatico' | 'seguro';
   montoEspera: number;
   dolarEsperado: number;
   fechaEspera: Date;
@@ -78,6 +83,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [equipo, setEquipo] = useState<Equipo[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormData>({
     defaultValues: {
@@ -99,6 +105,139 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
     },
     mode: "onChange"
   });
+
+  // Obtener los valores actuales
+  const currentType = form.watch('type');
+  const currentCategoria = form.watch('categoria');
+
+  // Determinar las opciones disponibles de subcargo basadas en type y categoria
+  const getAvailableSubcargos = () => {
+    // Caso 1: Cobro en oficina
+    if (currentType === 'cobro' && currentCategoria === 'oficina') {
+      return [
+        { value: 'cambio-divisas', label: 'Cambio de Divisas' },
+        { value: 'ajuste-caja', label: 'Ajuste de Caja' },
+        { value: 'mensajeria', label: 'Mensajería' }
+      ];
+    }
+    
+    // Caso 2: Pago en oficina
+    if (currentType === 'pago' && currentCategoria === 'oficina') {
+      return [
+        { value: 'obra-social-empleada', label: 'Obra Social Empleada' },
+        { value: 'mantencion-cuenta-corriente', label: 'Mantención Cuenta Corriente' },
+        { value: 'seguro-galicia', label: 'Seguro Galicia' },
+        { value: 'tarjeta-credito', label: 'Tarjeta de Crédito Business' },
+        { value: 'deriva', label: 'Deriva' },
+        { value: 'expensas', label: 'Expensas' },
+        { value: 'alquiler', label: 'Alquiler' },
+        { value: 'prepaga', label: 'Prepaga' },
+        { value: 'contador', label: 'Contador' },
+        { value: 'mantenimiento-pc', label: 'Mantenimiento PC' },
+        { value: 'impuestos', label: 'Impuestos' },
+        { value: 'servicio', label: 'Servicios' },
+        { value: 'regaleria', label: 'Regalería' },
+        { value: 'compras', label: 'Compras' },
+        { value: 'sueldos', label: 'Sueldos' }
+      ];
+    }
+
+    // Caso 3: Pago en evento
+    if (currentType === 'pago' && currentCategoria === 'evento') {
+      return [
+        { value: 'otros', label: 'Otros' },
+        { value: 'sueldos', label: 'Sueldos' }
+      ];
+    }
+
+    // Caso 4: Cobro en evento
+    if (currentType === 'cobro' && currentCategoria === 'evento') {
+      return [
+        { value: 'proveedores', label: 'Proveedores' },
+        { value: 'clientes', label: 'Clientes' }
+      ];
+    }
+
+    // Caso por defecto
+    return [
+      { value: 'clientes', label: 'Clientes' },
+      { value: 'otros', label: 'Otros' },
+      { value: 'proveedores', label: 'Proveedores' },
+      { value: 'sueldos', label: 'Sueldos' }
+    ];
+  };
+
+  // Determinar las opciones disponibles de detalle basadas en subcargo y categoria
+  const getAvailableDetalles = () => {
+    // Caso 1: Cobro en oficina con cambio de divisas
+    if (currentType === 'cobro' && currentCategoria === 'oficina' && 
+        form.watch('subcargo') === 'cambio-divisas') {
+      return [
+        { value: 'compra-usd', label: 'Compra USD' },
+        { value: 'venta-usd', label: 'Venta USD' }
+      ];
+    }
+
+    // Caso 2: Cobro en evento
+    if (currentType === 'cobro' && currentCategoria === 'evento') {
+      return [
+        { value: 'comision', label: 'Comisión' }
+      ];
+    }
+
+    // Caso 3: Pago en evento
+    if (currentType === 'pago' && currentCategoria === 'evento') {
+      return [
+        { value: 'maquillaje', label: 'Maquillaje' },
+        { value: 'viandas', label: 'Viandas' },
+        { value: 'viatico', label: 'Viático' },
+        { value: 'handy', label: 'Handy' },
+        { value: 'honorarios', label: 'Honorarios' },
+        { value: 'planner', label: 'Planner' },
+        { value: 'staff', label: 'Staff' },
+        { value: 'seguro', label: 'Seguro' }
+      ];
+    }
+
+    // Caso 4: Pago en oficina - no mostrar detalles
+    if (currentType === 'pago' && currentCategoria === 'oficina') {
+      return [
+        { value: 'honorarios', label: 'Honorarios' }
+      ];
+    }
+
+    // Caso por defecto
+    return [
+      { value: 'compra-usd', label: 'Compra USD' },
+      { value: 'comision', label: 'Comisión' },
+      { value: 'handy', label: 'Handy' },
+      { value: 'honorarios', label: 'Honorarios' },
+      { value: 'maquillaje', label: 'Maquillaje' },
+      { value: 'planner', label: 'Planner' },
+      { value: 'staff', label: 'Staff' },
+      { value: 'viandas', label: 'Viandas' },
+      { value: 'venta-usd', label: 'Venta USD' },
+      { value: 'viatico', label: 'Viático' },
+      { value: 'seguro', label: 'Seguro' }
+    ];
+  };
+
+  // Efecto para resetear subcargo y detalle cuando cambian type o categoria
+  useEffect(() => {
+    if (currentType === 'cobro' && currentCategoria === 'oficina') {
+      form.setValue('subcargo', 'cambio-divisas');
+      form.setValue('detalle', 'compra-usd');
+    } else if (currentType === 'pago' && currentCategoria === 'oficina') {
+      form.setValue('subcargo', 'obra-social-empleada');
+      form.setValue('detalle', 'honorarios');
+    } else if (currentType === 'pago' && currentCategoria === 'evento') {
+      form.setValue('subcargo', 'otros');
+      form.setValue('detalle', 'honorarios');
+    } else if (currentType === 'cobro' && currentCategoria === 'evento') {
+      form.setValue('subcargo', 'clientes');
+      form.setValue('detalle', 'comision');
+    }
+  }, [currentType, currentCategoria, form]);
 
   useEffect(() => {
     const loadRelations = async () => {
@@ -159,8 +298,11 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
   }, [form.watch('moneda'), form.watch('montoEspera'), dolarBlue, form]);
 
   const onSubmit = async (values: FormData) => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
     try {
-      const submitData = {
+      let submitData = {
         ...values,
         fechaEspera: values.fechaEspera.toISOString(),
         cliente_id: values.cliente_id === "none" ? "" : values.cliente_id,
@@ -168,6 +310,12 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
         evento_id: values.evento_id === "none" ? "" : values.evento_id,
         equipo_id: values.equipo_id === "none" ? "" : values.equipo_id,
       };
+
+      // Si es pago y oficina, eliminamos el campo detalle
+      if (values.type === 'pago' && values.categoria === 'oficina') {
+        const { detalle, ...dataWithoutDetalle } = submitData;
+        submitData = dataWithoutDetalle;
+      }
       
       if (mode === 'edit' && recordToEdit) {
         await updateContabilidadRecord(recordToEdit.id, submitData);
@@ -195,6 +343,8 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
         description: error instanceof Error ? error.message : "Error al procesar el registro",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -229,17 +379,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
         </DialogHeader>
         <Form {...form}>
           <form 
-            onSubmit={(e) => {
-              console.log("=== CLICK EN BOTÓN GUARDAR ===");
-              console.log("Evento submit:", e);
-              console.log("Valores del formulario:", form.getValues());
-              console.log("Estado del formulario:", {
-                isValid: form.formState.isValid,
-                isDirty: form.formState.isDirty,
-                errors: form.formState.errors
-              });
-              form.handleSubmit(onSubmit)(e);
-            }} 
+            onSubmit={form.handleSubmit(onSubmit)} 
             className="grid gap-4"
           >
             {/* Primera fila: Tipo, Método, Moneda */}
@@ -439,42 +579,43 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="clientes">Clientes</SelectItem>
-                        <SelectItem value="otros">Otros</SelectItem>
-                        <SelectItem value="proveedores">Proveedores</SelectItem>
-                        <SelectItem value="sueldos">Sueldos</SelectItem>
+                        {getAvailableSubcargos().map(({ value, label }) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="detalle"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>📝 Detalle *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="comision">Comisión</SelectItem>
-                        <SelectItem value="handy">Handy</SelectItem>
-                        <SelectItem value="honorarios">Honorarios</SelectItem>
-                        <SelectItem value="maquillaje">Maquillaje</SelectItem>
-                        <SelectItem value="planner">Planner</SelectItem>
-                        <SelectItem value="staff">Staff</SelectItem>
-                        <SelectItem value="viandas">Viandas</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {!(currentType === 'pago' && currentCategoria === 'oficina') && (
+                <FormField
+                  control={form.control}
+                  name="detalle"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>🔍 Detalle *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {getAvailableDetalles().map(({ value, label }) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             {/* Cuarta fila: Cliente y Proveedor */}
@@ -625,8 +766,9 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                 type="submit"
                 size="sm"
                 className="ml-auto"
+                disabled={isSubmitting}
               >
-                Guardar
+                {isSubmitting ? "Guardando..." : "Guardar"}
               </Button>
             </div>
           </form>
