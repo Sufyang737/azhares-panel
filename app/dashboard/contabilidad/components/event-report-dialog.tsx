@@ -71,18 +71,57 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
   const [selectedCategory, setSelectedCategory] = useState<'evento' | 'oficina'>('evento');
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<string>('all');
+  const [loading, setLoading] = useState(false);
+  const [eventos, setEventos] = useState<any[]>([]);
 
-  // Filtrar registros por categoría
-  const filteredRecords = records.filter(r => r.categoria === selectedCategory);
+  // Cargar eventos al abrir el diálogo
+  useEffect(() => {
+    async function fetchEventos() {
+      if (open && selectedCategory === 'evento') {
+        setLoading(true);
+        try {
+          const response = await fetch('/api/eventos');
+          const result = await response.json();
+          if (result.success) {
+            console.log("Eventos cargados:", result.data);
+            setEventos(result.data);
+          }
+        } catch (error) {
+          console.error("Error al cargar eventos:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+    fetchEventos();
+  }, [open, selectedCategory]);
+
+  // Filtrar registros por categoría y evento
+  const filteredRecords = records.filter(r => {
+    // Primero verificamos la categoría
+    if (r.categoria !== selectedCategory) return false;
+    
+    // Si hay un evento seleccionado, filtramos por ese evento específico
+    if (selectedEvent && r.evento_id) {
+      console.log('Comparando evento:', {
+        recordEventId: r.evento_id,
+        selectedEvent: selectedEvent,
+        match: r.evento_id === selectedEvent
+      });
+      return r.evento_id === selectedEvent;
+    }
+    
+    return true;
+  });
 
   // Obtener lista única de clientes
   const clients = filteredRecords
     .filter(r => r.cliente_id && r.cliente_id.nombre)
     .reduce((acc, record) => {
-      const clientId = record.cliente_id?.id || record.cliente_id;
+      const clientId = record.cliente_id?.id;
       const clientName = record.cliente_id?.nombre;
       
-      if (!acc.some(c => c.id === clientId) && clientName) {
+      if (clientId && clientName && !acc.some(c => c.id === clientId)) {
         acc.push({ 
           id: clientId,
           nombre: clientName
@@ -92,48 +131,41 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
     }, [] as Array<{ id: string; nombre: string }>)
     .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-  // Obtener lista única de eventos
-  const allEvents = records
-    .filter(r => r.categoria === selectedCategory)
-    .reduce((acc, record) => {
-      // Verificar si el registro tiene un evento asociado
-      if (record.evento_id) {
-        const eventId = record.evento_id.id;
-        const eventName = record.evento_id.nombre;
-        const clientId = record.cliente_id?.id;
-        
-        // Solo agregar si no existe ya en el acumulador
-        if (!acc.some(e => e.id === eventId)) {
-          acc.push({
-            id: eventId,
-            nombre: eventName || 'Evento sin nombre',
-            cliente_id: clientId
-          });
-        }
-      }
-      return acc;
-    }, [] as Array<{ id: string; nombre: string; cliente_id?: string }>)
+  // Filtrar eventos basados en el cliente seleccionado
+  const filteredEvents = eventos
+    .filter(event => {
+      if (selectedClient === 'all') return true;
+      return event.cliente?.id === selectedClient;
+    })
+    .map(event => ({
+      id: event.id,
+      nombre: event.nombre,
+      cliente_id: event.cliente?.id
+    }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre));
-
-  console.log('Registros totales:', records.length);
-  console.log('Registros filtrados por categoría:', records.filter(r => r.categoria === selectedCategory).length);
-  console.log('Eventos encontrados:', allEvents);
 
   // Agrupar registros por evento
   const eventRecords = records
-    .filter(r => r.categoria === selectedCategory)
-    .filter(record => selectedClient === 'all' || record.cliente_id?.id === selectedClient)
+    .filter(r => {
+      if (r.categoria !== selectedCategory) return false;
+      if (r.evento_id) {
+        return r.evento_id === selectedEvent;
+      }
+      return false;
+    })
     .reduce((acc, record) => {
-      if (!record.evento_id?.id) return acc;
+      if (!record.evento_id) return acc;
       
-      const eventId = record.evento_id.id;
+      const eventId = record.evento_id;
+      // Buscar el evento en la lista de eventos cargados
+      const eventoInfo = eventos.find(e => e.id === eventId);
 
       if (!acc[eventId]) {
         acc[eventId] = {
           ingresos: { ars: 0, usd: 0 },
           egresos: { ars: 0, usd: 0 },
           records: [],
-          nombre: record.evento_id.nombre || 'Evento sin nombre'
+          nombre: eventoInfo?.nombre || 'Evento sin nombre'
         };
       }
 
@@ -145,15 +177,15 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
       return acc;
     }, {} as Record<string, EventTotals & { nombre: string }>);
 
-  // Calcular totales generales
+  // Calcular totales solo para el evento seleccionado
   const totals = records
-    .filter(r => r.categoria === selectedCategory)
-    .filter(record => {
-      if (selectedEvent) {
-        return record.evento_id?.id === selectedEvent;
+    .filter(r => {
+      if (r.categoria !== selectedCategory) return false;
+      if (selectedEvent && r.evento_id) {
+        return r.evento_id === selectedEvent;
       }
-      if (selectedClient !== 'all') {
-        return record.cliente_id?.id === selectedClient;
+      if (selectedClient !== 'all' && r.cliente_id) {
+        return r.cliente_id === selectedClient;
       }
       return true;
     })
@@ -167,22 +199,12 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
       egresos: { ars: 0, usd: 0 }
     } as EventTotals);
 
-  // Filtrar eventos basados en el cliente seleccionado
-  const filteredEvents = selectedClient === 'all' 
-    ? allEvents 
-    : allEvents.filter(event => event.cliente_id === selectedClient);
-
-  console.log('Eventos disponibles:', allEvents);
-  console.log('Eventos filtrados:', filteredEvents);
-  console.log('Cliente seleccionado:', selectedClient);
-
   const selectedEventData = selectedEvent ? eventRecords[selectedEvent] : null;
 
   // Reset selected event when client or category changes
   useEffect(() => {
     setSelectedEvent(null);
-    setSelectedClient('all');
-  }, [selectedCategory]);
+  }, [selectedClient, selectedCategory]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -262,7 +284,11 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
                     <SelectValue placeholder="Seleccionar evento" />
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredEvents.length === 0 ? (
+                    {loading ? (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        Cargando eventos...
+                      </div>
+                    ) : filteredEvents.length === 0 ? (
                       <div className="p-2 text-sm text-muted-foreground text-center">
                         No hay eventos disponibles
                         {selectedClient !== 'all' && " para el cliente seleccionado"}
@@ -281,28 +307,89 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
           )}
 
           {/* Resumen de Totales */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="rounded-lg border p-4">
-              <h3 className="text-lg font-semibold mb-2">Ingresos Totales</h3>
-              <div className="space-y-1">
-                <p className="text-sm">ARS: {formatCurrency(totals.ingresos.ars, 'ars')}</p>
-                <p className="text-sm">USD: {formatCurrency(totals.ingresos.usd, 'usd')}</p>
+          <div className="grid grid-cols-1 gap-4">
+            {selectedEvent && selectedEventData ? (
+              <div className="rounded-lg border p-6 bg-muted/30">
+                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Resumen del Evento: {selectedEventData.nombre}
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  {/* Ingresos */}
+                  <div className="space-y-2">
+                    <h4 className="text-lg font-medium text-green-600">Ingresos</h4>
+                    <div className="space-y-1">
+                      <p className="text-sm flex justify-between">
+                        <span>ARS:</span>
+                        <span className="font-mono">{formatCurrency(selectedEventData.ingresos.ars, 'ars')}</span>
+                      </p>
+                      <p className="text-sm flex justify-between">
+                        <span>USD:</span>
+                        <span className="font-mono">{formatCurrency(selectedEventData.ingresos.usd, 'usd')}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Egresos */}
+                  <div className="space-y-2">
+                    <h4 className="text-lg font-medium text-red-600">Egresos</h4>
+                    <div className="space-y-1">
+                      <p className="text-sm flex justify-between">
+                        <span>ARS:</span>
+                        <span className="font-mono">{formatCurrency(selectedEventData.egresos.ars, 'ars')}</span>
+                      </p>
+                      <p className="text-sm flex justify-between">
+                        <span>USD:</span>
+                        <span className="font-mono">{formatCurrency(selectedEventData.egresos.usd, 'usd')}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Balance */}
+                  <div className="space-y-2">
+                    <h4 className="text-lg font-medium text-blue-600">Balance</h4>
+                    <div className="space-y-1">
+                      <p className="text-sm flex justify-between font-medium">
+                        <span>ARS:</span>
+                        <span className={`font-mono ${(selectedEventData.ingresos.ars - selectedEventData.egresos.ars) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(selectedEventData.ingresos.ars - selectedEventData.egresos.ars, 'ars')}
+                        </span>
+                      </p>
+                      <p className="text-sm flex justify-between font-medium">
+                        <span>USD:</span>
+                        <span className={`font-mono ${(selectedEventData.ingresos.usd - selectedEventData.egresos.usd) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(selectedEventData.ingresos.usd - selectedEventData.egresos.usd, 'usd')}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="rounded-lg border p-4">
-              <h3 className="text-lg font-semibold mb-2">Egresos Totales</h3>
-              <div className="space-y-1">
-                <p className="text-sm">ARS: {formatCurrency(totals.egresos.ars, 'ars')}</p>
-                <p className="text-sm">USD: {formatCurrency(totals.egresos.usd, 'usd')}</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-lg border p-4">
+                  <h3 className="text-lg font-semibold mb-2">Ingresos Totales</h3>
+                  <div className="space-y-1">
+                    <p className="text-sm">ARS: {formatCurrency(totals.ingresos.ars, 'ars')}</p>
+                    <p className="text-sm">USD: {formatCurrency(totals.ingresos.usd, 'usd')}</p>
+                  </div>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <h3 className="text-lg font-semibold mb-2">Egresos Totales</h3>
+                  <div className="space-y-1">
+                    <p className="text-sm">ARS: {formatCurrency(totals.egresos.ars, 'ars')}</p>
+                    <p className="text-sm">USD: {formatCurrency(totals.egresos.usd, 'usd')}</p>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Tabla de Registros */}
           <div className="rounded-lg border">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50">
                   <TableHead>Tipo</TableHead>
                   <TableHead>Método</TableHead>
                   <TableHead>Moneda</TableHead>
@@ -313,27 +400,45 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(selectedEventData?.records || filteredRecords).map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell>
-                      <Badge variant={record.type === 'cobro' ? 'success' : 'destructive'}>
-                        {record.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{record.especie}</TableCell>
-                    <TableCell>
-                      <Badge variant={record.moneda === 'usd' ? 'outline' : 'secondary'}>
-                        {record.moneda.toUpperCase()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{record.subcargo}</TableCell>
-                    <TableCell>{record.detalle}</TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatCurrency(record.montoEspera, record.moneda)}
-                    </TableCell>
-                    <TableCell>{formatDate(record.fechaEspera)}</TableCell>
-                  </TableRow>
+                {(selectedEvent ? selectedEventData?.records : filteredRecords)
+                  ?.sort((a, b) => new Date(b.fechaEspera || '').getTime() - new Date(a.fechaEspera || '').getTime())
+                  .map((record) => (
+                    <TableRow key={record.id} className="hover:bg-muted/30 transition-colors">
+                      <TableCell>
+                        <Badge 
+                          variant={record.type === 'cobro' ? 'success' : 'destructive'}
+                          className="font-medium"
+                        >
+                          {record.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">{record.especie}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={record.moneda === 'usd' ? 'outline' : 'secondary'}
+                          className="font-medium"
+                        >
+                          {record.moneda.toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{record.subcargo}</TableCell>
+                      <TableCell>{record.detalle}</TableCell>
+                      <TableCell className="text-right font-mono font-medium">
+                        <span className={record.type === 'cobro' ? 'text-green-600' : 'text-red-600'}>
+                          {formatCurrency(record.montoEspera, record.moneda)}
+                        </span>
+                      </TableCell>
+                      <TableCell>{formatDate(record.fechaEspera)}</TableCell>
+                    </TableRow>
                 ))}
+                {(selectedEvent ? selectedEventData?.records : filteredRecords)?.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
+                      No hay registros para mostrar
+                      {selectedEvent && " en este evento"}
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
