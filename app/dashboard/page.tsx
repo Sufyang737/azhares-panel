@@ -21,6 +21,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import data from "./data.json";
 
+// Importar los componentes necesarios de la página de contabilidad
+import { AccountingSectionCards } from "@/app/dashboard/contabilidad/components/section-cards";
+import { ScheduledRecordsDialog } from "@/app/dashboard/contabilidad/components/scheduled-records-dialog";
+import { DailyCashDialog } from "@/app/dashboard/contabilidad/components/daily-cash-dialog";
+import { EventReportDialog } from "@/app/dashboard/contabilidad/components/event-report-dialog";
+import { MonthlyReportDialog } from "@/app/dashboard/contabilidad/components/monthly-report-dialog";
+import { CreateRecordDialog } from "@/app/dashboard/contabilidad/components/create-record-dialog";
+
 // Configuración del localizador para el calendario
 const locales = {
   'es': es,
@@ -322,6 +330,35 @@ interface RegistroContable {
   comentario?: string;
   esEsperado: boolean;
   created: string;
+  updated: string;
+  especie: string;
+  moneda: string;
+  categoria: string;
+  cliente_id?: string;
+  proveedor_id?: string;
+  evento_id?: string;
+  equipo_id?: string;
+  monto?: number;
+  fecha?: string;
+  estado?: string;
+  expand?: {
+    cliente_id?: {
+      id: string;
+      nombre: string;
+    };
+    proveedor_id?: {
+      id: string;
+      nombre: string;
+    };
+    evento_id?: {
+      id: string;
+      nombre: string;
+    };
+    equipo_id?: {
+      id: string;
+      nombre: string;
+    };
+  };
 }
 
 // Componente para el panel de contabilidad
@@ -329,93 +366,31 @@ function ContabilidadPanel() {
   const [records, setRecords] = useState<RegistroContable[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadRecords = async () => {
-      setLoading(true);
-      try {
-        const data = await getContabilidadRecords({
-          sort: '-created',
-          expand: 'cliente_id,proveedor_id,evento_id,equipo_id'
-        });
-        setRecords(data?.items || []);
-      } catch (error) {
-        console.error("Error loading records:", error);
-        setRecords([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadRecords = async () => {
+    setLoading(true);
+    try {
+      const data = await getContabilidadRecords({
+        sort: '-created',
+        expand: 'cliente_id,proveedor_id,evento_id,equipo_id'
+      });
+      setRecords(data?.items || []);
+    } catch (error) {
+      console.error("Error loading records:", error);
+      setRecords([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadRecords();
   }, []);
-
-  // Calcular métricas del mes actual
-  const currentMonthRecords = records.filter(record => isThisMonth(new Date(record.created)));
-  const ingresos = currentMonthRecords
-    .filter(record => record.type === 'cobro')
-    .reduce((sum, record) => sum + record.montoEspera, 0);
-  const egresos = currentMonthRecords
-    .filter(record => record.type === 'pago')
-    .reduce((sum, record) => sum + record.montoEspera, 0);
-  const balance = ingresos - egresos;
-
-  // Obtener registros programados
-  const scheduledRecords = records.filter(record => record.esEsperado);
 
   return (
     <>
       {/* Métricas principales */}
-      <div className="col-span-7 grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Ingresos del Mes
-            </CardTitle>
-            <IconCashBanknote className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              ${ingresos.toLocaleString('es-AR')}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Total de cobros este mes
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Egresos del Mes
-            </CardTitle>
-            <IconReceipt className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              ${egresos.toLocaleString('es-AR')}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Total de pagos este mes
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Balance del Mes
-            </CardTitle>
-            <IconCoin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ${balance.toLocaleString('es-AR')}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Diferencia ingresos - egresos
-            </p>
-          </CardContent>
-        </Card>
+      <div className="col-span-7">
+        <AccountingSectionCards records={records} />
       </div>
 
       {/* Gráfico de área */}
@@ -425,53 +400,6 @@ function ContabilidadPanel() {
         </CardHeader>
         <CardContent>
           <ChartAreaInteractive records={records} />
-        </CardContent>
-      </Card>
-
-      {/* Registros programados */}
-      <Card className="col-span-7">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Próximos Movimientos</CardTitle>
-          <IconClock className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[300px] pr-4">
-            {loading ? (
-              <div className="text-center py-4">Cargando registros...</div>
-            ) : scheduledRecords.length > 0 ? (
-              <div className="space-y-4">
-                {scheduledRecords.map((record) => (
-                  <div
-                    key={record.id}
-                    className="flex items-center justify-between border-b pb-3"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {record.comentario || 'Sin descripción'}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Fecha: {format(new Date(record.fechaEspera), 'dd/MM/yyyy')}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={record.type === 'cobro' ? 'default' : 'destructive'}>
-                        {record.type === 'cobro' ? 'Cobro' : 'Pago'}
-                      </Badge>
-                      <span className={`text-sm font-medium ${
-                        record.type === 'cobro' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        ${record.montoEspera.toLocaleString('es-AR')}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-4 text-muted-foreground">
-                No hay movimientos programados
-              </div>
-            )}
-          </ScrollArea>
         </CardContent>
       </Card>
     </>
@@ -500,77 +428,7 @@ function DevPanel() {
 // Componente para los accesos directos
 function QuickAccess({ rol }: { rol: string }) {
   if (rol === 'contabilidad') {
-    return (
-      <div className="grid gap-4 md:grid-cols-4">
-        <Link href="/dashboard/contabilidad">
-          <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Contabilidad
-              </CardTitle>
-              <IconCoin className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Registros</div>
-              <p className="text-xs text-muted-foreground">
-                Ver todos los registros contables
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/dashboard/contabilidad?dialog=scheduled">
-          <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Programados
-              </CardTitle>
-              <IconClock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Pagos</div>
-              <p className="text-xs text-muted-foreground">
-                Ver pagos y cobros programados
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/dashboard/contabilidad?dialog=daily">
-          <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Caja Diaria
-              </CardTitle>
-              <IconCashBanknote className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Efectivo</div>
-              <p className="text-xs text-muted-foreground">
-                Ver movimientos de caja diaria
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/dashboard/contabilidad?dialog=monthly">
-          <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Reporte Mensual
-              </CardTitle>
-              <IconChartBar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Resumen</div>
-              <p className="text-xs text-muted-foreground">
-                Ver resumen mensual de movimientos
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-    );
+    return null; // No mostrar accesos rápidos para contabilidad
   }
 
   // Para el rol de planner y otros roles

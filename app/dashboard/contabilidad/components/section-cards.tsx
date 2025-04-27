@@ -1,17 +1,28 @@
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingDown, TrendingUp, Calendar, DollarSign } from "lucide-react";
 import { ContabilidadRecord } from "@/app/services/contabilidad";
-import { startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
+import { startOfMonth, endOfMonth, subMonths, parseISO, isWithinInterval } from "date-fns";
 
 interface AccountingSectionCardsProps {
   records: ContabilidadRecord[];
 }
 
 interface MonthlyMetrics {
-  totalIngresos: { ars: number; usd: number };
-  totalEgresos: { ars: number; usd: number };
+  totalIngresos: {
+    ars: number;
+    usd: number;
+  };
+  totalEgresos: {
+    ars: number;
+    usd: number;
+  };
   eventosActivos: Set<string>;
-  facturacionPendiente: { ars: number; usd: number };
+  facturacionPendiente: {
+    ars: number;
+    usd: number;
+  };
 }
 
 const calculateMonthlyMetrics = (records: ContabilidadRecord[], date: Date): MonthlyMetrics => {
@@ -20,7 +31,7 @@ const calculateMonthlyMetrics = (records: ContabilidadRecord[], date: Date): Mon
 
   const monthlyRecords = records.filter(record => {
     const recordDate = parseISO(record.created);
-    return recordDate >= startDate && recordDate <= endDate;
+    return isWithinInterval(recordDate, { start: startDate, end: endDate });
   });
 
   const metrics = monthlyRecords.reduce(
@@ -37,8 +48,8 @@ const calculateMonthlyMetrics = (records: ContabilidadRecord[], date: Date): Mon
         acc.totalEgresos[moneda] += amount;
       }
 
-      if (record.evento_id && !record.fechaEfectuado) {
-        acc.eventosActivos.add(record.evento_id);
+      if (record.evento_id?.id && !record.fechaEfectuado) {
+        acc.eventosActivos.add(record.evento_id.id);
       }
 
       return acc;
@@ -69,31 +80,35 @@ export function AccountingSectionCards({ records }: AccountingSectionCardsProps)
   const currentMetrics = calculateMonthlyMetrics(records, currentDate);
   const previousMetrics = calculateMonthlyMetrics(records, previousDate);
 
-  // Convertir montos en ARS a USD usando una tasa aproximada (ajustar según necesidad)
-  const arsToUsdRate = 0.0012; // Aproximadamente 1 USD = 850 ARS
-  const currentTotalUsd = currentMetrics.totalIngresos.usd + (currentMetrics.totalIngresos.ars * arsToUsdRate);
-  const previousTotalUsd = previousMetrics.totalIngresos.usd + (previousMetrics.totalIngresos.ars * arsToUsdRate);
-  const ingresosTrendPercentage = calculatePercentageChange(currentTotalUsd, previousTotalUsd);
-
-  const currentEventos = currentMetrics.eventosActivos.size;
-  const previousEventos = previousMetrics.eventosActivos.size;
-  const eventosTrendPercentage = calculatePercentageChange(currentEventos, previousEventos);
-
-  const currentPendienteUsd = currentMetrics.facturacionPendiente.usd + 
-    (currentMetrics.facturacionPendiente.ars * arsToUsdRate);
-  const previousPendienteUsd = previousMetrics.facturacionPendiente.usd + 
-    (previousMetrics.facturacionPendiente.ars * arsToUsdRate);
-  const pendienteTrendPercentage = calculatePercentageChange(currentPendienteUsd, previousPendienteUsd);
-
   // Calcular margen de ganancia
-  const currentMargin = ((currentTotalUsd - (currentMetrics.totalEgresos.usd + 
-    (currentMetrics.totalEgresos.ars * arsToUsdRate))) / currentTotalUsd) * 100;
-  const previousMargin = ((previousTotalUsd - (previousMetrics.totalEgresos.usd + 
-    (previousMetrics.totalEgresos.ars * arsToUsdRate))) / previousTotalUsd) * 100;
-  const marginTrendPercentage = calculatePercentageChange(currentMargin, previousMargin);
+  const currentMargin = currentMetrics.totalIngresos.usd > 0 
+    ? ((currentMetrics.totalIngresos.usd - currentMetrics.totalEgresos.usd) / currentMetrics.totalIngresos.usd) * 100
+    : 0;
+
+  const previousMargin = previousMetrics.totalIngresos.usd > 0
+    ? ((previousMetrics.totalIngresos.usd - previousMetrics.totalEgresos.usd) / previousMetrics.totalIngresos.usd) * 100
+    : 0;
+
+  // Calcular cambios porcentuales
+  const ingresosChange = calculatePercentageChange(
+    currentMetrics.totalIngresos.usd,
+    previousMetrics.totalIngresos.usd
+  );
+
+  const eventosChange = calculatePercentageChange(
+    currentMetrics.eventosActivos.size,
+    previousMetrics.eventosActivos.size
+  );
+
+  const facturacionChange = calculatePercentageChange(
+    currentMetrics.facturacionPendiente.usd,
+    previousMetrics.facturacionPendiente.usd
+  );
+
+  const marginChange = calculatePercentageChange(currentMargin, previousMargin);
 
   return (
-    <div className="grid gap-4 px-4 md:grid-cols-2 lg:grid-cols-4 lg:px-6">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
@@ -101,70 +116,83 @@ export function AccountingSectionCards({ records }: AccountingSectionCardsProps)
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {new Intl.NumberFormat('es-AR', {
-              style: 'currency',
-              currency: 'USD',
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            }).format(currentTotalUsd)}
+            US$ {currentMetrics.totalIngresos.usd.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
           </div>
-          <p className="text-xs text-muted-foreground">
-            <span className={ingresosTrendPercentage >= 0 ? "text-green-600" : "text-red-600"}>
-              {ingresosTrendPercentage >= 0 ? "+" : ""}{ingresosTrendPercentage.toFixed(1)}%
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            {ingresosChange > 0 ? (
+              <TrendingUp className="h-4 w-4 text-success" />
+            ) : ingresosChange < 0 ? (
+              <TrendingDown className="h-4 w-4 text-destructive" />
+            ) : null}
+            <span className={ingresosChange > 0 ? "text-success" : ingresosChange < 0 ? "text-destructive" : ""}>
+              {ingresosChange.toFixed(1)}% vs mes anterior
             </span>
-            {" "}vs mes anterior
           </p>
         </CardContent>
       </Card>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Eventos Activos</CardTitle>
           <Calendar className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{currentEventos}</div>
-          <p className="text-xs text-muted-foreground">
-            <span className={eventosTrendPercentage >= 0 ? "text-green-600" : "text-red-600"}>
-              {eventosTrendPercentage >= 0 ? "+" : ""}{eventosTrendPercentage.toFixed(1)}%
+          <div className="text-2xl font-bold">
+            {currentMetrics.eventosActivos.size}
+          </div>
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            {eventosChange > 0 ? (
+              <TrendingUp className="h-4 w-4 text-success" />
+            ) : eventosChange < 0 ? (
+              <TrendingDown className="h-4 w-4 text-destructive" />
+            ) : null}
+            <span className={eventosChange > 0 ? "text-success" : eventosChange < 0 ? "text-destructive" : ""}>
+              {eventosChange.toFixed(1)}% vs mes anterior
             </span>
-            {" "}vs mes anterior
           </p>
         </CardContent>
       </Card>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Facturación Pendiente</CardTitle>
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {new Intl.NumberFormat('es-AR', {
-              style: 'currency',
-              currency: 'USD',
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            }).format(currentPendienteUsd)}
+            US$ {currentMetrics.facturacionPendiente.usd.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
           </div>
-          <p className="text-xs text-muted-foreground">
-            <span className={pendienteTrendPercentage >= 0 ? "text-green-600" : "text-red-600"}>
-              {pendienteTrendPercentage >= 0 ? "+" : ""}{pendienteTrendPercentage.toFixed(1)}%
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            {facturacionChange > 0 ? (
+              <TrendingUp className="h-4 w-4 text-success" />
+            ) : facturacionChange < 0 ? (
+              <TrendingDown className="h-4 w-4 text-destructive" />
+            ) : null}
+            <span className={facturacionChange > 0 ? "text-success" : facturacionChange < 0 ? "text-destructive" : ""}>
+              {facturacionChange.toFixed(1)}% vs mes anterior
             </span>
-            {" "}vs mes anterior
           </p>
         </CardContent>
       </Card>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Margen de Ganancia</CardTitle>
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{currentMargin.toFixed(1)}%</div>
-          <p className="text-xs text-muted-foreground">
-            <span className={marginTrendPercentage >= 0 ? "text-green-600" : "text-red-600"}>
-              {marginTrendPercentage >= 0 ? "+" : ""}{marginTrendPercentage.toFixed(1)}%
+          <div className="text-2xl font-bold">
+            {currentMargin.toFixed(1)}%
+          </div>
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            {marginChange > 0 ? (
+              <TrendingUp className="h-4 w-4 text-success" />
+            ) : marginChange < 0 ? (
+              <TrendingDown className="h-4 w-4 text-destructive" />
+            ) : null}
+            <span className={marginChange > 0 ? "text-success" : marginChange < 0 ? "text-destructive" : ""}>
+              {marginChange.toFixed(1)}% vs mes anterior
             </span>
-            {" "}vs mes anterior
           </p>
         </CardContent>
       </Card>

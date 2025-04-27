@@ -32,6 +32,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RecordDetailsDialog } from "./record-details-dialog";
+import { EditRecordDialog } from "./edit-record-dialog";
 
 interface ContabilidadTableProps {
   records: ContabilidadRecord[];
@@ -299,14 +301,12 @@ export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTable
                           disabled={!!record.fechaEfectuado}
                         >
                           <Check className="mr-2 h-4 w-4" />
-                          Marcar como {record.type === "ingreso" ? "cobrado" : "pagado"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar registro
+                          Marcar como {record.type === "cobro" ? "cobrado" : "pagado"}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    <RecordDetailsDialog record={record} />
+                    <EditRecordDialog record={record} onRecordUpdate={onRecordUpdate} />
                   </TableCell>
                 </TableRow>
               ))
