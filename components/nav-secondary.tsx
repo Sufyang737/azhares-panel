@@ -1,42 +1,34 @@
 "use client"
 
-import * as React from "react"
-import { type Icon } from "@tabler/icons-react"
+import { cn } from "@/lib/utils"
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 
-import {
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar"
-
-export function NavSecondary({
-  items,
-  ...props
-}: {
-  items: {
+interface NavSecondaryProps {
+  items: Array<{
     title: string
     url: string
-    icon: Icon
-  }[]
-} & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+    icon: React.ComponentType<{ className?: string }>
+    roles?: string[]
+  }>
+  className?: string
+}
+
+export function NavSecondary({ items, className }: NavSecondaryProps) {
   return (
-    <SidebarGroup {...props}>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild>
-                <a href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+    <SidebarMenu className={cn("px-2", className)}>
+      {items.map((item) => (
+        <SidebarMenuItem key={item.title}>
+          <SidebarMenuButton
+            asChild
+            tooltip={item.title}
+          >
+            <a href={item.url}>
+              <item.icon className="h-4 w-4" />
+              <span>{item.title}</span>
+            </a>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
   )
 }
