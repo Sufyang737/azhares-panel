@@ -6,6 +6,8 @@ export async function POST(request: Request) {
     // Obtener los datos del formulario
     const data = await request.json();
     
+    console.log('Datos recibidos en API:', data);
+
     // Validar datos mínimos requeridos
     if (!data.nombre || !data.apellido || !data.telefono || !data.email) {
       return NextResponse.json(
@@ -43,68 +45,87 @@ export async function POST(request: Request) {
 
     // Preparar los datos a guardar (asegurarse que cumpla con el esquema)
     const record = {
-      nombre: data.nombre,
-      apellido: data.apellido,
-      telefono: data.telefono,
-      email: data.email,
+      nombre: data.nombre.trim(),
+      apellido: data.apellido.trim(),
+      telefono: parseInt(data.telefono.toString().replace(/\D/g, '')),
+      email: data.email.trim(),
       cumpleanio: data.cumpleanio || null,
       pais: data.pais || '',
       ciudad: data.ciudad || '',
-      instagram: data.instagram || '',
+      instagram: data.instagram ? `https://instagram.com/${data.instagram.replace(/^@/, '')}` : '',
       direccion: data.direccion || '',
       comentario: data.comentario || '',
       cliente_id: data.cliente_id
     };
 
-    // Crear el registro en la colección "personas"
-    const persona = await pb.collection('personas').create(record);
+    console.log('Datos a enviar a PocketBase:', record);
 
     try {
-      // Obtener el cliente actual para verificar sus personas relacionadas
-      const cliente = await pb.collection('cliente').getOne(data.cliente_id);
-      
-      // Comprobar si el cliente ya tiene personas_id definido
-      let personasIds = cliente.persona_id || [];
-      
-      // Asegurarnos de que personasIds sea un array
-      if (!Array.isArray(personasIds)) {
-        personasIds = [];
-      }
-      
-      // Añadir el ID de la nueva persona al array, evitando duplicados
-      if (!personasIds.includes(persona.id)) {
-        personasIds.push(persona.id);
-      }
-      
-      // Actualizar el cliente con la nueva relación
-      await pb.collection('cliente').update(data.cliente_id, {
-        persona_id: personasIds
-      });
-      
-      console.log(`Relación actualizada: Cliente ${data.cliente_id} ahora tiene ${personasIds.length} personas asociadas`);
-    } catch (error) {
-      console.error('Error al actualizar la relación con el cliente:', error);
-      // No fallaremos el proceso completo si solo falla la actualización de la relación
-    }
+      // Crear el registro en la colección "personas"
+      const persona = await pb.collection('personas').create(record);
+      console.log('Persona creada:', persona);
 
-    // Responder con éxito
-    return NextResponse.json({
-      success: true,
-      mensaje: 'Información guardada correctamente',
-      persona: {
-        id: persona.id
+      try {
+        // Obtener el cliente actual para verificar sus personas relacionadas
+        const cliente = await pb.collection('cliente').getOne(data.cliente_id);
+        
+        // Comprobar si el cliente ya tiene personas_id definido
+        let personasIds = cliente.persona_id || [];
+        
+        // Asegurarnos de que personasIds sea un array
+        if (!Array.isArray(personasIds)) {
+          personasIds = [];
+        }
+        
+        // Añadir el ID de la nueva persona al array, evitando duplicados
+        if (!personasIds.includes(persona.id)) {
+          personasIds.push(persona.id);
+        }
+        
+        // Actualizar el cliente con la nueva relación
+        await pb.collection('cliente').update(data.cliente_id, {
+          persona_id: personasIds
+        });
+        
+        console.log(`Relación actualizada: Cliente ${data.cliente_id} ahora tiene ${personasIds.length} personas asociadas`);
+      } catch (error) {
+        console.error('Error al actualizar la relación con el cliente:', error);
+        // No fallaremos el proceso completo si solo falla la actualización de la relación
       }
-    });
-  } catch (error: unknown) {
+
+      // Responder con éxito
+      return NextResponse.json({
+        success: true,
+        mensaje: 'Información guardada correctamente',
+        persona: {
+          id: persona.id
+        }
+      });
+    } catch (pocketbaseError: any) {
+      console.error('Error específico de PocketBase:', pocketbaseError);
+      
+      // Intentar extraer el mensaje de error detallado
+      const errorMessage = pocketbaseError.response?.data?.message || 
+                         pocketbaseError.message || 
+                         'Error al crear el registro';
+      
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: errorMessage,
+          details: pocketbaseError.response?.data
+        },
+        { status: 400 }
+      );
+    }
+  } catch (error: any) {
     console.error('Error al guardar datos de persona:', error);
-    
-    // Intentamos extraer el mensaje de error si tiene la estructura esperada
-    const errorMessage = error instanceof Error ? error.message : 'Error al guardar la información';
     
     return NextResponse.json(
       { 
         success: false, 
-        error: errorMessage
+        error: error.message || 'Error al guardar la información',
+        details: error.response?.data
       },
       { status: 500 }
     );

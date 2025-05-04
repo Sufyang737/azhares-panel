@@ -3,14 +3,9 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { 
-  IconUsers, 
-  IconUserCheck, 
-  IconUsersGroup,
-  IconCalendarTime, 
   IconUserPlus
 } from '@tabler/icons-react'
 import { PeopleDataTable, personaSchema } from '@/components/people/people-data-table'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { z } from 'zod'
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
@@ -32,8 +27,33 @@ const apiResponseSchema = z.object({
 
 type Persona = z.infer<typeof personaSchema>;
 
+interface RawPersona {
+  id?: string;
+  nombre?: string;
+  apellido?: string;
+  telefono?: string | null;
+  email?: string;
+  cumpleanio?: string | null;
+  pais?: string | null;
+  ciudad?: string | null;
+  instagram?: string | null;
+  direccion?: string | null;
+  comentario?: string | null;
+  tipo_persona?: string | null;
+  cliente_id?: string | null;
+  expand?: {
+    cliente_id?: {
+      id: string;
+      nombre: string;
+    };
+  };
+  relacion?: string | null;
+  created?: string;
+  updated?: string;
+}
+
 // Función para limpiar y validar los datos de una persona
-function sanitizePersonaData(persona: any) {
+function sanitizePersonaData(persona: RawPersona) {
   return {
     id: persona.id || '',
     nombre: persona.nombre || '',
@@ -52,6 +72,10 @@ function sanitizePersonaData(persona: any) {
       id: persona.expand.cliente_id.id,
       nombre: persona.expand.cliente_id.nombre
     } : null,
+    clientes: persona.expand?.cliente_id ? [{
+      id: persona.expand.cliente_id.id,
+      nombre: persona.expand.cliente_id.nombre
+    }] : [],
     relacion: persona.relacion || null,
     created: persona.created || '',
     updated: persona.updated || ''
@@ -63,28 +87,13 @@ export default function PeoplePage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Calcular estadísticas
-  const totalPersonas = personas.length;
-  const personasConEmail = personas.filter(p => p.email).length;
-  const personasConTelefono = personas.filter(p => p.telefono).length;
-  const personasConCliente = personas.filter(p => p.cliente_id).length;
-  const tipoPersonaStats = personas.reduce((acc, p) => {
-    if (p.tipo_persona) {
-      acc[p.tipo_persona] = (acc[p.tipo_persona] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
-  
-  // Obtener el tipo de persona más común
-  const tipoMasComun = Object.entries(tipoPersonaStats).sort((a, b) => b[1] - a[1])[0];
-  
   // Función para obtener personas desde la API
   const fetchPersonas = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/personas?page=1&perPage=100&sort=-created');
+      const response = await fetch('/api/personas?page=1&perPage=100&sort=-created&expand=cliente_id');
       
       if (!response.ok) {
         throw new Error(`Error en la petición: ${response.status}`);
@@ -130,79 +139,12 @@ export default function PeoplePage() {
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" />
+      <AppSidebar />
       <SidebarInset>
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <div className="grid gap-4 px-4 md:grid-cols-2 lg:grid-cols-4 lg:px-6">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Personas
-                    </CardTitle>
-                    <IconUsers className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{totalPersonas}</div>
-                    <p className="text-muted-foreground text-xs">
-                      Personas registradas
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Con Email
-                    </CardTitle>
-                    <IconUserCheck className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{personasConEmail}</div>
-                    <p className="text-muted-foreground text-xs">
-                      {totalPersonas > 0 
-                        ? `${Math.round((personasConEmail / totalPersonas) * 100)}% del total`
-                        : "No hay personas"}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Con Teléfono
-                    </CardTitle>
-                    <IconUsersGroup className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{personasConTelefono}</div>
-                    <p className="text-muted-foreground text-xs">
-                      {totalPersonas > 0 
-                        ? `${Math.round((personasConTelefono / totalPersonas) * 100)}% del total`
-                        : "No hay personas"}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Personas con Cliente
-                    </CardTitle>
-                    <IconCalendarTime className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {personasConCliente}
-                    </div>
-                    <p className="text-muted-foreground text-xs">
-                      {totalPersonas > 0 
-                        ? `${Math.round((personasConCliente / totalPersonas) * 100)}% con cliente asociado`
-                        : "No hay personas"}
-                      {tipoMasComun && tipoMasComun[0] ? ` · Tipo más común: ${tipoMasComun[0]}` : ''}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
               <div className="px-4 lg:px-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-muted-foreground text-lg font-semibold">

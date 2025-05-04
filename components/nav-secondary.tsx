@@ -1,6 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 
 interface NavSecondaryProps {
@@ -22,10 +23,10 @@ export function NavSecondary({ items, className }: NavSecondaryProps) {
             asChild
             tooltip={item.title}
           >
-            <a href={item.url}>
+            <Link href={item.url}>
               <item.icon className="h-4 w-4" />
               <span>{item.title}</span>
-            </a>
+            </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
       ))}

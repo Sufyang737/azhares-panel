@@ -4,9 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { IconBuilding, IconUsers, IconCalendarEvent, IconUserCheck } from "@tabler/icons-react";
+import { IconBuilding } from "@tabler/icons-react";
 import { ClientsDataTable, clientSchema } from "@/components/clients/clients-data-table";
 import { Spinner } from '@/components/ui/spinner';
 import { z } from 'zod';
@@ -24,12 +23,6 @@ export default function ClientsPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Calcular estadísticas
-  const totalClientes = clientes.length;
-  const clientesActivos = clientes.filter(client => client.estado === "Activo").length;
-  const clientesConEmail = clientes.filter(client => client.email).length;
-  const clientesConTelefono = clientes.filter(client => client.telefono).length;
   
   // Función para obtener clientes desde la API
   const fetchClientes = async () => {
@@ -71,76 +64,12 @@ export default function ClientsPage() {
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" />
+      <AppSidebar />
       <SidebarInset>
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <div className="grid gap-4 px-4 md:grid-cols-2 lg:grid-cols-4 lg:px-6">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Clientes
-                    </CardTitle>
-                    <IconBuilding className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{totalClientes}</div>
-                    <p className="text-muted-foreground text-xs">
-                      {clientesActivos} clientes activos
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Con Email
-                    </CardTitle>
-                    <IconUserCheck className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{clientesConEmail}</div>
-                    <p className="text-muted-foreground text-xs">
-                      {totalClientes > 0 
-                        ? `${Math.round((clientesConEmail / totalClientes) * 100)}% del total`
-                        : "No hay clientes"}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Con Teléfono
-                    </CardTitle>
-                    <IconUsers className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{clientesConTelefono}</div>
-                    <p className="text-muted-foreground text-xs">
-                      {totalClientes > 0 
-                        ? `${Math.round((clientesConTelefono / totalClientes) * 100)}% del total`
-                        : "No hay clientes"}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Próximos Eventos
-                    </CardTitle>
-                    <IconCalendarEvent className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {new Date().toLocaleDateString()}
-                    </div>
-                    <p className="text-muted-foreground text-xs">
-                      Fecha actual
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
               <div className="px-4 lg:px-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-muted-foreground text-lg font-semibold">

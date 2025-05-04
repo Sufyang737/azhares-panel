@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconLoader2 } from "@tabler/icons-react";
+import { IconLoader2, IconCalendar } from "@tabler/icons-react";
 import { useToast } from "@/components/ui/use-toast";
-import { es } from "date-fns/locale";
+import { format } from "date-fns";
 
 import {
   Dialog,
@@ -37,17 +37,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
-
-// Nombres de los meses en español
-const mesesEspanol = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
-];
 
 // Interfaz para los clientes
 interface Cliente {
@@ -292,8 +281,8 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button>
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          Add Event
+          <IconCalendar className="mr-2 h-4 w-4" />
+          Nuevo Evento
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
@@ -385,49 +374,18 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
                 control={form.control}
                 name="fecha"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col col-span-2">
-                    <FormLabel>Fecha</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP", { locale: es })
-                            ) : (
-                              <span>Seleccionar fecha</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <div className="p-1">
-                          <div className="mb-3 text-center font-medium">
-                            {mesesEspanol[(field.value || new Date()).getMonth()]} {(field.value || new Date()).getFullYear()}
-                          </div>
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={(date) => {
-                              // Asegurarnos de que una fecha nula no cause problemas
-                              if (date) {
-                                field.onChange(date);
-                              }
-                            }}
-                            disabled={isSubmitting}
-                            locale={es}
-                            weekStartsOn={1}
-                            initialFocus
-                          />
-                        </div>
-                      </PopoverContent>
-                    </Popover>
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Fecha del evento</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                        onChange={(e) => {
+                          const date = new Date(e.target.value);
+                          field.onChange(date);
+                        }}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

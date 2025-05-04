@@ -87,7 +87,7 @@ export const personaSchema = z.object({
   clientes: z.array(z.object({
     id: z.string(),
     nombre: z.string()
-  })).optional(),
+  })).default([]),
   relacion: z.string().nullable().optional(),
   created: z.string(),
   updated: z.string()
@@ -835,12 +835,16 @@ export function PeopleDataTable({
                   <IconBuilding className="mr-2 h-4 w-4" />
                   Cliente Asociado
                 </h3>
-                {personDetails.cliente ? (
-                  <div>
-                    <p className="font-medium">{personDetails.cliente.nombre}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {personDetails.tipo_persona || 'Tipo de relación no especificado'}
-                    </p>
+                {personDetails.clientes && personDetails.clientes.length > 0 ? (
+                  <div className="space-y-2">
+                    {personDetails.clientes.map((cliente) => (
+                      <div key={cliente.id}>
+                        <p className="font-medium">{cliente.nombre}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {personDetails.tipo_persona || 'Tipo de relación no especificado'}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <p className="text-muted-foreground">No asociado a ningún cliente</p>
