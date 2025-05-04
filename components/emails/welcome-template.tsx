@@ -8,6 +8,7 @@ import {
   Text,
   Button,
   Section,
+  Img,
 } from '@react-email/components';
 import * as React from 'react';
 
@@ -40,22 +41,35 @@ export const WelcomeEmail: React.FC<Readonly<WelcomeEmailProps>> = ({
       <Preview>Bienvenido a Azares Panel - Tu evento está confirmado</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>¡Bienvenido a Azares Panel!</Heading>
+          <Section style={logoSection}>
+            <Img
+              src={`${process.env.NEXT_PUBLIC_APP_URL}/logoazares.png`}
+              alt="Azares Logo"
+              width="200"
+              height="auto"
+            />
+          </Section>
+
+          <Heading style={h1}>¡Bienvenido a Azhares Panel!</Heading>
+          
           <Text style={text}>
             Estimado/a {clientName},
           </Text>
+
           <Text style={text}>
             ¡Nos complace darle la bienvenida a Azares Panel! Su evento ha sido registrado exitosamente en nuestro sistema.
           </Text>
+
           <Text style={text}>
             Detalles de su evento:
           </Text>
+
           <Text style={details}>
             • Nombre del evento: {eventName}<br />
             • Fecha: {eventDate}<br />
-            • Planificador asignado: {plannerName}
+            • Planificador asignado: {plannerName || 'Sin asignar'}
           </Text>
-          
+
           {formularioUrl && (
             <Section style={ctaSection}>
               <Text style={text}>
@@ -69,13 +83,15 @@ export const WelcomeEmail: React.FC<Readonly<WelcomeEmailProps>> = ({
               </Button>
             </Section>
           )}
-          
+
           <Text style={text}>
             Nuestro equipo está comprometido a hacer de su evento una experiencia inolvidable. Su planificador asignado se pondrá en contacto con usted próximamente para discutir los detalles.
           </Text>
+
           <Text style={text}>
             Si tiene alguna pregunta o inquietud inmediata, no dude en contactarnos.
           </Text>
+
           <Text style={footer}>
             Saludos cordiales,<br />
             El equipo de Azares
@@ -96,6 +112,11 @@ const container = {
   margin: '0 auto',
   padding: '20px 0 48px',
   maxWidth: '580px',
+};
+
+const logoSection = {
+  textAlign: 'center' as const,
+  marginBottom: '32px',
 };
 
 const h1 = {

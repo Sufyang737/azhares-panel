@@ -86,9 +86,9 @@ export async function GET(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('API Clientes - Error en el servidor:', error);
+    console.error('API Clientes - Error general:', error);
     return NextResponse.json(
-      { success: false, message: `Error en el servidor: ${error}` },
+      { success: false, message: 'Error interno del servidor' },
       { status: 500 }
     );
   }

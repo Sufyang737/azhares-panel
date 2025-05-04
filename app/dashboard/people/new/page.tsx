@@ -1,25 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
 import { toast } from "sonner"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { CalendarIcon } from "@radix-ui/react-icons"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { cn } from "@/lib/utils"
-import { Calendar } from "@/components/ui/calendar"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import { IconArrowLeft } from "@tabler/icons-react"
+
+import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
@@ -29,11 +21,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { IconArrowLeft, IconDeviceFloppy, IconUserPlus } from "@tabler/icons-react"
-import Link from "next/link"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -41,44 +30,52 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { CalendarIcon } from "@radix-ui/react-icons"
 
-// Tipos de persona disponibles
+// Lista de tipos de persona
 const tiposPersona = [
-  { value: "Cliente Principal", label: "Cliente Principal" },
-  { value: "Padre/Madre", label: "Padre/Madre" },
-  { value: "Hijo/a", label: "Hijo/a" },
-  { value: "Familiar", label: "Familiar" },
-  { value: "Otro", label: "Otro" },
+  { value: "cliente principal", label: "Cliente Principal" },
+  { value: "contacto", label: "Contacto" },
+  { value: "padre", label: "Padre" },
+  { value: "madre", label: "Madre" },
+  { value: "hijo", label: "Hijo/a" },
+  { value: "familiar", label: "Familiar" },
+  { value: "amigo", label: "Amigo/a" },
+  { value: "empleado", label: "Empleado" },
+  { value: "proveedor", label: "Proveedor" },
+  { value: "otro", label: "Otro" },
 ]
 
-// El esquema de validación para el formulario
-const schema = z.object({
-  nombre: z.string().min(1, "El nombre es requerido"),
-  apellido: z.string().min(1, "El apellido es requerido"),
-  tipo_persona: z.string().min(1, "El tipo de persona es requerido"),
-  telefono: z.string().nullable(),
-  instagram: z
-    .string()
-    .transform((val) => {
-      if (!val) return null;
-      return val.startsWith("@") ? val : `@${val}`;
-    })
-    .nullable(),
-  email: z.string().email("Email inválido").nullable(),
-  fecha_nacimiento: z.object({
-    dia: z.number().min(1).max(31),
-    mes: z.number().min(1).max(12)
-  }).nullable(),
-  notas: z.string().nullable(),
-  cliente_id: z.string().nullable(),
+// Esquema de validación
+const formSchema = z.object({
+  nombre: z.string().min(2, {
+    message: "El nombre debe tener al menos 2 caracteres",
+  }),
+  apellido: z.string().optional(),
+  telefono: z.string().optional(),
+  email: z.string().email({
+    message: "Por favor ingrese un email válido",
+  }).optional().or(z.literal("")),
+  cumpleanio: z.date().optional(),
+  pais: z.string().optional(),
+  ciudad: z.string().optional(),
+  instagram: z.string().optional(),
+  direccion: z.string().optional(),
+  comentario: z.string().optional(),
+  tipo_persona: z.string().optional(),
+  cliente_id: z.string().optional(),
 })
 
-interface Cliente {
-  id: string;
-  nombre: string;
-}
+type FormValues = z.infer<typeof formSchema>
 
-type FormValues = z.infer<typeof schema>
+// Interfaz para los clientes en el select
+interface Cliente {
+  id: string
+  nombre: string
+}
 
 export default function NewPersonPage() {
   const router = useRouter()
@@ -127,348 +124,329 @@ export default function NewPersonPage() {
     },
   })
 
+  // Manejar el envío del formulario
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true)
-    try {
-      // Convertir teléfono a número si existe
-      const phoneNumber = values.telefono ? parseInt(values.telefono.replace(/\D/g, '')) : null;
-      
-      // Formatear Instagram como URL completa
-      const instagramUrl = values.instagram ? 
-        `https://instagram.com/${values.instagram.replace('@', '')}` : 
-        null;
 
-      // Preparar objeto para crear
-      const personaData = {
-        nombre: values.nombre,
-        apellido: values.apellido,
-        telefono: phoneNumber,
-        email: values.email || null,
-        cumpleanio: values.fecha_nacimiento ? 
-          // Obtener el año siguiente al actual
-          new Date(
-            new Date().getFullYear() + 1, 
-            values.fecha_nacimiento.mes - 1, 
-            values.fecha_nacimiento.dia
-          ).toISOString() : 
-          null,
-        pais: "",
-        ciudad: "",
-        instagram: instagramUrl,
-        direccion: "",
-        comentario: `Tipo de persona: ${values.tipo_persona}${values.notas ? `\n${values.notas}` : ''}`,
-        cliente_id: values.cliente_id === "none" ? null : values.cliente_id
+    try {
+      // Preparar objeto para enviar a la API
+      const personData = {
+        ...values,
+        cumpleanio: values.cumpleanio 
+          ? format(values.cumpleanio, 'yyyy-MM-dd') 
+          : undefined,
+        // Si se seleccionó "none", enviar null
+        cliente_id: values.cliente_id === "none" ? null : values.cliente_id || null,
       }
 
-      console.log('Enviando datos:', personaData);
-
-      const response = await fetch(`/api/personas`, {
+      const response = await fetch('/api/personas', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(personaData),
+        body: JSON.stringify(personData),
       })
 
       const result = await response.json()
 
       if (result.success) {
         toast.success('Persona creada correctamente')
-        // Redirigir a la lista de personas
         router.push('/dashboard/people')
       } else {
-        toast.error(`Error al crear persona: ${result.error || 'Error desconocido'}`)
+        toast.error(`Error al crear: ${result.error || 'Error desconocido'}`)
       }
     } catch (error) {
       console.error('Error creando persona:', error)
-      toast.error('Error de conexión al crear persona')
+      toast.error('Error de conexión al crear')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-col flex-1">
-          <div className="@container/main flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                asChild
-              >
-                <Link href="/dashboard/people">
-                  <IconArrowLeft className="mr-2 h-4 w-4" />
-                  Volver
-                </Link>
-              </Button>
-              <div>
-                <h1 className="text-xl font-semibold">Nueva Persona</h1>
-                <p className="text-sm text-muted-foreground">
-                  Crear una nueva persona en el sistema
-                </p>
-              </div>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Información Personal</CardTitle>
-                <CardDescription>
-                  Introduce los datos de la persona. Solo el nombre es obligatorio.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="nombre"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="required">Nombre</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Nombre" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="apellido"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="required">Apellido</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Apellido" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="tipo_persona"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="required">Tipo de Persona</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Seleccionar tipo" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {tiposPersona.map((tipo) => (
-                                  <SelectItem key={tipo.value} value={tipo.value}>
-                                    {tipo.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="instagram"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Instagram</FormLabel>
-                            <FormControl>
-                              <Input placeholder="@usuario" {...field} value={field.value || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="telefono"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Teléfono</FormLabel>
-                            <FormControl>
-                              <Input type="tel" placeholder="+1 234 567 8900" {...field} value={field.value || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input type="email" placeholder="ejemplo@email.com" {...field} value={field.value || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="fecha_nacimiento"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel>Fecha de Cumpleaños</FormLabel>
-                            <div className="grid grid-cols-2 gap-4">
-                              <Select
-                                onValueChange={(value) => {
-                                  const currentValue = field.value || { dia: 1, mes: 1 };
-                                  field.onChange({ ...currentValue, mes: parseInt(value) });
-                                }}
-                                value={field.value?.mes?.toString()}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Mes" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="1">Enero</SelectItem>
-                                  <SelectItem value="2">Febrero</SelectItem>
-                                  <SelectItem value="3">Marzo</SelectItem>
-                                  <SelectItem value="4">Abril</SelectItem>
-                                  <SelectItem value="5">Mayo</SelectItem>
-                                  <SelectItem value="6">Junio</SelectItem>
-                                  <SelectItem value="7">Julio</SelectItem>
-                                  <SelectItem value="8">Agosto</SelectItem>
-                                  <SelectItem value="9">Septiembre</SelectItem>
-                                  <SelectItem value="10">Octubre</SelectItem>
-                                  <SelectItem value="11">Noviembre</SelectItem>
-                                  <SelectItem value="12">Diciembre</SelectItem>
-                                </SelectContent>
-                              </Select>
-
-                              <Select
-                                onValueChange={(value) => {
-                                  const currentValue = field.value || { dia: 1, mes: 1 };
-                                  field.onChange({ ...currentValue, dia: parseInt(value) });
-                                }}
-                                value={field.value?.dia?.toString()}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Día" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {Array.from({ length: 31 }, (_, i) => i + 1).map((dia) => (
-                                    <SelectItem key={dia} value={dia.toString()}>
-                                      {dia}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="cliente_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cliente Asociado</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            defaultValue={field.value || undefined}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={loadingClientes ? "Cargando..." : "Seleccionar cliente"} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="none">Ninguno</SelectItem>
-                              {clientes.map((cliente) => (
-                                <SelectItem key={cliente.id} value={cliente.id}>
-                                  {cliente.nombre}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="notas"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Notas</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Notas adicionales..."
-                              className="resize-none"
-                              {...field}
-                              value={field.value || ""}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="flex gap-4 justify-end">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => router.push('/dashboard/people')}
-                        disabled={isSubmitting}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? (
-                          "Guardando..."
-                        ) : (
-                          <>
-                            <IconDeviceFloppy className="mr-2 h-4 w-4" />
-                            Guardar Persona
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
+    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+      <div className="px-4 lg:px-6">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            asChild
+          >
+            <Link href="/dashboard/people">
+              <IconArrowLeft className="mr-2 h-4 w-4" />
+              Volver
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-xl font-semibold">Nueva Persona</h1>
+            <p className="text-sm text-muted-foreground">
+              Crear una nueva persona en el sistema
+            </p>
           </div>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+      
+      <div className="px-4 lg:px-6">
+        <div className="rounded-lg border p-4 md:p-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="nombre"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nombre" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="apellido"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Apellido</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Apellido" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="tipo_persona"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Persona</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar tipo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {tiposPersona.map((tipo) => (
+                            <SelectItem key={tipo.value} value={tipo.value}>
+                              {tipo.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cliente_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cliente Asociado</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={loadingClientes ? "Cargando..." : "Seleccionar cliente"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">Ninguno</SelectItem>
+                          {clientes.map((cliente) => (
+                            <SelectItem key={cliente.id} value={cliente.id}>
+                              {cliente.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Cliente al que está asociada esta persona.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Correo electrónico</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="ejemplo@correo.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="telefono"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Teléfono</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+34 600 000 000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="cumpleanio"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Cumpleaños</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP", { locale: es })
+                              ) : (
+                                <span>Seleccionar fecha</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            locale={es}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="instagram"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Instagram</FormLabel>
+                      <FormControl>
+                        <Input placeholder="@usuario" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="ciudad"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ciudad</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Madrid" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="pais"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>País</FormLabel>
+                      <FormControl>
+                        <Input placeholder="España" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="direccion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Dirección completa" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="comentario"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Comentarios</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Notas adicionales" 
+                        className="min-h-[100px]" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end space-x-4">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => router.push('/dashboard/people')}
+                  disabled={isSubmitting}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Guardando..." : "Guardar Persona"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
+      </div>
+    </div>
   )
 } 

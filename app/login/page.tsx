@@ -119,7 +119,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Azares Panel</CardTitle>
+          <CardTitle className="text-2xl font-bold">Azares Master</CardTitle>
           <CardDescription>
             Ingresa tus credenciales para acceder al panel administrativo
           </CardDescription>
@@ -169,7 +169,7 @@ export default function LoginPage() {
           </form>
         </CardContent>
         <CardFooter className="flex justify-center text-sm text-muted-foreground">
-          Panel administrativo de Azares
+          Panel administrativo de Azares Master
         </CardFooter>
       </Card>
     </div>
