@@ -110,19 +110,16 @@ export default function NewPersonPage() {
 
   // Inicializar el formulario
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       nombre: "",
       apellido: "",
       telefono: "",
       email: "",
-      cumpleanio: undefined,
-      pais: "",
-      ciudad: "",
-      instagram: "",
-      direccion: "",
-      comentario: "",
+      fecha_nacimiento: null,
+      notas: "",
       tipo_persona: "",
+      instagram: "",
       cliente_id: "",
     },
   })

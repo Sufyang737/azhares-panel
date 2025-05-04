@@ -70,8 +70,7 @@ const formSchema = z.object({
   instagram: z.string().optional().nullable(),
   direccion: z.string().optional().nullable(),
   comentario: z.string().optional().nullable(),
-  tipo_persona: z.string().optional().nullable(),
-  cliente_id: z.string().optional().nullable(),
+  tipo_persona: z.string(),
 })
 
 interface Cliente {
@@ -93,35 +92,6 @@ export function EditPersonDialog({
   onPersonUpdated,
 }: EditPersonDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [clientes, setClientes] = useState<Cliente[]>([])
-  const [loadingClientes, setLoadingClientes] = useState(false)
-
-  // Cargar lista de clientes
-  useEffect(() => {
-    if (open) {
-      const fetchClientes = async () => {
-        setLoadingClientes(true)
-        try {
-          const response = await fetch('/api/clientes?page=1&perPage=100')
-          if (response.ok) {
-            const data = await response.json()
-            if (data.success && Array.isArray(data.data)) {
-              setClientes(data.data.map((cliente: any) => ({
-                id: cliente.id,
-                nombre: cliente.nombre
-              })))
-            }
-          }
-        } catch (error) {
-          console.error('Error cargando clientes:', error)
-        } finally {
-          setLoadingClientes(false)
-        }
-      }
-      
-      fetchClientes()
-    }
-  }, [open])
 
   // Convertir fecha de cumpleaños para el formulario
   const getBirthdate = () => {
@@ -149,8 +119,7 @@ export function EditPersonDialog({
       instagram: person.instagram || "",
       direccion: person.direccion || "",
       comentario: person.comentario || "",
-      tipo_persona: person.tipo_persona || "",
-      cliente_id: person.cliente_id || "",
+      tipo_persona: person.tipo_persona || "none",
     },
   })
 
@@ -170,9 +139,10 @@ export function EditPersonDialog({
         instagram: values.instagram || null,
         direccion: values.direccion || null,
         comentario: values.comentario || null,
-        tipo_persona: values.tipo_persona || null,
-        cliente_id: values.cliente_id || null,
+        tipo_persona: values.tipo_persona === "none" ? null : values.tipo_persona,
       }
+
+      console.log('Enviando datos:', updateData);
 
       const response = await fetch(`/api/personas`, {
         method: 'PATCH',
@@ -183,10 +153,10 @@ export function EditPersonDialog({
       })
 
       const result = await response.json()
+      console.log('Respuesta del servidor:', result);
 
       if (result.success) {
         toast.success('Persona actualizada correctamente')
-        // Notificar al componente padre sobre la actualización
         onPersonUpdated(result.data)
         onOpenChange(false)
       } else {
@@ -250,12 +220,14 @@ export function EditPersonDialog({
                   <FormItem>
                     <FormLabel>Tipo de Persona</FormLabel>
                     <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value || undefined}
+                      onValueChange={field.onChange}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar tipo" />
+                          <SelectValue>
+                            {field.value === "none" ? "Ninguno" : field.value}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -273,37 +245,6 @@ export function EditPersonDialog({
 
               <FormField
                 control={form.control}
-                name="cliente_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cliente Asociado</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value || undefined}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={loadingClientes ? "Cargando..." : "Seleccionar cliente"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">Ninguno</SelectItem>
-                        {clientes.map((cliente) => (
-                          <SelectItem key={cliente.id} value={cliente.id}>
-                            {cliente.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
@@ -315,7 +256,9 @@ export function EditPersonDialog({
                   </FormItem>
                 )}
               />
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="telefono"
@@ -329,9 +272,7 @@ export function EditPersonDialog({
                   </FormItem>
                 )}
               />
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="cumpleanio"
@@ -373,7 +314,9 @@ export function EditPersonDialog({
                   </FormItem>
                 )}
               />
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="instagram"
@@ -387,9 +330,7 @@ export function EditPersonDialog({
                   </FormItem>
                 )}
               />
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="ciudad"
@@ -403,7 +344,9 @@ export function EditPersonDialog({
                   </FormItem>
                 )}
               />
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="pais"
@@ -417,21 +360,21 @@ export function EditPersonDialog({
                   </FormItem>
                 )}
               />
-            </div>
 
-            <FormField
-              control={form.control}
-              name="direccion"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Dirección</FormLabel>
-                  <FormControl>
-                    <Input {...field} value={field.value || ""} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="direccion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección</FormLabel>
+                    <FormControl>
+                      <Input {...field} value={field.value || ""} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}

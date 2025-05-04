@@ -64,6 +64,7 @@ export const eventoSchema = z.object({
   fecha: z.string().nullable(),
   estado: z.string(),
   comentario: z.string().nullable(),
+  drive: z.string().nullable(),
   cliente: z.object({
     id: z.string(),
     nombre: z.string()
@@ -272,6 +273,37 @@ export function EventsDataTable({
       },
     },
     {
+      accessorKey: "comentario",
+      header: "Comentarios",
+      cell: ({ row }) => {
+        const comentario = row.getValue("comentario") as string | null;
+        return (
+          <div className="max-w-[200px] truncate" title={comentario || ""}>
+            {comentario || "Sin comentarios"}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "drive",
+      header: "Carpeta Drive",
+      cell: ({ row }) => {
+        const driveUrl = row.getValue("drive") as string | null;
+        return driveUrl ? (
+          <a 
+            href={driveUrl} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            Ver carpeta
+          </a>
+        ) : (
+          <span className="text-muted-foreground">No disponible</span>
+        );
+      },
+    },
+    {
       id: "acciones",
       header: "Acciones",
       cell: ({ row }) => {
@@ -425,6 +457,10 @@ export function EventsDataTable({
                         ? "Planner"
                         : column.id === "estado"
                         ? "Estado"
+                        : column.id === "comentario"
+                        ? "Comentarios"
+                        : column.id === "drive"
+                        ? "Carpeta Drive"
                         : column.id}
                     </DropdownMenuCheckboxItem>
                   )

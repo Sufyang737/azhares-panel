@@ -241,4 +241,17 @@ export async function getClientes() {
     console.error('Error al obtener clientes:', error);
     return { success: false, error };
   }
+}
+
+export async function adminPocketBase() {
+  const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
+  
+  // Autenticar como administrador
+  const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
+  if (!adminToken) {
+    throw new Error('Token de administrador no configurado');
+  }
+  
+  pb.authStore.save(adminToken, null);
+  return pb;
 } 

@@ -2,8 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
+<<<<<<< HEAD
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { IconBuilding } from "@tabler/icons-react";
+=======
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconBuilding, IconUsers, IconCalendarEvent, IconUserCheck } from "@tabler/icons-react";
+>>>>>>> 2f4eae2d6f2b11f494f7e573f7c7025b2f26268c
 import { ClientsDataTable, clientSchema } from "@/components/clients/clients-data-table";
 import { Spinner } from '@/components/ui/spinner';
 import { z } from 'zod';
@@ -21,12 +26,6 @@ export default function ClientsPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Calcular estadísticas
-  const totalClientes = clientes.length;
-  const clientesActivos = clientes.filter(client => client.estado === "Activo").length;
-  const clientesConEmail = clientes.filter(client => client.email).length;
-  const clientesConTelefono = clientes.filter(client => client.telefono).length;
   
   // Función para obtener clientes desde la API
   const fetchClientes = async () => {

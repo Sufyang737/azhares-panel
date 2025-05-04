@@ -65,26 +65,29 @@ import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 import { EditPersonDialog } from "./edit-person-dialog"
 
-// Define schema para datos de personas desde la API
+// Schema para validar datos de personas
 export const personaSchema = z.object({
   id: z.string(),
   nombre: z.string(),
-  apellido: z.string().nullable(),
-  telefono: z.string().nullable().or(z.number().nullable()),
-  email: z.string().email().nullable(),
-  cumpleanio: z.string().nullable(),
-  pais: z.string().nullable(),
-  ciudad: z.string().nullable(),
-  instagram: z.string().nullable(),
-  direccion: z.string().nullable(),
-  comentario: z.string().nullable(),
+  apellido: z.string(),
+  telefono: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  cumpleanio: z.string().nullable().optional(),
+  pais: z.string().nullable().optional(),
+  ciudad: z.string().nullable().optional(),
+  instagram: z.string().nullable().optional(),
+  direccion: z.string().nullable().optional(),
+  comentario: z.string().nullable().optional(),
   tipo_persona: z.string().nullable().optional(),
   cliente_id: z.string().nullable().optional(),
   cliente: z.object({
     id: z.string(),
-    nombre: z.string(),
-    // Otros campos del cliente si están disponibles
+    nombre: z.string()
   }).nullable().optional(),
+  clientes: z.array(z.object({
+    id: z.string(),
+    nombre: z.string()
+  })).default([]),
   relacion: z.string().nullable().optional(),
   created: z.string(),
   updated: z.string()
@@ -124,6 +127,7 @@ export function PeopleDataTable({
   data: Persona[]
 }) {
   const [data, setData] = React.useState<Persona[]>(initialData)
+  const [clientes, setClientes] = React.useState<any[]>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
@@ -144,10 +148,101 @@ export function PeopleDataTable({
   const [viewDetailsOpen, setViewDetailsOpen] = React.useState(false)
   const [personDetails, setPersonDetails] = React.useState<Persona | null>(null)
 
-  // Actualizar los datos cuando cambia la prop initialData
+  // Función para obtener los clientes y hacer el match con las personas
+  const fetchClientesYPersonas = async () => {
+    try {
+      // Obtener la lista de clientes
+      const responseClientes = await fetch('/api/clientes');
+      const resultClientes = await responseClientes.json();
+      
+      if (resultClientes.success) {
+        const clientes = resultClientes.data;
+        console.log('=== DATOS COMPLETOS DE CLIENTES ===');
+        clientes.forEach((cliente: any) => {
+          console.log('Cliente:', {
+            id: cliente.id,
+            nombre: cliente.nombre,
+            persona_id: cliente.persona_id,
+            datosCompletos: cliente
+          });
+        });
+
+        // Obtener la lista de personas
+        const responsePersonas = await fetch('/api/personas');
+        const resultPersonas = await responsePersonas.json();
+        
+        if (resultPersonas.success) {
+          console.log('=== DATOS COMPLETOS DE PERSONAS ===');
+          resultPersonas.data.forEach((persona: any) => {
+            console.log('Persona:', {
+              id: persona.id,
+              nombre: persona.nombre,
+              datosCompletos: persona
+            });
+          });
+
+          // Crear un mapa de personas con sus clientes asociados
+          const personasActualizadas = resultPersonas.data.map((persona: any) => {
+            // Encontrar todos los clientes que tienen esta persona en su persona_id
+            const clientesDePersona = clientes.filter((cliente: any) => {
+              const tienePersonaId = Array.isArray(cliente.persona_id);
+              const incluye = tienePersonaId && cliente.persona_id.includes(persona.id);
+              
+              console.log(`Verificando relación para ${persona.nombre}:`, {
+                personaId: persona.id,
+                clienteId: cliente.id,
+                clienteNombre: cliente.nombre,
+                personaIds: cliente.persona_id,
+                tienePersonaId,
+                incluye
+              });
+              
+              return incluye;
+            });
+
+            console.log(`Clientes encontrados para ${persona.nombre}:`, 
+              clientesDePersona.map(c => ({
+                id: c.id,
+                nombre: c.nombre,
+                persona_ids: c.persona_id
+              }))
+            );
+
+            return {
+              ...persona,
+              clientes: clientesDePersona.map((cliente: any) => ({
+                id: cliente.id,
+                nombre: cliente.nombre
+              }))
+            };
+          });
+
+          console.log('=== RESULTADO FINAL ===', 
+            personasActualizadas.map(p => ({
+              persona: p.nombre,
+              id: p.id,
+              clientesAsociados: p.clientes.map(c => c.nombre)
+            }))
+          );
+
+          setData(personasActualizadas);
+        }
+      }
+    } catch (error) {
+      console.error('Error al obtener datos:', error);
+    }
+  };
+
+  // Llamar a fetchClientesYPersonas cuando el componente se monta
   React.useEffect(() => {
-    console.log("Datos recibidos en tabla de personas:", initialData);
+    fetchClientesYPersonas();
+  }, []);
+
+  // Actualizar cuando cambian los datos iniciales
+  React.useEffect(() => {
+    console.log("Datos iniciales recibidos:", initialData);
     setData(initialData);
+    fetchClientesYPersonas();
   }, [initialData]);
 
   const handleDeletePerson = (id: string) => {
@@ -378,20 +473,40 @@ export function PeopleDataTable({
       accessorKey: "cliente",
       header: "Cliente Asociado",
       cell: ({ row }) => {
-        const cliente = row.original.cliente;
-        if (!cliente) return <div className="text-muted-foreground">No asociado</div>;
+        const persona = row.original;
+        console.log('DEBUG - Renderizando cliente para persona:', {
+          id: persona.id,
+          nombre: persona.nombre,
+          rawData: persona,
+          clientesArray: Array.isArray(persona.clientes) ? persona.clientes : [],
+          tieneClientes: Boolean(persona.clientes && persona.clientes.length > 0)
+        });
+        
+        if (!persona.clientes || !Array.isArray(persona.clientes) || persona.clientes.length === 0) {
+          return <div className="text-muted-foreground">No asociado</div>;
+        }
         
         return (
-          <div className="flex items-center">
-            <IconBuilding className="mr-2 h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{cliente.nombre}</span>
+          <div className="flex flex-col gap-2">
+            {persona.clientes.map((cliente) => (
+              <div key={cliente.id} className="flex items-center">
+                <IconBuilding className="mr-2 h-4 w-4 text-blue-500" />
+                <span className="font-medium text-blue-600">
+                  {cliente.nombre}
+                </span>
+              </div>
+            ))}
           </div>
         );
       },
       filterFn: (row, id, filterValue) => {
-        const cliente = row.original.cliente;
-        if (!cliente) return false;
-        return cliente.nombre.toLowerCase().includes(filterValue.toLowerCase());
+        const persona = row.original;
+        if (!persona.clientes || !Array.isArray(persona.clientes)) return false;
+        
+        const searchValue = filterValue.toLowerCase();
+        return persona.clientes.some(cliente => 
+          cliente.nombre.toLowerCase().includes(searchValue)
+        );
       }
     },
     {
@@ -720,12 +835,16 @@ export function PeopleDataTable({
                   <IconBuilding className="mr-2 h-4 w-4" />
                   Cliente Asociado
                 </h3>
-                {personDetails.cliente ? (
-                  <div>
-                    <p className="font-medium">{personDetails.cliente.nombre}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {personDetails.tipo_persona || 'Tipo de relación no especificado'}
-                    </p>
+                {personDetails.clientes && personDetails.clientes.length > 0 ? (
+                  <div className="space-y-2">
+                    {personDetails.clientes.map((cliente) => (
+                      <div key={cliente.id}>
+                        <p className="font-medium">{cliente.nombre}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {personDetails.tipo_persona || 'Tipo de relación no especificado'}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <p className="text-muted-foreground">No asociado a ningún cliente</p>

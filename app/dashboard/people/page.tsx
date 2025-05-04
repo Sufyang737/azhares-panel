@@ -29,6 +29,61 @@ export interface Person {
   updated?: string;
 }
 
+interface RawPersona {
+  id?: string;
+  nombre?: string;
+  apellido?: string;
+  telefono?: string | null;
+  email?: string;
+  cumpleanio?: string | null;
+  pais?: string | null;
+  ciudad?: string | null;
+  instagram?: string | null;
+  direccion?: string | null;
+  comentario?: string | null;
+  tipo_persona?: string | null;
+  cliente_id?: string | null;
+  expand?: {
+    cliente_id?: {
+      id: string;
+      nombre: string;
+    };
+  };
+  relacion?: string | null;
+  created?: string;
+  updated?: string;
+}
+
+// Función para limpiar y validar los datos de una persona
+function sanitizePersonaData(persona: RawPersona) {
+  return {
+    id: persona.id || '',
+    nombre: persona.nombre || '',
+    apellido: persona.apellido || '',
+    telefono: persona.telefono || null,
+    email: persona.email && persona.email.includes('@') ? persona.email : null,
+    cumpleanio: persona.cumpleanio || null,
+    pais: persona.pais || null,
+    ciudad: persona.ciudad || null,
+    instagram: persona.instagram || null,
+    direccion: persona.direccion || null,
+    comentario: persona.comentario || null,
+    tipo_persona: persona.tipo_persona || null,
+    cliente_id: persona.cliente_id || null,
+    cliente: persona.expand?.cliente_id ? {
+      id: persona.expand.cliente_id.id,
+      nombre: persona.expand.cliente_id.nombre
+    } : null,
+    clientes: persona.expand?.cliente_id ? [{
+      id: persona.expand.cliente_id.id,
+      nombre: persona.expand.cliente_id.nombre
+    }] : [],
+    relacion: persona.relacion || null,
+    created: persona.created || '',
+    updated: persona.updated || ''
+  };
+}
+
 export default function PeoplePage() {
   const [people, setPeople] = useState<Person[]>([])
   const [loading, setLoading] = useState(true)

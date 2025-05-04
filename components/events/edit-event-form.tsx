@@ -71,7 +71,7 @@ export function EditEventForm({ initialData, onSuccess, onCancel }: EditEventFor
       nombre: initialData?.nombre || "",
       tipo: initialData?.tipo || "",
       fecha: initialData?.fecha || undefined,
-      estado: initialData?.estado || "pendiente",
+      estado: initialData?.estado || "en-curso",
       comentario: initialData?.comentario || "",
       cliente_id: initialData?.cliente_id || undefined,
       planner_id: initialData?.planner_id || undefined,
@@ -233,26 +233,18 @@ export function EditEventForm({ initialData, onSuccess, onCancel }: EditEventFor
                   <div className="flex items-center space-x-8">
                     <FormItem className="flex items-center space-x-2">
                       <FormControl>
-                        <RadioGroupItem value="pendiente" />
+                        <RadioGroupItem value="en-curso" />
                       </FormControl>
                       <FormLabel className="font-normal cursor-pointer">
-                        Pendiente
+                        En curso
                       </FormLabel>
                     </FormItem>
                     <FormItem className="flex items-center space-x-2">
                       <FormControl>
-                        <RadioGroupItem value="confirmado" />
+                        <RadioGroupItem value="finalizado" />
                       </FormControl>
                       <FormLabel className="font-normal cursor-pointer">
-                        Confirmado
-                      </FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center space-x-2">
-                      <FormControl>
-                        <RadioGroupItem value="completado" />
-                      </FormControl>
-                      <FormLabel className="font-normal cursor-pointer">
-                        Completado
+                        Finalizado
                       </FormLabel>
                     </FormItem>
                     <FormItem className="flex items-center space-x-2">

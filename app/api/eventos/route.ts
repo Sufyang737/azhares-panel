@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import PocketBase from 'pocketbase';
+import { createEventFolder } from "@/app/services/drive";
 
 // Inicialización de PocketBase usando la variable de entorno
 const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || 'https://pocketbase-ykw4ks40gswowocosk80k440.srv.clostech.tech';
@@ -64,6 +65,7 @@ export async function GET() {
         fecha: evento.fecha,
         estado: evento.estado,
         comentario: evento.comentario,
+        drive: evento.drive,
         cliente: cliente,
         planner: planner,
         created: evento.created,
@@ -179,7 +181,8 @@ export async function POST(request: NextRequest) {
               subject: `¡Bienvenido/a! Tu evento "${data.nombre}" ha sido registrado`,
               clientName: data.cliente_nombre,
               eventName: data.nombre,
-              eventDate: fechaFormateada
+              eventDate: fechaFormateada,
+              clienteId: clienteRecord.id
             })
           });
           
@@ -228,23 +231,31 @@ export async function POST(request: NextRequest) {
     
     console.log('POST Evento - Datos a guardar:', JSON.stringify(data, null, 2));
     
+    // Obtener información del cliente antes de crear la carpeta en Drive
+    const cliente = await pb.collection('cliente').getOne(data.cliente_id);
+    
+    // Crear carpeta en Drive
+    const driveUrl = await createEventFolder(
+      data.tipo,
+      data.fecha,
+      cliente.nombre // Usar el nombre del cliente obtenido de la base de datos
+    );
+
+    // Usar el nuevo campo drive en lugar de modificar el comentario
+    const eventData = {
+      ...data,
+      drive: driveUrl
+    };
+
     // Crear el evento en PocketBase
-    try {
-      const record = await pb.collection('evento').create(data);
-      console.log('POST Evento - Evento creado con ID:', record.id);
-      
-      return NextResponse.json({
-        success: true,
-        data: record,
-        id: record.id
-      });
-    } catch (error) {
-      console.error('POST Evento - Error al crear evento:', error);
-      return NextResponse.json(
-        { success: false, error: 'Error al crear evento' },
-        { status: 500 }
-      );
-    }
+    const record = await pb.collection('evento').create(eventData);
+    console.log('POST Evento - Evento creado con ID:', record.id);
+    
+    return NextResponse.json({
+      success: true,
+      data: record,
+      id: record.id
+    });
   } catch (error) {
     console.error('POST Evento - Error general:', error);
     return NextResponse.json(
@@ -350,6 +361,7 @@ export async function PATCH(request: NextRequest) {
         fecha: eventoCompleto.fecha,
         estado: eventoCompleto.estado,
         comentario: eventoCompleto.comentario,
+        drive: eventoCompleto.drive,
         cliente: cliente,
         planner: planner,
         created: eventoCompleto.created,

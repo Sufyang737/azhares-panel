@@ -1,0 +1,215 @@
+'use client';
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { format, parseISO } from "date-fns";
+import { Edit2 } from "lucide-react";
+import { ContabilidadRecord, updateContabilidadRecord } from "@/app/services/contabilidad";
+import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { DatePicker } from "@/components/ui/date-picker";
+
+interface EditRecordDialogProps {
+  record: ContabilidadRecord;
+  onRecordUpdate?: () => void;
+}
+
+export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogProps) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    type: record.type,
+    especie: record.especie,
+    moneda: record.moneda,
+    montoEspera: record.montoEspera,
+    categoria: record.categoria,
+    subcargo: record.subcargo,
+    detalle: record.detalle,
+    fechaEspera: record.fechaEspera ? parseISO(record.fechaEspera) : new Date(),
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      await updateContabilidadRecord(record.id, {
+        ...formData,
+        fechaEspera: format(formData.fechaEspera, 'yyyy-MM-dd'),
+      });
+
+      toast({
+        title: "Registro actualizado",
+        description: "El registro ha sido actualizado exitosamente.",
+      });
+
+      if (onRecordUpdate) {
+        onRecordUpdate();
+      }
+
+      setOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al actualizar el registro",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Edit2 className="h-4 w-4" />
+          <span className="sr-only">Editar registro</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Editar Registro</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Tipo de registro */}
+              <div className="space-y-2">
+                <Label htmlFor="type">Tipo de Registro</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) => setFormData({ ...formData, type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cobro">Cobro</SelectItem>
+                    <SelectItem value="pago">Pago</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Especie */}
+              <div className="space-y-2">
+                <Label htmlFor="especie">Especie</Label>
+                <Select
+                  value={formData.especie}
+                  onValueChange={(value) => setFormData({ ...formData, especie: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar especie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="efectivo">Efectivo</SelectItem>
+                    <SelectItem value="transferencia">Transferencia</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Moneda */}
+              <div className="space-y-2">
+                <Label htmlFor="moneda">Moneda</Label>
+                <Select
+                  value={formData.moneda}
+                  onValueChange={(value) => setFormData({ ...formData, moneda: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar moneda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ars">ARS</SelectItem>
+                    <SelectItem value="usd">USD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Monto */}
+              <div className="space-y-2">
+                <Label htmlFor="montoEspera">Monto</Label>
+                <Input
+                  id="montoEspera"
+                  type="number"
+                  value={formData.montoEspera}
+                  onChange={(e) => setFormData({ ...formData, montoEspera: parseFloat(e.target.value) })}
+                />
+              </div>
+
+              {/* Categoría */}
+              <div className="space-y-2">
+                <Label htmlFor="categoria">Categoría</Label>
+                <Input
+                  id="categoria"
+                  value={formData.categoria}
+                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                />
+              </div>
+
+              {/* Subcargo */}
+              <div className="space-y-2">
+                <Label htmlFor="subcargo">Subcargo</Label>
+                <Input
+                  id="subcargo"
+                  value={formData.subcargo}
+                  onChange={(e) => setFormData({ ...formData, subcargo: e.target.value })}
+                />
+              </div>
+
+              {/* Fecha Esperada */}
+              <div className="space-y-2">
+                <Label>Fecha Esperada</Label>
+                <DatePicker
+                  date={formData.fechaEspera}
+                  setDate={(date) => setFormData({ ...formData, fechaEspera: date })}
+                />
+              </div>
+            </div>
+
+            {/* Detalle */}
+            <div className="space-y-2">
+              <Label htmlFor="detalle">Detalle</Label>
+              <Textarea
+                id="detalle"
+                value={formData.detalle}
+                onChange={(e) => setFormData({ ...formData, detalle: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Guardando..." : "Guardar cambios"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+} 

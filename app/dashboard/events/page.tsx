@@ -167,6 +167,15 @@ export default function EventsPage() {
           </div>
         </div>
       </SidebarInset>
+      {selectedEvent && (
+        <EventDetailsDialog
+          event={selectedEvent}
+          isOpen={true}
+          onClose={() => setSelectedEvent(null)}
+        />
+      )}
     </SidebarProvider>
   );
 } 
+
+
