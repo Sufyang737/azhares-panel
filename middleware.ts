@@ -11,7 +11,9 @@ export async function middleware(request: NextRequest) {
     '/api/email/test-open',
     '/api/email/send',
     '/formulario', // Formulario público
-    '/api/formulario'  // API del formulario público
+    '/api/formulario', // API del formulario público
+    '/api/birthdays',  
+    '/api/test-birthday-email'  // Agregamos la nueva ruta de prueba
   ];
 
   // Rutas restringidas por rol
