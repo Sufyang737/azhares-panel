@@ -98,10 +98,10 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
       fechaEspera: recordToEdit?.fechaEspera ? new Date(recordToEdit.fechaEspera) : new Date(),
       esEsperado: recordToEdit?.esEsperado ?? true,
       comentario: recordToEdit?.comentario || "",
-      cliente_id: recordToEdit?.cliente_id || "none",
-      proveedor_id: recordToEdit?.proveedor_id || "none",
-      evento_id: recordToEdit?.evento_id || "none",
-      equipo_id: recordToEdit?.equipo_id || "none",
+      cliente_id: typeof recordToEdit?.cliente_id === 'object' ? recordToEdit.cliente_id.id : (recordToEdit?.cliente_id || "none"),
+      proveedor_id: typeof recordToEdit?.proveedor_id === 'object' ? recordToEdit.proveedor_id.id : (recordToEdit?.proveedor_id || "none"),
+      evento_id: typeof recordToEdit?.evento_id === 'object' ? recordToEdit.evento_id.id : (recordToEdit?.evento_id || "none"),
+      equipo_id: typeof recordToEdit?.equipo_id === 'object' ? recordToEdit.equipo_id.id : (recordToEdit?.equipo_id || "none"),
     },
     mode: "onChange"
   });

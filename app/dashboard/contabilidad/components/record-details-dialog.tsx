@@ -49,7 +49,7 @@ export function RecordDetailsDialog({ record }: RecordDetailsDialogProps) {
             <div className="space-y-3">
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Tipo de Registro</h3>
-                <Badge variant={record.type === 'cobro' ? 'success' : 'destructive'} className="mt-1">
+                <Badge variant={record.type === 'cobro' ? 'default' : 'destructive'} className="mt-1">
                   {record.type}
                 </Badge>
               </div>
@@ -87,7 +87,7 @@ export function RecordDetailsDialog({ record }: RecordDetailsDialogProps) {
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Estado</h3>
                 <Badge 
-                  variant={record.fechaEfectuado ? 'success' : 'secondary'}
+                  variant={record.fechaEfectuado ? 'default' : 'secondary'}
                   className="gap-2 mt-1"
                 >
                   {record.fechaEfectuado ? (
@@ -124,25 +124,25 @@ export function RecordDetailsDialog({ record }: RecordDetailsDialogProps) {
 
           {/* Referencias */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {record.cliente_id && (
+            {record.cliente_id && typeof record.cliente_id === 'object' && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Cliente</h3>
                 <p className="text-sm">{record.cliente_id.nombre}</p>
               </div>
             )}
-            {record.proveedor_id && (
+            {record.proveedor_id && typeof record.proveedor_id === 'object' && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Proveedor</h3>
                 <p className="text-sm">{record.proveedor_id.nombre}</p>
               </div>
             )}
-            {record.evento_id && (
+            {record.evento_id && typeof record.evento_id === 'object' && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Evento</h3>
                 <p className="text-sm">{record.evento_id.nombre}</p>
               </div>
             )}
-            {record.equipo_id && (
+            {record.equipo_id && typeof record.equipo_id === 'object' && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Equipo</h3>
                 <p className="text-sm">{record.equipo_id.nombre}</p>

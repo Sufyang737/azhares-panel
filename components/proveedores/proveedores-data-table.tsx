@@ -81,7 +81,7 @@ export const proveedorSchema = z.object({
   updated: z.string()
 })
 
-type Proveedor = z.infer<typeof proveedorSchema>
+export type Proveedor = z.infer<typeof proveedorSchema>
 
 // Función para capitalizar la primera letra
 const capitalizeFirstLetter = (string: string) => {

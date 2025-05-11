@@ -31,11 +31,27 @@ interface EditRecordDialogProps {
   onRecordUpdate?: () => void;
 }
 
+type FormData = {
+  type: 'cobro' | 'pago';
+  especie: 'efectivo' | 'trasferencia';
+  moneda: 'ars' | 'usd';
+  categoria: 'evento' | 'oficina';
+  subcargo: 'clientes' | 'otros' | 'proveedores' | 'sueldos' | 'mensajeria' | 
+    'cambio-divisas' | 'ajuste-caja' | 'obra-social-empleada' | 
+    'mantencion-cuenta-corriente' | 'seguro-galicia' | 'tarjeta-credito' | 
+    'deriva' | 'expensas' | 'alquiler' | 'prepaga' | 'contador' | 
+    'mantenimiento-pc' | 'impuestos' | 'servicio' | 'regaleria' | 'compras';
+  detalle?: 'compra-usd' | 'comision' | 'handy' | 'honorarios' | 'maquillaje' | 
+    'planner' | 'staff' | 'viandas' | 'venta-usd' | 'viatico' | 'seguro';
+  montoEspera: number;
+  fechaEspera: Date;
+};
+
 export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     type: record.type,
     especie: record.especie,
     moneda: record.moneda,
@@ -97,7 +113,7 @@ export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogPro
                 <Label htmlFor="type">Tipo de Registro</Label>
                 <Select
                   value={formData.type}
-                  onValueChange={(value) => setFormData({ ...formData, type: value })}
+                  onValueChange={(value: 'cobro' | 'pago') => setFormData({ ...formData, type: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar tipo" />
@@ -114,7 +130,7 @@ export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogPro
                 <Label htmlFor="especie">Especie</Label>
                 <Select
                   value={formData.especie}
-                  onValueChange={(value) => setFormData({ ...formData, especie: value })}
+                  onValueChange={(value: 'efectivo' | 'trasferencia') => setFormData({ ...formData, especie: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar especie" />
@@ -131,7 +147,7 @@ export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogPro
                 <Label htmlFor="moneda">Moneda</Label>
                 <Select
                   value={formData.moneda}
-                  onValueChange={(value) => setFormData({ ...formData, moneda: value })}
+                  onValueChange={(value: 'ars' | 'usd') => setFormData({ ...formData, moneda: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar moneda" />
@@ -157,21 +173,54 @@ export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogPro
               {/* Categoría */}
               <div className="space-y-2">
                 <Label htmlFor="categoria">Categoría</Label>
-                <Input
-                  id="categoria"
+                <Select
                   value={formData.categoria}
-                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                />
+                  onValueChange={(value: 'evento' | 'oficina') => setFormData({ ...formData, categoria: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="evento">Evento</SelectItem>
+                    <SelectItem value="oficina">Oficina</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Subcargo */}
               <div className="space-y-2">
                 <Label htmlFor="subcargo">Subcargo</Label>
-                <Input
-                  id="subcargo"
+                <Select
                   value={formData.subcargo}
-                  onChange={(e) => setFormData({ ...formData, subcargo: e.target.value })}
-                />
+                  onValueChange={(value: FormData['subcargo']) => setFormData({ ...formData, subcargo: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar subcargo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="clientes">Clientes</SelectItem>
+                    <SelectItem value="otros">Otros</SelectItem>
+                    <SelectItem value="proveedores">Proveedores</SelectItem>
+                    <SelectItem value="sueldos">Sueldos</SelectItem>
+                    <SelectItem value="mensajeria">Mensajería</SelectItem>
+                    <SelectItem value="cambio-divisas">Cambio de Divisas</SelectItem>
+                    <SelectItem value="ajuste-caja">Ajuste de Caja</SelectItem>
+                    <SelectItem value="obra-social-empleada">Obra Social Empleada</SelectItem>
+                    <SelectItem value="mantencion-cuenta-corriente">Mantención Cuenta Corriente</SelectItem>
+                    <SelectItem value="seguro-galicia">Seguro Galicia</SelectItem>
+                    <SelectItem value="tarjeta-credito">Tarjeta de Crédito</SelectItem>
+                    <SelectItem value="deriva">Deriva</SelectItem>
+                    <SelectItem value="expensas">Expensas</SelectItem>
+                    <SelectItem value="alquiler">Alquiler</SelectItem>
+                    <SelectItem value="prepaga">Prepaga</SelectItem>
+                    <SelectItem value="contador">Contador</SelectItem>
+                    <SelectItem value="mantenimiento-pc">Mantenimiento PC</SelectItem>
+                    <SelectItem value="impuestos">Impuestos</SelectItem>
+                    <SelectItem value="servicio">Servicios</SelectItem>
+                    <SelectItem value="regaleria">Regalería</SelectItem>
+                    <SelectItem value="compras">Compras</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Fecha Esperada */}
@@ -179,7 +228,7 @@ export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogPro
                 <Label>Fecha Esperada</Label>
                 <DatePicker
                   date={formData.fechaEspera}
-                  setDate={(date) => setFormData({ ...formData, fechaEspera: date })}
+                  setDate={(date) => date && setFormData({ ...formData, fechaEspera: date })}
                 />
               </div>
             </div>
@@ -187,11 +236,27 @@ export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogPro
             {/* Detalle */}
             <div className="space-y-2">
               <Label htmlFor="detalle">Detalle</Label>
-              <Textarea
-                id="detalle"
+              <Select
                 value={formData.detalle}
-                onChange={(e) => setFormData({ ...formData, detalle: e.target.value })}
-              />
+                onValueChange={(value: FormData['detalle']) => setFormData({ ...formData, detalle: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar detalle" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="compra-usd">Compra USD</SelectItem>
+                  <SelectItem value="comision">Comisión</SelectItem>
+                  <SelectItem value="handy">Handy</SelectItem>
+                  <SelectItem value="honorarios">Honorarios</SelectItem>
+                  <SelectItem value="maquillaje">Maquillaje</SelectItem>
+                  <SelectItem value="planner">Planner</SelectItem>
+                  <SelectItem value="staff">Staff</SelectItem>
+                  <SelectItem value="viandas">Viandas</SelectItem>
+                  <SelectItem value="venta-usd">Venta USD</SelectItem>
+                  <SelectItem value="viatico">Viático</SelectItem>
+                  <SelectItem value="seguro">Seguro</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

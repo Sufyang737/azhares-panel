@@ -45,7 +45,7 @@ async function authenticateAdmin() {
     throw new Error('Admin token not configured');
   }
 
-  await pb.admins.authWithToken(adminToken);
+  pb.authStore.save(adminToken);
 }
 
 export async function getClientes(): Promise<Cliente[]> {

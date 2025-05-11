@@ -202,7 +202,7 @@ export function EditProveedorDialog({
         contacto: proveedor.contacto || null,
         telefono: proveedor.telefono?.toString() || null,
         email: proveedor.email || null,
-        pais: proveedor.pais || null,
+        pais: (proveedor.pais && PAISES_PERMITIDOS.includes(proveedor.pais as any)) ? proveedor.pais as any : null,
         web: formatWebUrl(proveedor.web) || null,
         instagram: formatInstagramHandle(proveedor.instagram) || null,
         direccion: proveedor.direccion || null,

@@ -159,7 +159,7 @@ export function ScheduledRecordsDialog({ records, onRecordUpdate }: ScheduledRec
                     className={updatingId === record.id ? "opacity-50" : ""}
                   >
                     <TableCell>
-                      <Badge variant={record.type === 'cobro' ? 'success' : 'destructive'}>
+                      <Badge variant={record.type === 'cobro' ? 'default' : 'destructive'}>
                         {record.type}
                       </Badge>
                     </TableCell>

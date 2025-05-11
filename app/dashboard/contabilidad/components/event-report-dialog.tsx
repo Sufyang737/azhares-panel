@@ -116,13 +116,19 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
 
   // Obtener lista única de clientes
   const clients = filteredRecords
-    .filter(r => r.cliente_id && r.cliente_id.nombre)
+    .filter(r => {
+      const cliente = r.cliente_id;
+      return typeof cliente === 'object' && cliente?.nombre;
+    })
     .reduce((acc, record) => {
-      const clientId = record.cliente_id?.id;
-      const clientName = record.cliente_id?.nombre;
+      const cliente = record.cliente_id;
+      if (!cliente || typeof cliente !== 'object') return acc;
       
-      if (clientId && clientName && !acc.some(c => c.id === clientId)) {
-        acc.push({ 
+      const clientId = cliente.id;
+      const clientName = cliente.nombre;
+      
+      if (!acc.some(c => c.id === clientId)) {
+        acc.push({
           id: clientId,
           nombre: clientName
         });
@@ -144,67 +150,132 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
     }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-  // Agrupar registros por evento
-  const eventRecords = records
-    .filter(r => {
-      if (r.categoria !== selectedCategory) return false;
-      if (r.evento_id) {
-        return r.evento_id === selectedEvent;
+  // Calcular totales por evento
+  const eventTotals = filteredRecords.reduce((acc, record) => {
+    const evento = record.evento_id;
+    if (!evento || typeof evento !== 'object') return acc;
+    
+    const eventId = evento.id;
+    const eventName = evento.nombre;
+    
+    if (!acc[eventId]) {
+      acc[eventId] = {
+        nombre: eventName,
+        ingresos: { ars: 0, usd: 0 },
+        egresos: { ars: 0, usd: 0 },
+        registros: []
+      };
+    }
+    
+    if (record.type === 'cobro') {
+      if (record.moneda === 'ars') {
+        acc[eventId].ingresos.ars += record.montoEspera;
+      } else {
+        acc[eventId].ingresos.usd += record.montoEspera;
       }
-      return false;
-    })
-    .reduce((acc, record) => {
-      if (!record.evento_id) return acc;
-      
-      const eventId = record.evento_id;
-      // Buscar el evento en la lista de eventos cargados
-      const eventoInfo = eventos.find(e => e.id === eventId);
-
-      if (!acc[eventId]) {
-        acc[eventId] = {
-          ingresos: { ars: 0, usd: 0 },
-          egresos: { ars: 0, usd: 0 },
-          records: [],
-          nombre: eventoInfo?.nombre || 'Evento sin nombre'
-        };
+    } else {
+      if (record.moneda === 'ars') {
+        acc[eventId].egresos.ars += record.montoEspera;
+      } else {
+        acc[eventId].egresos.usd += record.montoEspera;
       }
+    }
+    
+    acc[eventId].registros.push(record);
+    return acc;
+  }, {} as Record<string, {
+    nombre: string;
+    ingresos: { ars: number; usd: number };
+    egresos: { ars: number; usd: number };
+    registros: ContabilidadRecord[];
+  }>);
 
-      const moneda = record.moneda.toLowerCase() as 'ars' | 'usd';
-      const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
-      acc[eventId][type][moneda] += record.montoEspera;
-      acc[eventId].records.push(record);
-
-      return acc;
-    }, {} as Record<string, EventTotals & { nombre: string }>);
+  // Obtener los registros del evento seleccionado
+  const selectedEventData = selectedEvent ? eventTotals[selectedEvent] : null;
+  const selectedEventRecords = selectedEventData?.registros || [];
 
   // Calcular totales solo para el evento seleccionado
-  const totals = records
-    .filter(r => {
-      if (r.categoria !== selectedCategory) return false;
-      if (selectedEvent && r.evento_id) {
-        return r.evento_id === selectedEvent;
-      }
-      if (selectedClient !== 'all' && r.cliente_id) {
-        return r.cliente_id === selectedClient;
-      }
-      return true;
-    })
-    .reduce((acc, record) => {
-      const moneda = record.moneda.toLowerCase() as 'ars' | 'usd';
-      const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
-      acc[type][moneda] += record.montoEspera;
-      return acc;
-    }, {
-      ingresos: { ars: 0, usd: 0 },
-      egresos: { ars: 0, usd: 0 }
-    } as EventTotals);
-
-  const selectedEventData = selectedEvent ? eventRecords[selectedEvent] : null;
+  const totals = selectedEvent ? {
+    ingresos: selectedEventData?.ingresos || { ars: 0, usd: 0 },
+    egresos: selectedEventData?.egresos || { ars: 0, usd: 0 }
+  } : filteredRecords.reduce((acc, record) => {
+    const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
+    const moneda = record.moneda.toLowerCase() as 'ars' | 'usd';
+    acc[type][moneda] += record.montoEspera;
+    return acc;
+  }, {
+    ingresos: { ars: 0, usd: 0 },
+    egresos: { ars: 0, usd: 0 }
+  } as EventTotals);
 
   // Reset selected event when client or category changes
   useEffect(() => {
     setSelectedEvent(null);
   }, [selectedClient, selectedCategory]);
+
+  // Calcular totales por cliente
+  const clientTotals = filteredRecords.reduce((acc, record) => {
+    const cliente = record.cliente_id;
+    if (!cliente || typeof cliente !== 'object') return acc;
+    
+    const clientId = cliente.id;
+    const clientName = cliente.nombre;
+    
+    if (!acc[clientId]) {
+      acc[clientId] = {
+        nombre: clientName,
+        totalARS: 0,
+        totalUSD: 0,
+        registros: []
+      };
+    }
+    
+    if (record.moneda === 'ars') {
+      acc[clientId].totalARS += record.montoEspera;
+    } else {
+      acc[clientId].totalUSD += record.montoEspera;
+    }
+    
+    acc[clientId].registros.push(record);
+    return acc;
+  }, {} as Record<string, {
+    nombre: string;
+    totalARS: number;
+    totalUSD: number;
+    registros: ContabilidadRecord[];
+  }>);
+
+  // Calcular totales por proveedor
+  const providerTotals = filteredRecords.reduce((acc, record) => {
+    const proveedor = record.proveedor_id;
+    if (!proveedor || typeof proveedor !== 'object') return acc;
+    
+    const providerId = proveedor.id;
+    const providerName = proveedor.nombre;
+    
+    if (!acc[providerId]) {
+      acc[providerId] = {
+        nombre: providerName,
+        totalARS: 0,
+        totalUSD: 0,
+        registros: []
+      };
+    }
+    
+    if (record.moneda === 'ars') {
+      acc[providerId].totalARS += record.montoEspera;
+    } else {
+      acc[providerId].totalUSD += record.montoEspera;
+    }
+    
+    acc[providerId].registros.push(record);
+    return acc;
+  }, {} as Record<string, {
+    nombre: string;
+    totalARS: number;
+    totalUSD: number;
+    registros: ContabilidadRecord[];
+  }>);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -312,7 +383,7 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
               <div className="rounded-lg border p-6 bg-muted/30">
                 <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
-                  Resumen del Evento: {selectedEventData.nombre}
+                  Resumen del Evento: {selectedEventData?.nombre || 'Sin nombre'}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   {/* Ingresos */}
@@ -400,15 +471,12 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(selectedEvent ? selectedEventData?.records : filteredRecords)
+                {(selectedEvent ? selectedEventRecords : filteredRecords)
                   ?.sort((a, b) => new Date(b.fechaEspera || '').getTime() - new Date(a.fechaEspera || '').getTime())
                   .map((record) => (
                     <TableRow key={record.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell>
-                        <Badge 
-                          variant={record.type === 'cobro' ? 'success' : 'destructive'}
-                          className="font-medium"
-                        >
+                        <Badge variant={record.type === 'cobro' ? 'default' : 'destructive'}>
                           {record.type}
                         </Badge>
                       </TableCell>
@@ -430,12 +498,11 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
                       </TableCell>
                       <TableCell>{formatDate(record.fechaEspera)}</TableCell>
                     </TableRow>
-                ))}
-                {(selectedEvent ? selectedEventData?.records : filteredRecords)?.length === 0 && (
+                  ))}
+                {(selectedEvent ? selectedEventRecords : filteredRecords)?.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
-                      No hay registros para mostrar
-                      {selectedEvent && " en este evento"}
+                      No hay registros disponibles
                     </TableCell>
                   </TableRow>
                 )}

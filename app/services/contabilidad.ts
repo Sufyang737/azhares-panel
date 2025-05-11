@@ -1,5 +1,10 @@
 import { pb } from '@/app/lib/pocketbase';
 
+export interface ExpandedRecord {
+  id: string;
+  nombre: string;
+}
+
 export type ContabilidadRecord = {
   id: string;
   created: string;
@@ -20,10 +25,10 @@ export type ContabilidadRecord = {
   fechaEspera: string;
   fechaEfectuado?: string;
   comentario: string;
-  cliente_id?: string;
-  proveedor_id?: string;
-  evento_id?: string;
-  equipo_id?: string;
+  cliente_id?: string | ExpandedRecord;
+  proveedor_id?: string | ExpandedRecord;
+  evento_id?: string | ExpandedRecord;
+  equipo_id?: string | ExpandedRecord;
   esEsperado: boolean;
 };
 
@@ -107,17 +112,6 @@ export async function createContabilidadRecord(data: Omit<ContabilidadRecord, 'i
     
     throw new Error('Error inesperado al crear el registro');
   }
-}
-
-interface ApiErrorResponse {
-  error?: string;
-  data?: Record<string, unknown>;
-}
-
-interface ApiError extends Error {
-  response?: {
-    data?: ApiErrorResponse;
-  };
 }
 
 export async function getContabilidadRecords(options: { sort?: string; expand?: string } = {}) {
@@ -313,33 +307,17 @@ export async function getContabilidadRecord(id: string, expand?: string) {
 }
 
 export async function createTestRecord() {
-  const testData = {
-    type: "cobro" as const,
-    especie: "efectivo" as const,
-    moneda: "ars" as const,
-    categoria: "oficina" as const,
-    subcargo: "sueldos" as const,
-    detalle: "honorarios" as const,
+  return createContabilidadRecord({
+    type: "cobro",
+    especie: "efectivo",
+    moneda: "ars",
+    categoria: "oficina",
+    subcargo: "sueldos",
+    detalle: "honorarios",
     montoEspera: 1000,
-    dolarEsperado: 1,
+    dolarEsperado: 0,
     fechaEspera: new Date().toISOString(),
-    comentario: "Registro de prueba"
-  };
-
-  return createContabilidadRecord(testData);
-}
-
-async function getToken(): Promise<string | null> {
-  try {
-    const response = await fetch('/api/auth/me');
-    if (!response.ok) {
-      console.error('Error al obtener el token:', response.statusText);
-      return null;
-    }
-    const data = await response.json();
-    return data.token;
-  } catch (error) {
-    console.error('Error al obtener el token:', error);
-    return null;
-  }
+    comentario: "",
+    esEsperado: true
+  });
 } 

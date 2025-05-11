@@ -60,12 +60,16 @@ export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTable
 
   // Obtener lista única de eventos
   const events = records
-    .filter(r => r.evento_id?.id && r.evento_id?.nombre)
+    .filter(r => {
+      const evento = r.evento_id;
+      return typeof evento === 'object' && evento?.id && evento?.nombre;
+    })
     .reduce((acc, record) => {
-      if (!record.evento_id) return acc;
+      const evento = record.evento_id;
+      if (!evento || typeof evento !== 'object') return acc;
       
-      const eventId = record.evento_id.id;
-      const eventName = record.evento_id.nombre;
+      const eventId = evento.id;
+      const eventName = evento.nombre;
       
       if (!acc.some(e => e.id === eventId)) {
         acc.push({
@@ -79,12 +83,16 @@ export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTable
 
   // Obtener lista única de clientes
   const clients = records
-    .filter(r => r.cliente_id?.id && r.cliente_id?.nombre)
+    .filter(r => {
+      const cliente = r.cliente_id;
+      return typeof cliente === 'object' && cliente?.id && cliente?.nombre;
+    })
     .reduce((acc, record) => {
-      if (!record.cliente_id) return acc;
+      const cliente = record.cliente_id;
+      if (!cliente || typeof cliente !== 'object') return acc;
       
-      const clientId = record.cliente_id.id;
-      const clientName = record.cliente_id.nombre;
+      const clientId = cliente.id;
+      const clientName = cliente.nombre;
       
       if (!acc.some(c => c.id === clientId)) {
         acc.push({
@@ -98,10 +106,12 @@ export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTable
 
   // Filtrar registros
   const filteredRecords = records.filter(record => {
-    if (selectedEventId !== 'all' && record.evento_id?.id !== selectedEventId) {
+    if (selectedEventId !== 'all' && 
+        (typeof record.evento_id !== 'object' || record.evento_id?.id !== selectedEventId)) {
       return false;
     }
-    if (selectedClientId !== 'all' && record.cliente_id?.id !== selectedClientId) {
+    if (selectedClientId !== 'all' && 
+        (typeof record.cliente_id !== 'object' || record.cliente_id?.id !== selectedClientId)) {
       return false;
     }
     return true;
@@ -245,7 +255,7 @@ export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTable
               filteredRecords.map((record) => (
                 <TableRow key={record.id} className={updatingId === record.id ? "opacity-50" : ""}>
                   <TableCell>
-                    <Badge variant={record.type === 'cobro' ? 'success' : 'destructive'}>
+                    <Badge variant={record.type === 'cobro' ? 'default' : 'destructive'}>
                       {record.type}
                     </Badge>
                   </TableCell>
@@ -269,17 +279,17 @@ export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTable
                   </TableCell>
                   <TableCell>
                     <Badge 
-                      variant={record.fechaEfectuado ? 'success' : 'secondary'}
+                      variant={record.fechaEfectuado ? 'default' : 'secondary'}
                       className="gap-2 px-3 py-1"
                     >
                       {record.fechaEfectuado ? (
                         <>
-                          <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
-                          Efectuado el {formatDate(record.fechaEfectuado)}
+                          <CheckCircle className="h-4 w-4" />
+                          Efectuado
                         </>
                       ) : (
                         <>
-                          <span className="inline-block w-2 h-2 rounded-full bg-yellow-500" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                           Pendiente
                         </>
                       )}

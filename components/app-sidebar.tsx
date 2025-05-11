@@ -79,7 +79,7 @@ const navSecondary: NavItem[] = [
   }
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ variant }: { variant?: 'sidebar' | 'floating' | 'inset' }) {
   const { user } = useAuth();
   const userRole = user?.rol || "";
 
@@ -94,7 +94,7 @@ export function AppSidebar() {
   const filteredSecondaryNav = navSecondary.filter(item => !item.roles || item.roles.includes(userRole));
 
   return (
-    <Sidebar>
+    <Sidebar variant={variant}>
       <SidebarContent>
         <NavMain items={filteredMainNav} />
         <NavSecondary items={filteredSecondaryNav} className="mt-auto" />

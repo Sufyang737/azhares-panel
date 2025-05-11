@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server';
 import PocketBase from 'pocketbase';
 import { BirthdayEmailService } from '@/app/services/birthday-email.service';
 
+interface BirthdayPerson {
+  nombre: string;
+  apellido: string;
+  email?: string;
+  cumpleanio: string;
+  telefono?: string;
+}
+
 // Handler para GET (obtener cumpleaños del día)
 export async function GET() {
   try {
@@ -43,7 +51,15 @@ export async function GET() {
 
     // Enviar notificaciones por email
     const emailResults = [];
-    for (const person of birthdayPeople.items) {
+    for (const record of birthdayPeople.items) {
+      const person: BirthdayPerson = {
+        nombre: record.nombre,
+        apellido: record.apellido,
+        cumpleanio: record.cumpleanio,
+        email: record.email,
+        telefono: record.telefono
+      };
+      
       console.log(`\nEnviando notificación para: ${person.nombre} ${person.apellido}`);
       const result = await BirthdayEmailService.sendBirthdayNotification(person);
       emailResults.push({

@@ -48,7 +48,7 @@ const calculateMonthlyMetrics = (records: ContabilidadRecord[], date: Date): Mon
         acc.totalEgresos[moneda] += amount;
       }
 
-      if (record.evento_id?.id && !record.fechaEfectuado) {
+      if (typeof record.evento_id === 'object' && record.evento_id?.id && !record.fechaEfectuado) {
         acc.eventosActivos.add(record.evento_id.id);
       }
 

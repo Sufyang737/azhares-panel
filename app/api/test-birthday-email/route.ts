@@ -15,16 +15,16 @@ export async function GET(request: Request) {
     }
 
     // Datos de prueba
-    const testData = {
-      name: "Cliente de Prueba",
-      birthDate: new Date().toISOString()
+    const testPerson = {
+      nombre: "Cliente",
+      apellido: "de Prueba",
+      email: testEmail,
+      cumpleanio: new Date().toISOString(),
+      telefono: "1234567890"
     };
 
     // Enviar email de prueba
-    const result = await BirthdayEmailService.sendBirthdayReminder(
-      testEmail,
-      testData
-    );
+    const result = await BirthdayEmailService.sendBirthdayNotification(testPerson);
 
     return NextResponse.json({
       success: true,
