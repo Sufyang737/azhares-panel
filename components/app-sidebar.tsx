@@ -10,6 +10,7 @@ import {
   IconUserCircle,
   IconTruck,
   IconCash,
+  IconUsers,
   type TablerIcon 
 } from "@tabler/icons-react";
 import { useAuth } from "@/lib/AuthContext";
@@ -49,6 +50,12 @@ const navMain: NavItem[] = [
     url: "/dashboard/people",
     icon: IconUserCircle,
     roles: ['admin', 'planner'],
+  },
+  {
+    title: "Team",
+    url: "/dashboard/team",
+    icon: IconUsers,
+    roles: ['admin'],
   },
   {
     title: "Proveedores",

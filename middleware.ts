@@ -135,6 +135,6 @@ export async function middleware(request: NextRequest) {
 // Configurar las rutas a las que aplicar el middleware
 export const config = {
   matcher: [
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|assets|formulario|api/email/send|api/formulario).*)',
+    '/((?!api/|_next/static|_next/image|favicon.ico|assets|formulario).*)',
   ],
 }; 
