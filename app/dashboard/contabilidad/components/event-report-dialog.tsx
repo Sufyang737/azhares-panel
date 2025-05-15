@@ -103,12 +103,14 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
     
     // Si hay un evento seleccionado, filtramos por ese evento específico
     if (selectedEvent && r.evento_id) {
+      // El evento_id puede ser un string o un objeto con un id
+      const eventId = typeof r.evento_id === 'object' ? r.evento_id.id : r.evento_id;
       console.log('Comparando evento:', {
-        recordEventId: r.evento_id,
+        recordEventId: eventId,
         selectedEvent: selectedEvent,
-        match: r.evento_id === selectedEvent
+        match: eventId === selectedEvent
       });
-      return r.evento_id === selectedEvent;
+      return eventId === selectedEvent;
     }
     
     return true;
@@ -153,10 +155,10 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
   // Calcular totales por evento
   const eventTotals = filteredRecords.reduce((acc, record) => {
     const evento = record.evento_id;
-    if (!evento || typeof evento !== 'object') return acc;
+    if (!evento) return acc;
     
-    const eventId = evento.id;
-    const eventName = evento.nombre;
+    const eventId = typeof evento === 'object' ? evento.id : evento;
+    const eventName = typeof evento === 'object' ? evento.nombre : 'Desconocido';
     
     if (!acc[eventId]) {
       acc[eventId] = {
@@ -167,17 +169,19 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
       };
     }
     
+    const monto = record.monto || record.montoEspera || 0;
+    
     if (record.type === 'cobro') {
       if (record.moneda === 'ars') {
-        acc[eventId].ingresos.ars += record.montoEspera;
+        acc[eventId].ingresos.ars += monto;
       } else {
-        acc[eventId].ingresos.usd += record.montoEspera;
+        acc[eventId].ingresos.usd += monto;
       }
     } else {
       if (record.moneda === 'ars') {
-        acc[eventId].egresos.ars += record.montoEspera;
+        acc[eventId].egresos.ars += monto;
       } else {
-        acc[eventId].egresos.usd += record.montoEspera;
+        acc[eventId].egresos.usd += monto;
       }
     }
     
@@ -194,14 +198,15 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
   const selectedEventData = selectedEvent ? eventTotals[selectedEvent] : null;
   const selectedEventRecords = selectedEventData?.registros || [];
 
-  // Calcular totales solo para el evento seleccionado
+  // Calcular totales para la categoría seleccionada
   const totals = selectedEvent ? {
     ingresos: selectedEventData?.ingresos || { ars: 0, usd: 0 },
     egresos: selectedEventData?.egresos || { ars: 0, usd: 0 }
   } : filteredRecords.reduce((acc, record) => {
     const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
     const moneda = record.moneda.toLowerCase() as 'ars' | 'usd';
-    acc[type][moneda] += record.montoEspera;
+    const monto = record.monto || record.montoEspera || 0;
+    acc[type][moneda] += monto;
     return acc;
   }, {
     ingresos: { ars: 0, usd: 0 },
@@ -280,235 +285,127 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <BarChart3 className="h-4 w-4" />
+        <Button variant="outline" size="sm">
+          <BarChart3 className="h-4 w-4 mr-2" />
           Reporte Analítico
-          <Badge variant="secondary" className="ml-2">
-            {filteredRecords.length}
-          </Badge>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl w-[95vw]">
-        <DialogHeader className="pb-4 border-b">
-          <DialogTitle className="text-2xl font-bold">Reporte Analítico</DialogTitle>
+      <DialogContent className="w-[90vw] max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Reporte Analítico</DialogTitle>
           <DialogDescription>
             Análisis detallado de ingresos y egresos
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Selector de Categoría */}
-          <div className="w-full">
-            <label className="text-sm font-medium mb-2 block text-muted-foreground">
-              Categoría
-            </label>
-            <Select
-              value={selectedCategory}
-              onValueChange={(value: 'evento' | 'oficina') => setSelectedCategory(value)}
-            >
-              <SelectTrigger className="w-full sm:w-[300px]">
-                <SelectValue placeholder="Seleccionar categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="evento">Eventos</SelectItem>
-                <SelectItem value="oficina">Oficina</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-4">
+          {/* Selección de categoría */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <h4 className="mb-2 text-sm font-medium">Categoría</h4>
+              <Select
+                value={selectedCategory}
+                onValueChange={(value: 'evento' | 'oficina') => {
+                  setSelectedCategory(value);
+                  setSelectedEvent(null);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="evento">Eventos</SelectItem>
+                  <SelectItem value="oficina">Oficina</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Filtros específicos para eventos */}
-          {selectedCategory === 'evento' && (
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-              {clients.length > 0 && (
-                <div className="w-full sm:w-auto">
-                  <label className="text-sm font-medium mb-2 block text-muted-foreground">
-                    Filtrar por Cliente
-                  </label>
-                  <Select
-                    value={selectedClient}
-                    onValueChange={(value) => setSelectedClient(value)}
-                  >
-                    <SelectTrigger className="w-full sm:w-[300px]">
-                      <SelectValue placeholder="Seleccionar cliente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los clientes</SelectItem>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="w-full sm:w-auto">
-                <label className="text-sm font-medium mb-2 block text-muted-foreground">
-                  Seleccionar Evento
-                </label>
+            {/* Selección de evento (solo si la categoría es evento) */}
+            {selectedCategory === 'evento' && (
+              <div>
+                <h4 className="mb-2 text-sm font-medium">Eventos</h4>
                 <Select
                   value={selectedEvent || ''}
-                  onValueChange={(value) => setSelectedEvent(value)}
+                  onValueChange={setSelectedEvent}
                 >
-                  <SelectTrigger className="w-full sm:w-[300px]">
-                    <SelectValue placeholder="Seleccionar evento" />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar Evento" />
                   </SelectTrigger>
                   <SelectContent>
-                    {loading ? (
-                      <div className="p-2 text-sm text-muted-foreground text-center">
-                        Cargando eventos...
-                      </div>
-                    ) : filteredEvents.length === 0 ? (
-                      <div className="p-2 text-sm text-muted-foreground text-center">
-                        No hay eventos disponibles
-                        {selectedClient !== 'all' && " para el cliente seleccionado"}
-                      </div>
-                    ) : (
-                      filteredEvents.map((event) => (
-                        <SelectItem key={event.id} value={event.id}>
-                          {event.nombre}
-                        </SelectItem>
-                      ))
-                    )}
+                    {filteredEvents.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
+                        {event.nombre}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Resumen de Totales */}
-          <div className="grid grid-cols-1 gap-4">
-            {selectedEvent && selectedEventData ? (
-              <div className="rounded-lg border p-6 bg-muted/30">
-                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Resumen del Evento: {selectedEventData?.nombre || 'Sin nombre'}
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  {/* Ingresos */}
-                  <div className="space-y-2">
-                    <h4 className="text-lg font-medium text-green-600">Ingresos</h4>
-                    <div className="space-y-1">
-                      <p className="text-sm flex justify-between">
-                        <span>ARS:</span>
-                        <span className="font-mono">{formatCurrency(selectedEventData.ingresos.ars, 'ars')}</span>
-                      </p>
-                      <p className="text-sm flex justify-between">
-                        <span>USD:</span>
-                        <span className="font-mono">{formatCurrency(selectedEventData.ingresos.usd, 'usd')}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Egresos */}
-                  <div className="space-y-2">
-                    <h4 className="text-lg font-medium text-red-600">Egresos</h4>
-                    <div className="space-y-1">
-                      <p className="text-sm flex justify-between">
-                        <span>ARS:</span>
-                        <span className="font-mono">{formatCurrency(selectedEventData.egresos.ars, 'ars')}</span>
-                      </p>
-                      <p className="text-sm flex justify-between">
-                        <span>USD:</span>
-                        <span className="font-mono">{formatCurrency(selectedEventData.egresos.usd, 'usd')}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Balance */}
-                  <div className="space-y-2">
-                    <h4 className="text-lg font-medium text-blue-600">Balance</h4>
-                    <div className="space-y-1">
-                      <p className="text-sm flex justify-between font-medium">
-                        <span>ARS:</span>
-                        <span className={`font-mono ${(selectedEventData.ingresos.ars - selectedEventData.egresos.ars) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrency(selectedEventData.ingresos.ars - selectedEventData.egresos.ars, 'ars')}
-                        </span>
-                      </p>
-                      <p className="text-sm flex justify-between font-medium">
-                        <span>USD:</span>
-                        <span className={`font-mono ${(selectedEventData.ingresos.usd - selectedEventData.egresos.usd) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrency(selectedEventData.ingresos.usd - selectedEventData.egresos.usd, 'usd')}
-                        </span>
-                      </p>
-                    </div>
+            {/* Totales (mostrar siempre que haya una categoría seleccionada) */}
+            {selectedCategory && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="mb-2 text-sm font-medium">Ingresos Totales</h4>
+                  <div className="space-y-1">
+                    <p>ARS: {formatCurrency(totals.ingresos.ars, 'ars')}</p>
+                    <p>USD: {formatCurrency(totals.ingresos.usd, 'usd')}</p>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="rounded-lg border p-4">
-                  <h3 className="text-lg font-semibold mb-2">Ingresos Totales</h3>
+                <div>
+                  <h4 className="mb-2 text-sm font-medium">Egresos Totales</h4>
                   <div className="space-y-1">
-                    <p className="text-sm">ARS: {formatCurrency(totals.ingresos.ars, 'ars')}</p>
-                    <p className="text-sm">USD: {formatCurrency(totals.ingresos.usd, 'usd')}</p>
-                  </div>
-                </div>
-                <div className="rounded-lg border p-4">
-                  <h3 className="text-lg font-semibold mb-2">Egresos Totales</h3>
-                  <div className="space-y-1">
-                    <p className="text-sm">ARS: {formatCurrency(totals.egresos.ars, 'ars')}</p>
-                    <p className="text-sm">USD: {formatCurrency(totals.egresos.usd, 'usd')}</p>
+                    <p>ARS: {formatCurrency(totals.egresos.ars, 'ars')}</p>
+                    <p>USD: {formatCurrency(totals.egresos.usd, 'usd')}</p>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Tabla de Registros */}
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Método</TableHead>
-                  <TableHead>Moneda</TableHead>
-                  <TableHead>Subcargo</TableHead>
-                  <TableHead>Detalle</TableHead>
-                  <TableHead className="text-right">Monto</TableHead>
-                  <TableHead>Fecha</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(selectedEvent ? selectedEventRecords : filteredRecords)
-                  ?.sort((a, b) => new Date(b.fechaEspera || '').getTime() - new Date(a.fechaEspera || '').getTime())
-                  .map((record) => (
-                    <TableRow key={record.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell>
-                        <Badge variant={record.type === 'cobro' ? 'default' : 'destructive'}>
-                          {record.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">{record.especie}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={record.moneda === 'usd' ? 'outline' : 'secondary'}
-                          className="font-medium"
-                        >
-                          {record.moneda.toUpperCase()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{record.subcargo}</TableCell>
-                      <TableCell>{record.detalle}</TableCell>
-                      <TableCell className="text-right font-mono font-medium">
-                        <span className={record.type === 'cobro' ? 'text-green-600' : 'text-red-600'}>
-                          {formatCurrency(record.montoEspera, record.moneda)}
-                        </span>
-                      </TableCell>
-                      <TableCell>{formatDate(record.fechaEspera)}</TableCell>
-                    </TableRow>
-                  ))}
-                {(selectedEvent ? selectedEventRecords : filteredRecords)?.length === 0 && (
+          {/* Tabla de registros */}
+          {selectedCategory && (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
-                      No hay registros disponibles
-                    </TableCell>
+                    <TableHead className="whitespace-nowrap">Tipo</TableHead>
+                    <TableHead className="whitespace-nowrap">Método</TableHead>
+                    <TableHead className="whitespace-nowrap">Moneda</TableHead>
+                    <TableHead className="whitespace-nowrap">Subcargo</TableHead>
+                    <TableHead className="whitespace-nowrap">Detalle</TableHead>
+                    <TableHead className="whitespace-nowrap">Monto</TableHead>
+                    <TableHead className="whitespace-nowrap">Fecha</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {(selectedEvent ? selectedEventRecords : filteredRecords).length > 0 ? (
+                    (selectedEvent ? selectedEventRecords : filteredRecords).map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell>
+                          <Badge variant={record.type === 'cobro' ? 'default' : 'destructive'}>
+                            {record.type === 'cobro' ? 'Ingreso' : 'Egreso'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{record.metodo}</TableCell>
+                        <TableCell>{record.moneda.toUpperCase()}</TableCell>
+                        <TableCell>{record.subcargo || '-'}</TableCell>
+                        <TableCell>{record.detalle || '-'}</TableCell>
+                        <TableCell>{formatCurrency(record.monto || record.montoEspera || 0, record.moneda)}</TableCell>
+                        <TableCell>{formatDate(record.created)}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center">
+                        No hay registros disponibles
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

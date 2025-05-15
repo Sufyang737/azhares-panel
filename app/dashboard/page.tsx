@@ -4,8 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { ChartAreaInteractive } from "@/components/chart-area-interactive";
-import { AccountingSectionCards } from "@/app/dashboard/contabilidad/components/section-cards";
 import { getContabilidadRecords, type ContabilidadRecord } from "@/app/services/contabilidad";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
@@ -35,22 +33,18 @@ function ContabilidadPanel() {
   }, []);
 
   return (
-    <>
-      {/* Métricas principales */}
-      <div className="col-span-7">
-        <AccountingSectionCards records={records} />
-      </div>
-
-      {/* Gráfico de área */}
-      <Card className="col-span-7">
-        <CardHeader>
-          <CardTitle>Movimientos del Mes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChartAreaInteractive records={records} />
-        </CardContent>
-      </Card>
-    </>
+    <Card className="col-span-7">
+      <CardHeader>
+        <CardTitle>Registros Contables</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-center">
+          <Link href="/dashboard/contabilidad" className="text-primary hover:underline">
+            Ver todos los registros
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

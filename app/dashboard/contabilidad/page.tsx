@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
-import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { AccountingSectionCards } from "./components/section-cards";
 import { CreateRecordDialog } from "./components/create-record-dialog";
 import { ContabilidadTable } from "./components/contabilidad-table";
 import { ScheduledRecordsDialog } from "./components/scheduled-records-dialog";
@@ -58,10 +56,6 @@ export default function ContabilidadPage() {
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <AccountingSectionCards records={records} />
-              <div className="px-4 lg:px-6">
-                <ChartAreaInteractive records={records} />
-              </div>
               <div className="px-4 lg:px-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-bold">Registros Contables</h2>
