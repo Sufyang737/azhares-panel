@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { createTeamMember, getTeamMembers } from "@/app/services/team"
+import { createTeamMember, getTeamMembers, CreateTeamMemberData } from "@/app/services/team"
 import { z } from "zod"
 
 // Schema de validación para crear un miembro del equipo
@@ -23,7 +23,18 @@ const createTeamMemberSchema = z.object({
   ciudad: z.enum(["buenos-aires", "cordoba"], {
     errorMap: () => ({ message: "La ciudad debe ser 'buenos-aires' o 'cordoba'" })
   }),
-})
+}).strict().transform((data): CreateTeamMemberData => ({
+  ...data,
+  nombre: data.nombre,
+  apellido: data.apellido,
+  cargo: data.cargo,
+  dni: data.dni,
+  telefono: data.telefono,
+  email: data.email,
+  cumpleanio: data.cumpleanio,
+  pais: data.pais,
+  ciudad: data.ciudad,
+}))
 
 export async function GET() {
   try {

@@ -169,7 +169,7 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
       };
     }
     
-    const monto = record.monto || record.montoEspera || 0;
+    const monto = record.montoEspera || 0;
     
     if (record.type === 'cobro') {
       if (record.moneda === 'ars') {
@@ -205,7 +205,7 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
   } : filteredRecords.reduce((acc, record) => {
     const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
     const moneda = record.moneda.toLowerCase() as 'ars' | 'usd';
-    const monto = record.monto || record.montoEspera || 0;
+    const monto = record.montoEspera || 0;
     acc[type][moneda] += monto;
     return acc;
   }, {
@@ -387,11 +387,11 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
                             {record.type === 'cobro' ? 'Ingreso' : 'Egreso'}
                           </Badge>
                         </TableCell>
-                        <TableCell>{record.metodo}</TableCell>
+                        <TableCell>{record.especie}</TableCell>
                         <TableCell>{record.moneda.toUpperCase()}</TableCell>
                         <TableCell>{record.subcargo || '-'}</TableCell>
                         <TableCell>{record.detalle || '-'}</TableCell>
-                        <TableCell>{formatCurrency(record.monto || record.montoEspera || 0, record.moneda)}</TableCell>
+                        <TableCell>{formatCurrency(record.montoEspera || 0, record.moneda)}</TableCell>
                         <TableCell>{formatDate(record.created)}</TableCell>
                       </TableRow>
                     ))
