@@ -30,6 +30,10 @@ const DEFAULT_THEMES = [
     name: "Amber",
     value: "amber",
   },
+  {
+    name: "Azhares",
+    value: "azhares",
+  },
 ];
 
 const SCALED_THEMES = [
@@ -40,6 +44,10 @@ const SCALED_THEMES = [
   {
     name: "Blue",
     value: "blue-scaled",
+  },
+  {
+    name: "Azhares",
+    value: "azhares-scaled",
   },
 ];
 

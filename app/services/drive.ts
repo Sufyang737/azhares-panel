@@ -1,6 +1,7 @@
 export async function createEventFolder(eventType: string, eventDate: string, clientName: string) {
   try {
-    const baseUrl = 'https://script.google.com/macros/s/AKfycbzQO3tOjtKwzgq6lfzjB3BnQAoo_h30qeKUnyUoVocd318HKLPn-8r3nQdEnBrJ1TGB/exec';
+    const baseUrl = 'https://script.google.com/macros/s/AKfycbzr_l_i6aUMi8uBaOTrd9QUefrCqMXpj3LwyqzI5SLxe-Syxfz8cvcjAt0kd_C_lsQF/exec';
+    
     
     // Ensure the date is in the correct format for the Apps Script
     const dateObj = new Date(eventDate);
