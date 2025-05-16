@@ -6,79 +6,74 @@ import {
   Html,
   Preview,
   Text,
-  Button,
   Section,
+  Img,
 } from '@react-email/components';
 import * as React from 'react';
 
 interface WelcomeEmailProps {
   clientName: string;
-  eventName: string;
-  eventDate: string;
-  plannerName: string;
-  clienteId?: string;
   formUrl?: string;
 }
 
 export const WelcomeEmail: React.FC<Readonly<WelcomeEmailProps>> = ({
   clientName,
-  eventName,
-  eventDate,
-  plannerName,
-  clienteId,
   formUrl,
 }) => {
-  // Usar directamente la URL proporcionada si existe
   const formularioUrl = formUrl || '';
-
-  console.log('Email Template - URL recibida:', formUrl);
-  console.log('Email Template - URL final:', formularioUrl);
 
   return (
     <Html>
       <Head />
-      <Preview>Bienvenido a Azares Panel - Tu evento está confirmado</Preview>
+      <Preview>Gracias por contar con Azares para tu evento.</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>¡Bienvenido a Azares Panel!</Heading>
-          <Text style={text}>
-            Estimado/a {clientName},
-          </Text>
-          <Text style={text}>
-            ¡Nos complace darle la bienvenida a Azares Panel! Su evento ha sido registrado exitosamente en nuestro sistema.
-          </Text>
-          <Text style={text}>
-            Detalles de su evento:
-          </Text>
-          <Text style={details}>
-            • Nombre del evento: {eventName}<br />
-            • Fecha: {eventDate}<br />
-            • Planificador asignado: {plannerName}
-          </Text>
+          {/* Logo y Encabezado */}
+          <Section style={logoSection}>
+            <Img
+              src="https://ik.imagekit.io/majzpqwjy/logo.png?updatedAt=1747419729873"
+              width="130"
+              height="105"
+              alt="Azares"
+              style={logo}
+            />
+            <Text style={subHeader}>EVENT PLANNERS</Text>
+          </Section>
+
+          <Heading style={h1}>¡Bienvenido!</Heading>
           
-          {formularioUrl && (
-            <Section style={ctaSection}>
-              <Text style={text}>
-                Para brindarle un mejor servicio, necesitamos algunos datos adicionales. Por favor, complete el siguiente formulario:
-              </Text>
-              <Button
-                href={formularioUrl}
-                style={button}
-              >
-                Completar mis datos
-              </Button>
-            </Section>
-          )}
-          
+          <Heading style={h2}>
+            Gracias por contar con Azares para tu evento.
+          </Heading>
+
           <Text style={text}>
-            Nuestro equipo está comprometido a hacer de su evento una experiencia inolvidable. Su planificador asignado se pondrá en contacto con usted próximamente para discutir los detalles.
+            Hola {clientName}, queremos darte la Bienvenida a Azares Eventos, es un placer que nos hayan elegido.
           </Text>
+
           <Text style={text}>
-            Si tiene alguna pregunta o inquietud inmediata, no dude en contactarnos.
+            Para comenzar a trabajar juntos, te pedimos que completes el siguiente {' '}
+            {formularioUrl && (
+              <a href={formularioUrl} style={link}>
+                formulario
+              </a>
+            )}{' '}
+            para registrarte como cliente en nuestro sistema.
           </Text>
-          <Text style={footer}>
-            Saludos cordiales,<br />
-            El equipo de Azares
+
+          <Text style={text}>
+            Pronto te estaremos enviando nuestra propuesta de servicios.
+          </Text>
+
+          <Text style={text}>
+            Si tenes alguna duda o comentario, no dudes en contactarnos.
+          </Text>
+
+          <Text style={signature}>
+            Saludos cordiales,
+          </Text>
+
+          <Text style={signatureCompany}>
+            Azares Eventos
           </Text>
         </Container>
       </Body>
@@ -87,66 +82,82 @@ export const WelcomeEmail: React.FC<Readonly<WelcomeEmailProps>> = ({
 };
 
 const main = {
-  backgroundColor: '#ffffff',
+  backgroundColor: '#FFF5F1',
   fontFamily:
     '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif',
 };
 
 const container = {
   margin: '0 auto',
-  padding: '20px 0 48px',
-  maxWidth: '580px',
+  padding: '40px 20px',
+  maxWidth: '600px',
+  backgroundColor: '#ffffff',
+  borderRadius: '8px',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+};
+
+const logoSection = {
+  textAlign: 'left' as const,
+  marginBottom: '32px',
+};
+
+const logo = {
+  margin: '0 auto',
+  display: 'block',
+};
+
+const subHeader = {
+  color: '#4A3531',
+  fontSize: '14px',
+  margin: '4px 0 0',
+  textAlign: 'left' as const,
 };
 
 const h1 = {
-  color: '#1a1a1a',
+  color: '#4A3531',
+  fontSize: '28px',
+  fontWeight: '500',
+  lineHeight: '1.3',
+  margin: '0 0 16px',
+  textAlign: 'left' as const,
+};
+
+const h2 = {
+  color: '#4A3531',
   fontSize: '24px',
-  fontWeight: '600',
+  fontWeight: '400',
   lineHeight: '1.3',
   margin: '0 0 24px',
+  textAlign: 'left' as const,
 };
 
 const text = {
-  color: '#1a1a1a',
+  color: '#4A3531',
   fontSize: '16px',
-  lineHeight: '1.5',
-  margin: '12px 0',
+  lineHeight: '1.6',
+  margin: '16px 0',
+  textAlign: 'left' as const,
 };
 
-const details = {
-  color: '#1a1a1a',
-  fontSize: '14px',
-  lineHeight: '1.5',
-  margin: '24px 0',
-  padding: '24px',
-  backgroundColor: '#f7f7f7',
-  borderRadius: '4px',
+const link = {
+  color: '#F5D0C5',
+  textDecoration: 'underline',
 };
 
-const ctaSection = {
-  margin: '32px 0',
-  textAlign: 'center' as const,
+const signature = {
+  color: '#6B4D45',
+  fontSize: '16px',
+  fontStyle: 'italic',
+  margin: '32px 0 8px',
+  textAlign: 'left' as const,
 };
 
-const button = {
-  backgroundColor: '#5e17eb',
-  borderRadius: '4px',
-  color: '#fff',
-  fontSize: '15px',
-  fontWeight: 'bold',
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  display: 'block',
-  padding: '12px 16px',
-  margin: '0 auto',
-  width: '220px',
-};
-
-const footer = {
-  color: '#666666',
-  fontSize: '14px',
-  lineHeight: '1.5',
-  margin: '24px 0 0',
+const signatureCompany = {
+  color: '#4A3531',
+  fontSize: '18px',
+  fontWeight: '500',
+  margin: '0',
+  textAlign: 'left' as const,
 };
 
 export default WelcomeEmail; 
