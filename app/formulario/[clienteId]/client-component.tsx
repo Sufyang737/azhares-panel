@@ -534,6 +534,87 @@ export default function FormularioClienteComponent({ clienteId }: FormularioClie
                         </FormItem>
                       )}
                     />
+
+                    {/* Nuevos campos */}
+                    <FormField
+                      control={form.control}
+                      name="pais"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center space-x-2 text-[#4A3531] text-base">
+                            <span>País</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              className="border-2 border-[#F5D0C5]/30 focus:border-[#F5D0C5] focus:ring-[#F5D0C5]/20 rounded-xl h-12" 
+                              placeholder="Tu país"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="ciudad"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center space-x-2 text-[#4A3531] text-base">
+                            <span>Ciudad</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              className="border-2 border-[#F5D0C5]/30 focus:border-[#F5D0C5] focus:ring-[#F5D0C5]/20 rounded-xl h-12" 
+                              placeholder="Tu ciudad"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="direccion"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel className="flex items-center space-x-2 text-[#4A3531] text-base">
+                            <span>Dirección</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              className="border-2 border-[#F5D0C5]/30 focus:border-[#F5D0C5] focus:ring-[#F5D0C5]/20 rounded-xl h-12" 
+                              placeholder="Tu dirección"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="comentario"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel className="flex items-center space-x-2 text-[#4A3531] text-base">
+                            <span>¿Cómo nos conociste?</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              {...field} 
+                              className="border-2 border-[#F5D0C5]/30 focus:border-[#F5D0C5] focus:ring-[#F5D0C5]/20 rounded-xl min-h-[100px] resize-none" 
+                              placeholder="Cuéntanos un poco sobre cómo llegaste a nosotros..."
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </div>
 
@@ -636,6 +717,26 @@ export default function FormularioClienteComponent({ clienteId }: FormularioClie
                             <option key={rel.value} value={rel.value}>{rel.label}</option>
                           ))}
                         </select>
+
+                        {/* Nuevos campos de ubicación */}
+                        <Input
+                          placeholder="País"
+                          value={tempPersona.pais}
+                          onChange={(e) => setTempPersona(prev => ({ ...prev, pais: e.target.value }))}
+                          className="border-2 border-[#F5D0C5]/30 focus:border-[#F5D0C5] focus:ring-[#F5D0C5]/20 rounded-xl h-12"
+                        />
+                        <Input
+                          placeholder="Ciudad"
+                          value={tempPersona.ciudad}
+                          onChange={(e) => setTempPersona(prev => ({ ...prev, ciudad: e.target.value }))}
+                          className="border-2 border-[#F5D0C5]/30 focus:border-[#F5D0C5] focus:ring-[#F5D0C5]/20 rounded-xl h-12"
+                        />
+                        <Input
+                          placeholder="Dirección"
+                          value={tempPersona.direccion}
+                          onChange={(e) => setTempPersona(prev => ({ ...prev, direccion: e.target.value }))}
+                          className="border-2 border-[#F5D0C5]/30 focus:border-[#F5D0C5] focus:ring-[#F5D0C5]/20 rounded-xl h-12 col-span-2"
+                        />
                       </div>
                       
                       <div className="flex justify-end space-x-3">

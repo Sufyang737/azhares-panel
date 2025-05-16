@@ -1,6 +1,23 @@
 import { NextResponse } from 'next/server';
 import PocketBase from 'pocketbase';
 
+// Agregar las opciones de relación
+const RELACIONES = [
+  { value: "hijo", label: "Hijo/a" },
+  { value: "hermano", label: "Hermano/a" },
+  { value: "esposo", label: "Esposo" },
+  { value: "esposa", label: "Esposa" },
+  { value: "padre", label: "Padre" },
+  { value: "madre", label: "Madre" },
+  { value: "primo", label: "Primo/a" },
+  { value: "tio", label: "Tío/a" },
+  { value: "sobrino", label: "Sobrino/a" },
+  { value: "abuelo", label: "Abuelo/a" },
+  { value: "nieto", label: "Nieto/a" },
+  { value: "amigo", label: "Amigo/a" },
+  { value: "otro", label: "Otro" }
+];
+
 export async function POST(request: Request) {
   try {
     // Obtener los datos del formulario
@@ -79,6 +96,9 @@ export async function POST(request: Request) {
               cumpleanio = new Date(currentYear, parseInt(persona.cumpleanio.mes) - 1, parseInt(persona.cumpleanio.dia));
             }
 
+            // Obtener el label de la relación
+            const relacionLabel = RELACIONES.find(r => r.value === persona.relacion)?.label || persona.relacion;
+
             const personaRecord = {
               nombre: persona.nombre.trim(),
               apellido: persona.apellido.trim(),
@@ -89,7 +109,7 @@ export async function POST(request: Request) {
               ciudad: persona.ciudad || '',
               instagram: persona.instagram ? `https://instagram.com/${persona.instagram.replace(/^@/, '')}` : '',
               direccion: persona.direccion || '',
-              comentario: persona.comentario || '',
+              comentario: `Relación: ${relacionLabel}`,
               cliente_id: data.cliente_id,
               es_principal: false,
               relacion: persona.relacion || ''
