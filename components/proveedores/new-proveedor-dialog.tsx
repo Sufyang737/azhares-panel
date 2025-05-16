@@ -460,98 +460,48 @@ export function NewProveedorDialog({
                 control={form.control}
                 name="categoria"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem>
                     <FormLabel>Categoría</FormLabel>
-                    <Popover open={openCategoriaPopover} onOpenChange={setOpenCategoriaPopover}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setOpenCategoriaPopover(!openCategoriaPopover);
-                            }}
-                          >
-                            {field.value || "Seleccione o cree una categoría"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[300px] p-0" align="start">
-                        <div className="flex flex-col">
-                          <div className="p-2 border-b">
-                            <Input
-                              placeholder="Buscar o crear nueva categoría..."
-                              value={categoriaInput}
-                              onChange={(e) => setCategoriaInput(e.target.value)}
-                              className="h-9"
-                            />
-                          </div>
-                          
-                          {categoriaInput && !categorias.some(c => 
-                            c.toLowerCase() === categoriaInput.toLowerCase()
-                          ) && (
-                            <div className="px-2 py-2 border-b">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                className="w-full justify-start text-sm"
-                                onClick={() => {
-                                  field.onChange(categoriaInput);
-                                  setOpenCategoriaPopover(false);
-                                }}
-                              >
-                                <span>Crear "{categoriaInput}"</span>
-                              </Button>
-                            </div>
-                          )}
-                          
-                          <div className="overflow-y-auto max-h-[300px] scroll-smooth scrollbar-thin">
-                            {categorias
-                              .filter(cat => !categoriaInput || cat.toLowerCase().includes(categoriaInput.toLowerCase()))
-                              .map(categoria => (
-                                <div
-                                  key={categoria}
-                                  className={cn(
-                                    "px-2 py-3 cursor-pointer hover:bg-accent flex items-center font-medium",
-                                    field.value === categoria && "bg-accent"
-                                  )}
-                                  onClick={() => {
-                                    field.onChange(categoria);
-                                    setOpenCategoriaPopover(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      field.value === categoria ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {categoria}
-                                </div>
-                              ))
-                            }
-                            
-                            {categorias.filter(cat => 
-                              !categoriaInput || cat.toLowerCase().includes(categoriaInput.toLowerCase())
-                            ).length === 0 && (
-                              <div className="p-4 text-sm text-center text-muted-foreground">
-                                No hay categorías disponibles
-                              </div>
-                            )}
-                          </div>
+                    <Select
+                      value={field.value || ""}
+                      onValueChange={field.onChange}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione una categoría" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <div className="p-2">
+                          <Input
+                            placeholder="Buscar o crear nueva categoría"
+                            value={categoriaInput}
+                            onChange={(e) => setCategoriaInput(e.target.value)}
+                            className="mb-2"
+                          />
                         </div>
-                      </PopoverContent>
-                    </Popover>
+                        {categorias
+                          .filter(categoria =>
+                            !categoriaInput ||
+                            categoria.toLowerCase().includes(categoriaInput.toLowerCase())
+                          )
+                          .map((categoria) => (
+                            <SelectItem key={categoria} value={categoria}>
+                              {categoria}
+                            </SelectItem>
+                          ))}
+                        {categoriaInput && 
+                         !categorias.find(cat => 
+                           cat.toLowerCase() === categoriaInput.toLowerCase()
+                         ) && (
+                          <SelectItem value={categoriaInput}>
+                            Crear "{categoriaInput}"
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
                     <FormDescription>
-                      Seleccione una categoría existente o cree una nueva.
+                      Seleccione una categoría existente o escriba para crear una nueva.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
