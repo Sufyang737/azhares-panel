@@ -114,7 +114,12 @@ export async function createContabilidadRecord(data: Omit<ContabilidadRecord, 'i
   }
 }
 
-export async function getContabilidadRecords(options: { sort?: string; expand?: string } = {}) {
+export async function getContabilidadRecords(options: { 
+  sort?: string; 
+  expand?: string;
+  page?: number;
+  perPage?: number;
+} = {}) {
   console.log('=== INICIO getContabilidadRecords ===');
   
   try {
@@ -123,10 +128,15 @@ export async function getContabilidadRecords(options: { sort?: string; expand?: 
       throw new Error('No hay sesión activa');
     }
 
+    const page = options.page || 1;
+    const perPage = options.perPage || 20;
+
     const response = await fetch('/api/contabilidad?' + new URLSearchParams({
       sort: options.sort || '-created',
-      expand: 'cliente_id,evento_id',
-      fields: '*,evento_id.id,evento_id.nombre,cliente_id.id,cliente_id.nombre,proveedor_id.nombre,equipo_id.nombre'
+      expand: options.expand || 'cliente_id,evento_id',
+      fields: '*,evento_id.id,evento_id.nombre,cliente_id.id,cliente_id.nombre',
+      page: page.toString(),
+      perPage: perPage.toString()
     }), {
       headers: {
         'Authorization': token

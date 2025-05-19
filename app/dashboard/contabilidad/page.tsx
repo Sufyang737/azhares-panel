@@ -11,20 +11,30 @@ import { DailyCashDialog } from "./components/daily-cash-dialog";
 import { EventReportDialog } from "./components/event-report-dialog";
 import { MonthlyReportDialog } from "./components/monthly-report-dialog";
 import { getContabilidadRecords } from "@/app/services/contabilidad";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 export default function ContabilidadPage() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const perPage = 20;
 
-  const loadRecords = async () => {
+  const loadRecords = async (page = 1) => {
     setLoading(true);
     try {
       const data = await getContabilidadRecords({
         sort: '-created',
-        expand: 'cliente_id,proveedor_id,evento_id,equipo_id'
+        expand: 'cliente_id,evento_id',
+        page,
+        perPage
       });
-      console.log('Registros cargados:', data);
       setRecords(data?.items || []);
+      setTotalPages(data?.totalPages || 1);
+      setTotalItems(data?.totalItems || 0);
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error loading records:", error);
       setRecords([]);
@@ -34,11 +44,17 @@ export default function ContabilidadPage() {
   };
 
   useEffect(() => {
-    loadRecords();
-  }, []);
+    loadRecords(currentPage);
+  }, [currentPage]);
 
   const handleRecordUpdate = () => {
-    loadRecords();
+    loadRecords(currentPage);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
   };
 
   return (
@@ -58,7 +74,12 @@ export default function ContabilidadPage() {
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               <div className="px-4 lg:px-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-bold">Registros Contables</h2>
+                  <div>
+                    <h2 className="text-2xl font-bold">Registros Contables</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Total: {totalItems} registros
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2">
                     <EventReportDialog records={records} />
                     <MonthlyReportDialog records={records} />
@@ -71,12 +92,40 @@ export default function ContabilidadPage() {
                   </div>
                 </div>
                 {loading ? (
-                  <div className="text-center py-4">Cargando registros...</div>
+                  <div className="text-center py-4 flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Cargando registros...</span>
+                  </div>
                 ) : (
-                  <ContabilidadTable 
-                    records={records} 
-                    onRecordUpdate={handleRecordUpdate}
-                  />
+                  <>
+                    <ContabilidadTable 
+                      records={records} 
+                      onRecordUpdate={handleRecordUpdate}
+                    />
+                    <div className="mt-4 flex items-center justify-between px-2">
+                      <div className="text-sm text-muted-foreground">
+                        Página {currentPage} de {totalPages}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1 || loading}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages || loading}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
