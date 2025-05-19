@@ -14,11 +14,18 @@ import * as React from 'react';
 interface WelcomeEmailProps {
   clientName: string;
   formUrl?: string;
+  eventName?: string;
+  eventDate?: string;
+  plannerName?: string;
+  clienteId?: string;
 }
 
 export const WelcomeEmail: React.FC<Readonly<WelcomeEmailProps>> = ({
   clientName,
   formUrl,
+  eventName,
+  eventDate,
+  plannerName,
 }) => {
   const formularioUrl = formUrl || '';
 
@@ -49,6 +56,18 @@ export const WelcomeEmail: React.FC<Readonly<WelcomeEmailProps>> = ({
           <Text style={text}>
             Hola {clientName}, queremos darte la Bienvenida a Azares Eventos, es un placer que nos hayan elegido.
           </Text>
+
+          {eventName && eventDate && (
+            <Text style={text}>
+              Tu evento &ldquo;{eventName}&rdquo; está programado para el {eventDate}.
+            </Text>
+          )}
+
+          {plannerName && (
+            <Text style={text}>
+              Tu planner asignado es {plannerName}.
+            </Text>
+          )}
 
           <Text style={text}>
             Para comenzar a trabajar juntos, te pedimos que completes el siguiente {' '}
