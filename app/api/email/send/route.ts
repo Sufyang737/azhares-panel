@@ -7,6 +7,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Email verificado para redireccionar durante desarrollo/pruebas
 const VERIFIED_EMAIL = 'administracion@azaresweb.com.ar';
+const FROM_EMAIL = 'administracion@azaresweb.com.ar'; // Email verificado para envíos
 
 // Determinar si estamos en entorno de desarrollo
 const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
     console.log('Email API - Preparando email para:', body.to);
     
     try {
-      // Determinar el destinatario real basado en el entorno
+      // En producción, enviar al destinatario real
       const actualRecipient = isDevelopment ? VERIFIED_EMAIL : body.to;
       
       if (isDevelopment && actualRecipient !== body.to) {
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
       // Verificar contenido de datos de entrada para debug
       console.log('Email API - Preparando email con datos:', JSON.stringify({
         to: actualRecipient,
+        from: FROM_EMAIL,
         originalTo: body.to,
         clientName: body.clientName || 'Cliente',
         eventName: body.eventName || 'Evento',
@@ -98,9 +100,10 @@ export async function POST(request: NextRequest) {
       }, null, 2));
 
       const { data, error } = await resend.emails.send({
-        from: 'Azares Panel <onboarding@resend.dev>',
+        from: `Azares Eventos <${FROM_EMAIL}>`,
+        reply_to: FROM_EMAIL,
         to: [actualRecipient],
-        subject: body.subject || `¡Bienvenido a Azhares Panel!${isDevelopment ? ' [TEST]' : ''}`,
+        subject: body.subject || `¡Bienvenido a Azares Eventos!${isDevelopment ? ' [TEST]' : ''}`,
         react: WelcomeEmail({
           clientName: body.clientName || 'Cliente',
           eventName: body.eventName || 'Evento',
