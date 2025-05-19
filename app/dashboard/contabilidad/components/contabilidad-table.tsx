@@ -25,13 +25,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { RecordDetailsDialog } from "./record-details-dialog";
 import { EditRecordDialog } from "./edit-record-dialog";
 
@@ -55,67 +48,6 @@ const formatDate = (dateString: string | null | undefined): string => {
 export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTableProps) {
   const { toast } = useToast();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [selectedEventId, setSelectedEventId] = useState<string>('all');
-  const [selectedClientId, setSelectedClientId] = useState<string>('all');
-
-  // Obtener lista única de eventos
-  const events = records
-    .filter(r => {
-      const evento = r.evento_id;
-      return typeof evento === 'object' && evento?.id && evento?.nombre;
-    })
-    .reduce((acc, record) => {
-      const evento = record.evento_id;
-      if (!evento || typeof evento !== 'object') return acc;
-      
-      const eventId = evento.id;
-      const eventName = evento.nombre;
-      
-      if (!acc.some(e => e.id === eventId)) {
-        acc.push({
-          id: eventId,
-          nombre: eventName
-        });
-      }
-      return acc;
-    }, [] as Array<{ id: string; nombre: string }>)
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
-
-  // Obtener lista única de clientes
-  const clients = records
-    .filter(r => {
-      const cliente = r.cliente_id;
-      return typeof cliente === 'object' && cliente?.id && cliente?.nombre;
-    })
-    .reduce((acc, record) => {
-      const cliente = record.cliente_id;
-      if (!cliente || typeof cliente !== 'object') return acc;
-      
-      const clientId = cliente.id;
-      const clientName = cliente.nombre;
-      
-      if (!acc.some(c => c.id === clientId)) {
-        acc.push({
-          id: clientId,
-          nombre: clientName
-        });
-      }
-      return acc;
-    }, [] as Array<{ id: string; nombre: string }>)
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
-
-  // Filtrar registros
-  const filteredRecords = records.filter(record => {
-    if (selectedEventId !== 'all' && 
-        (typeof record.evento_id !== 'object' || record.evento_id?.id !== selectedEventId)) {
-      return false;
-    }
-    if (selectedClientId !== 'all' && 
-        (typeof record.cliente_id !== 'object' || record.cliente_id?.id !== selectedClientId)) {
-      return false;
-    }
-    return true;
-  });
 
   const handleMarkAsCompleted = async (record: ContabilidadRecord) => {
     try {
@@ -180,54 +112,6 @@ export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTable
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-4">
-        {/* Filtro de Eventos */}
-        <div className="w-full sm:w-auto">
-          <label className="text-sm font-medium mb-2 block text-muted-foreground">
-            Filtrar por Evento
-          </label>
-          <Select
-            value={selectedEventId}
-            onValueChange={setSelectedEventId}
-          >
-            <SelectTrigger className="w-full sm:w-[300px]">
-              <SelectValue placeholder="Seleccionar evento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los eventos</SelectItem>
-              {events.map((event) => (
-                <SelectItem key={event.id} value={event.id}>
-                  {event.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Filtro de Clientes */}
-        <div className="w-full sm:w-auto">
-          <label className="text-sm font-medium mb-2 block text-muted-foreground">
-            Filtrar por Cliente
-          </label>
-          <Select
-            value={selectedClientId}
-            onValueChange={setSelectedClientId}
-          >
-            <SelectTrigger className="w-full sm:w-[300px]">
-              <SelectValue placeholder="Seleccionar cliente" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los clientes</SelectItem>
-              {clients.map((client) => (
-                <SelectItem key={client.id} value={client.id}>
-                  {client.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -245,14 +129,14 @@ export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTable
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRecords.length === 0 ? (
+            {records.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} className="text-center">
                   No hay registros disponibles
                 </TableCell>
               </TableRow>
             ) : (
-              filteredRecords.map((record) => (
+              records.map((record) => (
                 <TableRow key={record.id} className={updatingId === record.id ? "opacity-50" : ""}>
                   <TableCell>
                     <Badge variant={record.type === 'cobro' ? 'default' : 'destructive'}>

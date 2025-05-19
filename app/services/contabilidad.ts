@@ -119,6 +119,7 @@ export async function getContabilidadRecords(options: {
   expand?: string;
   page?: number;
   perPage?: number;
+  filter?: string;
 } = {}) {
   console.log('=== INICIO getContabilidadRecords ===');
   
@@ -134,9 +135,10 @@ export async function getContabilidadRecords(options: {
     const response = await fetch('/api/contabilidad?' + new URLSearchParams({
       sort: options.sort || '-created',
       expand: options.expand || 'cliente_id,evento_id',
-      fields: '*,evento_id.id,evento_id.nombre,cliente_id.id,cliente_id.nombre',
+      fields: '*,evento_id.id,evento_id.nombre,cliente_id.id,cliente_id.nombre,proveedor_id.id,proveedor_id.nombre',
       page: page.toString(),
-      perPage: perPage.toString()
+      perPage: perPage.toString(),
+      ...(options.filter ? { filter: options.filter } : {})
     }), {
       headers: {
         'Authorization': token

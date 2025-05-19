@@ -31,8 +31,8 @@ const DEFAULT_THEMES = [
     value: "amber",
   },
   {
-    name: "Azhares",
-    value: "azhares",
+    name: "Azares",
+    value: "Azares",
   },
 ];
 
@@ -46,8 +46,8 @@ const SCALED_THEMES = [
     value: "blue-scaled",
   },
   {
-    name: "Azhares",
-    value: "azhares-scaled",
+    name: "Azares",
+    value: "Azares-scaled",
   },
 ];
 

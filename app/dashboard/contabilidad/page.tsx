@@ -10,9 +10,19 @@ import { ScheduledRecordsDialog } from "./components/scheduled-records-dialog";
 import { DailyCashDialog } from "./components/daily-cash-dialog";
 import { EventReportDialog } from "./components/event-report-dialog";
 import { MonthlyReportDialog } from "./components/monthly-report-dialog";
+import { FiltersDialog } from "./components/filters-dialog";
 import { getContabilidadRecords } from "@/app/services/contabilidad";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+
+interface FilterValues {
+  categoria?: string;
+  cliente_id?: string;
+  proveedor_id?: string;
+  evento_id?: string;
+  fechaDesde?: string;
+  fechaHasta?: string;
+}
 
 export default function ContabilidadPage() {
   const [records, setRecords] = useState([]);
@@ -20,17 +30,52 @@ export default function ContabilidadPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [activeFilters, setActiveFilters] = useState<FilterValues>({});
   const perPage = 20;
 
-  const loadRecords = async (page = 1) => {
+  const loadRecords = async (page = 1, filters: FilterValues = {}) => {
     setLoading(true);
     try {
+      // Construir el filtro para PocketBase
+      let filter = '';
+      
+      if (filters.categoria) {
+        filter += `categoria = "${filters.categoria}"`;
+      }
+      
+      if (filters.cliente_id) {
+        filter += filter ? ' && ' : '';
+        filter += `cliente_id = "${filters.cliente_id}"`;
+      }
+      
+      if (filters.proveedor_id) {
+        filter += filter ? ' && ' : '';
+        filter += `proveedor_id = "${filters.proveedor_id}"`;
+      }
+      
+      if (filters.evento_id) {
+        filter += filter ? ' && ' : '';
+        filter += `evento_id = "${filters.evento_id}"`;
+      }
+      
+      if (filters.fechaDesde) {
+        filter += filter ? ' && ' : '';
+        filter += `fechaEfectuado >= "${filters.fechaDesde} 00:00:00"`;
+      }
+      
+      if (filters.fechaHasta) {
+        filter += filter ? ' && ' : '';
+        filter += `fechaEfectuado <= "${filters.fechaHasta} 23:59:59"`;
+      }
+
       const data = await getContabilidadRecords({
         sort: '-created',
-        expand: 'cliente_id,evento_id',
+        expand: 'cliente_id,evento_id,proveedor_id',
         page,
-        perPage
+        perPage,
+        filter
       });
+      
       setRecords(data?.items || []);
       setTotalPages(data?.totalPages || 1);
       setTotalItems(data?.totalItems || 0);
@@ -44,17 +89,22 @@ export default function ContabilidadPage() {
   };
 
   useEffect(() => {
-    loadRecords(currentPage);
-  }, [currentPage]);
+    loadRecords(currentPage, activeFilters);
+  }, [currentPage, activeFilters]);
 
   const handleRecordUpdate = () => {
-    loadRecords(currentPage);
+    loadRecords(currentPage, activeFilters);
   };
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
+  };
+
+  const handleFiltersChange = (filters: FilterValues) => {
+    setActiveFilters(filters);
+    setCurrentPage(1); // Resetear a la primera página cuando se aplican filtros
   };
 
   return (
@@ -81,6 +131,10 @@ export default function ContabilidadPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <FiltersDialog 
+                      onFiltersChange={handleFiltersChange}
+                      activeFilters={Object.keys(activeFilters).length}
+                    />
                     <EventReportDialog records={records} />
                     <MonthlyReportDialog records={records} />
                     <DailyCashDialog records={records} />
