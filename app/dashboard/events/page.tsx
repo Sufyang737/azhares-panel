@@ -79,8 +79,8 @@ export default function EventsPage() {
         const eventResponse = await fetch('/api/eventos');
         const eventResult = await eventResponse.json();
         if (eventResult.success) {
-          console.log("Datos de eventos recibidos:", eventResult.data);
-          setEvents(eventResult.data);
+          console.log("Datos de eventos recibidos:", eventResult.eventos);
+          setEvents(eventResult.eventos || []);
         }
 
         // Obtener personas para cumpleaños
@@ -132,7 +132,7 @@ export default function EventsPage() {
 
   // Convertir eventos para el calendario
   const calendarEvents = [
-    ...events.map(event => ({
+    ...(events || []).map(event => ({
       id: event.id,
       title: event.nombre,
       start: new Date(event.fecha),
@@ -198,7 +198,7 @@ export default function EventsPage() {
                           date: "Fecha",
                           time: "Hora",
                           event: "Evento",
-                          noEventsInRange: "No hay eventos en este rango.",
+                          noEventsInRange: "No hay eventos en este rango",
                         }}
                         onSelectEvent={handleSelectEvent}
                       />
@@ -215,6 +215,7 @@ export default function EventsPage() {
           event={selectedEvent}
           isOpen={true}
           onClose={() => setSelectedEvent(null)}
+          onEventUpdated={handleEventCreated}
         />
       )}
     </SidebarProvider>

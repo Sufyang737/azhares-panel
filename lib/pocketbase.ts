@@ -55,7 +55,7 @@ export function isAuthenticated() {
 // Función para obtener todos los usuarios
 export async function getUsuarios() {
   try {
-    const records = await pb.collection('usuarios').getList(1, 50, {
+    const records = await pb.collection('usuarios').getFullList({
       sort: '-created',
     });
     return { success: true, data: records };
@@ -73,7 +73,7 @@ export async function getPlanners() {
     // Verificar si hay una sesión activa
     if (pb.authStore.isValid) {
       // Obtener solo usuarios con rol "planner"
-      const resultList = await pb.collection('usuarios').getList(1, 50, {
+      const resultList = await pb.collection('usuarios').getFullList({
         filter: 'rol = "planner"',
         sort: 'username',
         fields: 'id,username,email'
@@ -81,7 +81,7 @@ export async function getPlanners() {
       
       return {
         success: true,
-        planners: resultList.items
+        planners: resultList
       };
     } else {
       console.error('No hay sesión autenticada para obtener planners');
@@ -152,7 +152,7 @@ export async function createEvento(data: EventoData) {
 // Función para obtener todos los eventos
 export async function getEventos() {
   try {
-    const records = await pb.collection('evento').getList(1, 50, {
+    const records = await pb.collection('evento').getFullList({
       sort: '-created',
     });
     return { success: true, data: records };
@@ -209,7 +209,7 @@ export async function createPersona(data: PersonaData) {
 // Función para obtener todas las personas
 export async function getPersonas() {
   try {
-    const records = await pb.collection('personas').getList(1, 50, {
+    const records = await pb.collection('personas').getFullList({
       sort: '-created',
     });
     return { success: true, data: records };
@@ -233,7 +233,7 @@ export async function createCliente(data: ClienteData) {
 // Función para obtener todos los clientes
 export async function getClientes() {
   try {
-    const records = await pb.collection('cliente').getList(1, 50, {
+    const records = await pb.collection('cliente').getFullList({
       sort: '-created',
     });
     return { success: true, data: records };
@@ -248,10 +248,9 @@ export async function adminPocketBase() {
   
   // Autenticar como administrador
   const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
-  if (!adminToken) {
-    throw new Error('Token de administrador no configurado');
+  if (adminToken) {
+    pb.authStore.save(adminToken, null);
   }
   
-  pb.authStore.save(adminToken, null);
   return pb;
 } 

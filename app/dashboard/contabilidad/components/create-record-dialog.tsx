@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +12,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Form,
   FormControl,
@@ -31,18 +37,17 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createContabilidadRecord, updateContabilidadRecord, ContabilidadRecord } from "@/app/services/contabilidad";
 import { useToast } from "@/components/ui/use-toast";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { CalendarIcon, Plus, Edit2, Search, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Cliente, Proveedor, Evento, Equipo, getClientes, getProveedores, getEventos, getEquipo, searchClientes, searchProveedores, searchEventos, searchEquipo } from "@/app/services/relations";
-import React from "react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import debounce from 'lodash/debounce';
+import { ReactSearchAutocomplete } from 'react-search-autocomplete';
 
 interface DolarBlue {
   venta: number;
@@ -198,104 +203,92 @@ function SearchInput({
 }: SearchInputProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Actualizar el input cuando cambia la selección
-  useEffect(() => {
-    if (value && value !== "none" && items?.length) {
-      const selectedItem = items.find(item => item.id === value);
-      if (selectedItem) {
-        if (selectedItem.apellido) {
-          setInputValue(`${selectedItem.nombre} ${selectedItem.apellido}`);
-        } else {
-          setInputValue(selectedItem.nombre);
-        }
-      }
-    } else if (value === "none") {
-      setInputValue("");
+  const debouncedSearch = useCallback(
+    debounce((value: string) => {
+      onSearch(value);
+    }, 300),
+    [onSearch]
+  );
+
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+    debouncedSearch(value);
+  };
+
+  // Función para formatear el nombre completo
+  const formatName = (item: any) => {
+    const nombre = item.nombre || '';
+    const apellido = item.apellido ? ` ${item.apellido}` : '';
+    return `${nombre}${apellido}`;
+  };
+
+  // Función para formatear el email/contacto
+  const formatEmail = (email: string) => {
+    if (!email) return '';
+    const atIndex = email.indexOf('@');
+    if (atIndex > 15) {
+      return email.substring(0, 12) + '...' + email.substring(atIndex);
     }
-  }, [value, items]);
-
-  // Cerrar el dropdown al hacer click fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleInputChange = debounce((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setInputValue(newValue);
-    onSearch(newValue);
-  }, 300);
-
-  const formatLabel = (item: any) => {
-    if (item.apellido) return `${item.nombre} ${item.apellido} (${item.cargo})`;
-    if (item.contacto) return `${item.nombre} (${item.contacto})`;
-    if (item.tipo) return `${item.nombre} (${item.tipo})`;
-    return item.nombre;
+    return email;
   };
 
   return (
-    <div className="relative w-full" ref={dropdownRef}>
-      <div className="flex items-center border rounded-md px-3">
-        <Search className="h-4 w-4 shrink-0 opacity-50" />
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => {
-            setInputValue(e.target.value);
-            handleInputChange(e);
-            setOpen(true);
-          }}
-          onFocus={() => {
-            setOpen(true);
-            if (!inputValue) onSearch("");
-          }}
-          className="flex-1 h-10 px-3 py-2 text-sm bg-transparent border-0 outline-none focus:ring-0"
-          placeholder={placeholder}
-        />
-        {isLoading && <Loader2 className="h-4 w-4 animate-spin opacity-50" />}
-      </div>
-      
-      {open && (
-        <div className="absolute w-full z-50 mt-1 bg-white rounded-md border shadow-lg max-h-[200px] overflow-y-auto">
-          <div 
-            className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
-            onClick={() => {
-              onSelect("none");
-              setInputValue("");
-              setOpen(false);
-            }}
+    <div className="relative">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between"
           >
-            -- Ninguno --
-          </div>
-          
-          {items?.length === 0 ? (
-            <div className="p-2 text-sm text-gray-500 text-center">
-              {isLoading ? "Cargando..." : "No se encontraron resultados"}
-            </div>
-          ) : (
-            items?.map((item) => (
-              <div
-                key={item.id}
-                className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
-                onClick={() => {
-                  onSelect(item.id);
-                  setInputValue(formatLabel(item));
-                  setOpen(false);
-                }}
-              >
-                {formatLabel(item)}
-              </div>
-            ))
-          )}
-        </div>
-      )}
+            {value ? items.find(item => item.id === value)?.nombre || placeholder : placeholder}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[400px] p-0" align="start">
+          <Command shouldFilter={false}>
+            <CommandInput
+              placeholder={`Buscar ${placeholder.toLowerCase()}...`}
+              value={inputValue}
+              onValueChange={handleInputChange}
+            />
+            <CommandList>
+              <CommandEmpty>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="ml-2">Buscando...</span>
+                  </div>
+                ) : (
+                  "No se encontraron resultados."
+                )}
+              </CommandEmpty>
+              <CommandGroup>
+                {items.map((item) => (
+                  <CommandItem
+                    key={item.id}
+                    value={item.id}
+                    onSelect={() => {
+                      onSelect(item.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">{formatName(item)}</span>
+                      {(item.email || item.contacto) && (
+                        <span className="text-xs text-muted-foreground">
+                          {formatEmail(item.email || item.contacto)}
+                        </span>
+                      )}
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
@@ -428,54 +421,77 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
     }
   }, [form.watch('moneda'), form.watch('montoEspera'), dolarBlue, form]);
 
-  // Funciones de búsqueda
-  const handleClienteSearch = async (query: string) => {
-    setIsLoadingClientes(true);
-    try {
-      const results = await searchClientes(query);
-      setClientes(results);
-    } catch (error) {
-      console.error('Error searching clients:', error);
-    } finally {
-      setIsLoadingClientes(false);
-    }
-  };
+  // Funciones de búsqueda con debounce
+  const debouncedSearch = useMemo(
+    () => ({
+      cliente: debounce(async (value: string) => {
+        console.log('🔍 Buscando cliente:', value);
+        setIsLoadingClientes(true);
+        try {
+          const results = await searchClientes(value);
+          console.log('📋 Resultados clientes:', results);
+          setClientes(results);
+        } catch (error) {
+          console.error('❌ Error buscando clientes:', error);
+        } finally {
+          setIsLoadingClientes(false);
+        }
+      }, 300),
 
-  const handleProveedorSearch = async (query: string) => {
-    setIsLoadingProveedores(true);
-    try {
-      const results = await searchProveedores(query);
-      setProveedores(results);
-    } catch (error) {
-      console.error('Error searching providers:', error);
-    } finally {
-      setIsLoadingProveedores(false);
-    }
-  };
+      proveedor: debounce(async (value: string) => {
+        console.log('🔍 Buscando proveedor:', value);
+        setIsLoadingProveedores(true);
+        try {
+          const results = await searchProveedores(value);
+          console.log('📋 Resultados proveedores:', results);
+          setProveedores(results);
+        } catch (error) {
+          console.error('❌ Error buscando proveedores:', error);
+        } finally {
+          setIsLoadingProveedores(false);
+        }
+      }, 300),
 
-  const handleEventoSearch = async (query: string) => {
-    setIsLoadingEventos(true);
-    try {
-      const results = await searchEventos(query);
-      setEventos(results);
-    } catch (error) {
-      console.error('Error searching events:', error);
-    } finally {
-      setIsLoadingEventos(false);
-    }
-  };
+      evento: debounce(async (value: string) => {
+        console.log('🔍 Buscando evento:', value);
+        setIsLoadingEventos(true);
+        try {
+          const results = await searchEventos(value);
+          console.log('📋 Resultados eventos:', results);
+          setEventos(results);
+        } catch (error) {
+          console.error('❌ Error buscando eventos:', error);
+        } finally {
+          setIsLoadingEventos(false);
+        }
+      }, 300),
 
-  const handleEquipoSearch = async (query: string) => {
-    setIsLoadingEquipo(true);
-    try {
-      const results = await searchEquipo(query);
-      setEquipo(results);
-    } catch (error) {
-      console.error('Error searching team members:', error);
-    } finally {
-      setIsLoadingEquipo(false);
-    }
-  };
+      equipo: debounce(async (value: string) => {
+        console.log('🔍 Buscando equipo:', value);
+        setIsLoadingEquipo(true);
+        try {
+          const results = await searchEquipo(value);
+          console.log('📋 Resultados equipo:', results);
+          setEquipo(results);
+        } catch (error) {
+          console.error('❌ Error buscando equipo:', error);
+        } finally {
+          setIsLoadingEquipo(false);
+        }
+      }, 300)
+    }),
+    []
+  );
+
+  // Limpiar los debounces al desmontar
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cliente.cancel();
+      debouncedSearch.proveedor.cancel();
+      debouncedSearch.evento.cancel();
+      debouncedSearch.equipo.cancel();
+    };
+  }, [debouncedSearch]);
 
   const onSubmit = async (values: FormData) => {
     if (isSubmitting) return;
@@ -821,7 +837,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                     <FormControl>
                       <SearchInput
                         value={field.value}
-                        onSearch={handleClienteSearch}
+                        onSearch={debouncedSearch.cliente}
                         placeholder="Buscar cliente..."
                         isLoading={isLoadingClientes}
                         items={clientes}
@@ -841,7 +857,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                     <FormControl>
                       <SearchInput
                         value={field.value}
-                        onSearch={handleProveedorSearch}
+                        onSearch={debouncedSearch.proveedor}
                         placeholder="Buscar proveedor..."
                         isLoading={isLoadingProveedores}
                         items={proveedores}
@@ -865,7 +881,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                     <FormControl>
                       <SearchInput
                         value={field.value}
-                        onSearch={handleEventoSearch}
+                        onSearch={debouncedSearch.evento}
                         placeholder="Buscar evento..."
                         isLoading={isLoadingEventos}
                         items={eventos}
@@ -885,7 +901,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                     <FormControl>
                       <SearchInput
                         value={field.value}
-                        onSearch={handleEquipoSearch}
+                        onSearch={debouncedSearch.equipo}
                         placeholder="Buscar miembro del equipo..."
                         isLoading={isLoadingEquipo}
                         items={equipo}

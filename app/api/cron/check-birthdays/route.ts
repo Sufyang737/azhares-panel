@@ -58,10 +58,9 @@ export async function GET(request: Request) {
     const datePattern = `-${month}-${day}`;
     
     // Obtener solo los registros que coinciden con el patrón de fecha
-    const birthdayPeople = await pb.collection('personas').getList(1, 50, {
-      sort: 'cumpleanio',
-      filter: `cumpleanio != "" && cumpleanio ~ "${datePattern}"`,
-      fields: 'id,nombre,apellido,cumpleanio,email,telefono'
+    const birthdayPeople = await pb.collection('personas').getFullList({
+      filter: `cumpleanio ~ "${datePattern}"`,
+      sort: 'nombre'
     });
 
     console.log(`Encontrados ${birthdayPeople.items.length} cumpleaños para hoy`);

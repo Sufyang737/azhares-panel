@@ -104,8 +104,8 @@ export async function getEquipo() {
     await authenticateAsAdmin();
 
     const resultList = await pb.collection('equipo').getFullList({
-      sort: '-created',
-      fields: 'id,nombre,apellido,cargo'
+      sort: 'created',
+      expand: 'persona_id'
     });
     
     console.log('📦 Datos recibidos:', {
@@ -126,66 +126,65 @@ export async function getEquipo() {
 }
 
 export async function searchClientes(query: string): Promise<Cliente[]> {
+  console.log('🔍 Query de búsqueda:', query);
   try {
     const response = await fetch(`/api/relations?collection=cliente&search=${encodeURIComponent(query)}`);
     if (!response.ok) {
-      throw new Error('Failed to search clients');
+      throw new Error('Error buscando clientes');
     }
-    return await response.json();
+    const data = await response.json();
+    console.log('📋 Datos recibidos:', data);
+    return data;
   } catch (error) {
-    console.error('Error searching clients:', error);
+    console.error('❌ Error en la búsqueda:', error);
     return [];
   }
 }
 
 export async function searchProveedores(query: string): Promise<Proveedor[]> {
+  console.log('🔍 Query de búsqueda:', query);
   try {
-    const response = await fetch(`/api/relations?collection=proveedores&search=${encodeURIComponent(query)}`);
+    const response = await fetch(`/api/relations?collection=proveedor&search=${encodeURIComponent(query)}`);
     if (!response.ok) {
-      throw new Error('Failed to search providers');
+      throw new Error('Error buscando proveedores');
     }
-    return await response.json();
+    const data = await response.json();
+    console.log('📋 Datos recibidos:', data);
+    return data;
   } catch (error) {
-    console.error('Error searching providers:', error);
+    console.error('❌ Error en la búsqueda:', error);
     return [];
   }
 }
 
 export async function searchEventos(query: string): Promise<Evento[]> {
+  console.log('🔍 Query de búsqueda:', query);
   try {
     const response = await fetch(`/api/relations?collection=evento&search=${encodeURIComponent(query)}`);
     if (!response.ok) {
-      throw new Error('Failed to search events');
+      throw new Error('Error buscando eventos');
     }
-    return await response.json();
+    const data = await response.json();
+    console.log('📋 Datos recibidos:', data);
+    return data;
   } catch (error) {
-    console.error('Error searching events:', error);
+    console.error('❌ Error en la búsqueda:', error);
     return [];
   }
 }
 
-export async function searchEquipo(query: string) {
+export async function searchEquipo(query: string): Promise<Equipo[]> {
+  console.log('🔍 Query de búsqueda:', query);
   try {
-    console.log('🔍 Iniciando búsqueda con query:', query);
-    await authenticateAsAdmin();
-    
-    const filter = `nombre ~ "${query}" || apellido ~ "${query}" || cargo ~ "${query}"`;
-    const resultList = await pb.collection('equipo').getList(1, 50, {
-      filter: filter,
-      fields: 'id,nombre,apellido,cargo'
-    });
-
-    const mappedResults = resultList.items.map(item => ({
-      id: item.id,
-      nombre: item.nombre,
-      apellido: item.apellido,
-      cargo: item.cargo
-    }));
-    
-    console.log('✅ Resultados encontrados:', mappedResults.length);
-    return mappedResults;
+    const response = await fetch(`/api/relations?collection=equipo&search=${encodeURIComponent(query)}`);
+    if (!response.ok) {
+      throw new Error('Error buscando equipo');
+    }
+    const data = await response.json();
+    console.log('📋 Datos recibidos:', data);
+    return data;
   } catch (error) {
-    console.error('❌ Error en searchEquipo:', error);
-    throw error; // Propagar el error para mejor debugging
+    console.error('❌ Error en la búsqueda:', error);
+    return [];
   }
 } 

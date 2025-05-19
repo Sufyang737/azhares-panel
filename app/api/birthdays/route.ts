@@ -41,17 +41,16 @@ export async function GET() {
     const datePattern = `-${month}-${day}`;
     
     // Obtener solo los registros que coinciden con el patrón de fecha
-    const birthdayPeople = await pb.collection('personas').getList(1, 50, {
-      sort: 'cumpleanio',
-      filter: `cumpleanio != "" && cumpleanio ~ "${datePattern}"`,
-      fields: 'id,nombre,apellido,cumpleanio,email,telefono'
+    const birthdayPeople = await pb.collection('personas').getFullList({
+      filter: `cumpleanio ~ "${datePattern}"`,
+      sort: 'nombre'
     });
 
-    console.log(`\nEncontrados ${birthdayPeople.items.length} cumpleaños para hoy (${month}-${day})`);
+    console.log(`\nEncontrados ${birthdayPeople.length} cumpleaños para hoy (${month}-${day})`);
 
     // Enviar notificaciones por email
     const emailResults = [];
-    for (const record of birthdayPeople.items) {
+    for (const record of birthdayPeople) {
       const person: BirthdayPerson = {
         nombre: record.nombre,
         apellido: record.apellido,
@@ -72,14 +71,14 @@ export async function GET() {
 
     return NextResponse.json({ 
       success: true,
-      data: birthdayPeople.items,
+      data: birthdayPeople,
       emailResults,
       debug: {
         date: today.toISOString(),
         month,
         day,
         datePattern,
-        totalFound: birthdayPeople.totalItems,
+        totalFound: birthdayPeople.length,
         emailsSent: emailResults.filter(r => r.success).length,
         emailErrors: emailResults.filter(r => !r.success).length
       }
