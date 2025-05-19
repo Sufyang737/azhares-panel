@@ -63,11 +63,11 @@ export async function GET(request: Request) {
       sort: 'nombre'
     });
 
-    console.log(`Encontrados ${birthdayPeople.items.length} cumpleaños para hoy`);
+    console.log(`Encontrados ${birthdayPeople.length} cumpleaños para hoy`);
 
     // Enviar notificaciones por email
     const emailResults = [];
-    for (const person of birthdayPeople.items) {
+    for (const person of birthdayPeople) {
       console.log(`\nEnviando notificación para: ${person.nombre} ${person.apellido}`);
       const result = await BirthdayEmailService.sendBirthdayNotification({
         nombre: person.nombre,
@@ -87,14 +87,14 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ 
       success: true,
-      data: birthdayPeople.items,
+      data: birthdayPeople,
       emailResults,
       debug: {
         executionTime: argentinaTime.toISOString(),
         month,
         day,
         datePattern,
-        totalFound: birthdayPeople.totalItems,
+        totalFound: birthdayPeople.length,
         emailsSent: emailResults.filter(r => r.success).length,
         emailErrors: emailResults.filter(r => !r.success).length
       }
