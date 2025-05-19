@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
 
       const { data, error } = await resend.emails.send({
         from: `Azares Eventos <${FROM_EMAIL}>`,
-        reply_to: FROM_EMAIL,
+        replyTo: FROM_EMAIL,
         to: [actualRecipient],
         subject: body.subject || `¡Bienvenido a Azares Eventos!${isDevelopment ? ' [TEST]' : ''}`,
         react: WelcomeEmail({
