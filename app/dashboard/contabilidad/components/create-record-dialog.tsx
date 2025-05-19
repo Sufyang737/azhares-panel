@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +12,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Form,
   FormControl,
@@ -31,15 +37,17 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createContabilidadRecord, updateContabilidadRecord, ContabilidadRecord } from "@/app/services/contabilidad";
 import { useToast } from "@/components/ui/use-toast";
-import { useEffect, useState } from "react";
-import { CalendarIcon, Plus, Edit2 } from "lucide-react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { CalendarIcon, Plus, Edit2, Search, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { Cliente, Proveedor, Evento, Equipo, getClientes, getProveedores, getEventos, getEquipo } from "@/app/services/relations";
+import { Cliente, Proveedor, Evento, Equipo, getClientes, getProveedores, getEventos, getEquipo, searchClientes, searchProveedores, searchEventos, searchEquipo } from "@/app/services/relations";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import debounce from 'lodash/debounce';
+import { ReactSearchAutocomplete } from 'react-search-autocomplete';
 
 interface DolarBlue {
   venta: number;
@@ -75,6 +83,216 @@ interface CreateRecordDialogProps {
   recordToEdit?: ContabilidadRecord;
 }
 
+// Funciones memoizadas para las opciones
+const getAvailableSubcargos = (type: string, categoria: string) => {
+  // Caso 1: Cobro en oficina
+  if (type === 'cobro' && categoria === 'oficina') {
+    return [
+      { value: 'cambio-divisas', label: 'Cambio de Divisas' },
+      { value: 'ajuste-caja', label: 'Ajuste de Caja' },
+      { value: 'mensajeria', label: 'Mensajería' }
+    ];
+  }
+  
+  // Caso 2: Pago en oficina
+  if (type === 'pago' && categoria === 'oficina') {
+    return [
+      { value: 'obra-social-empleada', label: 'Obra Social Empleada' },
+      { value: 'mantencion-cuenta-corriente', label: 'Mantención Cuenta Corriente' },
+      { value: 'seguro-galicia', label: 'Seguro Galicia' },
+      { value: 'tarjeta-credito', label: 'Tarjeta de Crédito Business' },
+      { value: 'deriva', label: 'Deriva' },
+      { value: 'expensas', label: 'Expensas' },
+      { value: 'alquiler', label: 'Alquiler' },
+      { value: 'prepaga', label: 'Prepaga' },
+      { value: 'contador', label: 'Contador' },
+      { value: 'mantenimiento-pc', label: 'Mantenimiento PC' },
+      { value: 'impuestos', label: 'Impuestos' },
+      { value: 'servicio', label: 'Servicios' },
+      { value: 'regaleria', label: 'Regalería' },
+      { value: 'compras', label: 'Compras' },
+      { value: 'sueldos', label: 'Sueldos' }
+    ];
+  }
+
+  // Caso 3: Pago en evento
+  if (type === 'pago' && categoria === 'evento') {
+    return [
+      { value: 'otros', label: 'Otros' },
+      { value: 'sueldos', label: 'Sueldos' }
+    ];
+  }
+
+  // Caso 4: Cobro en evento
+  if (type === 'cobro' && categoria === 'evento') {
+    return [
+      { value: 'proveedores', label: 'Proveedores' },
+      { value: 'clientes', label: 'Clientes' }
+    ];
+  }
+
+  // Caso por defecto
+  return [
+    { value: 'clientes', label: 'Clientes' },
+    { value: 'otros', label: 'Otros' },
+    { value: 'proveedores', label: 'Proveedores' },
+    { value: 'sueldos', label: 'Sueldos' }
+  ];
+};
+
+const getAvailableDetalles = (type: string, categoria: string, subcargo: string) => {
+  // Caso 1: Cobro en oficina con cambio de divisas
+  if (type === 'cobro' && categoria === 'oficina' && subcargo === 'cambio-divisas') {
+    return [
+      { value: 'compra-usd', label: 'Compra USD' },
+      { value: 'venta-usd', label: 'Venta USD' }
+    ];
+  }
+
+  // Caso 2: Cobro en evento
+  if (type === 'cobro' && categoria === 'evento') {
+    return [
+      { value: 'comision', label: 'Comisión' }
+    ];
+  }
+
+  // Caso 3: Pago en evento
+  if (type === 'pago' && categoria === 'evento') {
+    return [
+      { value: 'maquillaje', label: 'Maquillaje' },
+      { value: 'viandas', label: 'Viandas' },
+      { value: 'viatico', label: 'Viático' },
+      { value: 'handy', label: 'Handy' },
+      { value: 'honorarios', label: 'Honorarios' },
+      { value: 'planner', label: 'Planner' },
+      { value: 'staff', label: 'Staff' },
+      { value: 'seguro', label: 'Seguro' }
+    ];
+  }
+
+  // Caso 4: Pago en oficina
+  if (type === 'pago' && categoria === 'oficina') {
+    return [
+      { value: 'honorarios', label: 'Honorarios' }
+    ];
+  }
+
+  // Caso por defecto
+  return [
+    { value: 'honorarios', label: 'Honorarios' }
+  ];
+};
+
+// Componente de búsqueda simplificado
+interface SearchInputProps {
+  value: string;
+  onSearch: (query: string) => Promise<void>;
+  placeholder: string;
+  isLoading?: boolean;
+  items: any[];
+  onSelect: (value: string) => void;
+}
+
+function SearchInput({
+  value,
+  onSearch,
+  placeholder,
+  isLoading,
+  items,
+  onSelect
+}: SearchInputProps) {
+  const [open, setOpen] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+
+  const debouncedSearch = useCallback(
+    debounce((value: string) => {
+      onSearch(value);
+    }, 300),
+    [onSearch]
+  );
+
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+    debouncedSearch(value);
+  };
+
+  // Función para formatear el nombre completo
+  const formatName = (item: any) => {
+    const nombre = item.nombre || '';
+    const apellido = item.apellido ? ` ${item.apellido}` : '';
+    return `${nombre}${apellido}`;
+  };
+
+  // Función para formatear el email/contacto
+  const formatEmail = (email: string) => {
+    if (!email) return '';
+    const atIndex = email.indexOf('@');
+    if (atIndex > 15) {
+      return email.substring(0, 12) + '...' + email.substring(atIndex);
+    }
+    return email;
+  };
+
+  return (
+    <div className="relative">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between"
+          >
+            {value ? items.find(item => item.id === value)?.nombre || placeholder : placeholder}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[400px] p-0" align="start">
+          <Command shouldFilter={false}>
+            <CommandInput
+              placeholder={`Buscar ${placeholder.toLowerCase()}...`}
+              value={inputValue}
+              onValueChange={handleInputChange}
+            />
+            <CommandList>
+              <CommandEmpty>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="ml-2">Buscando...</span>
+                  </div>
+                ) : (
+                  "No se encontraron resultados."
+                )}
+              </CommandEmpty>
+              <CommandGroup>
+                {items.map((item) => (
+                  <CommandItem
+                    key={item.id}
+                    value={item.id}
+                    onSelect={() => {
+                      onSelect(item.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">{formatName(item)}</span>
+                      {(item.email || item.contacto) && (
+                        <span className="text-xs text-muted-foreground">
+                          {formatEmail(item.email || item.contacto)}
+                        </span>
+                      )}
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToEdit }: CreateRecordDialogProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -84,6 +302,10 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [equipo, setEquipo] = useState<Equipo[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingClientes, setIsLoadingClientes] = useState(false);
+  const [isLoadingProveedores, setIsLoadingProveedores] = useState(false);
+  const [isLoadingEventos, setIsLoadingEventos] = useState(false);
+  const [isLoadingEquipo, setIsLoadingEquipo] = useState(false);
 
   const form = useForm<FormData>({
     defaultValues: {
@@ -103,187 +325,89 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
       evento_id: typeof recordToEdit?.evento_id === 'object' ? recordToEdit.evento_id.id : (recordToEdit?.evento_id || "none"),
       equipo_id: typeof recordToEdit?.equipo_id === 'object' ? recordToEdit.equipo_id.id : (recordToEdit?.equipo_id || "none"),
     },
-    mode: "onChange"
+    mode: "onSubmit"
   });
 
-  // Obtener los valores actuales
+  // Memoizar las opciones disponibles para evitar recálculos innecesarios
   const currentType = form.watch('type');
   const currentCategoria = form.watch('categoria');
+  const currentSubcargo = form.watch('subcargo');
 
-  // Determinar las opciones disponibles de subcargo basadas en type y categoria
-  const getAvailableSubcargos = () => {
-    // Caso 1: Cobro en oficina
-    if (currentType === 'cobro' && currentCategoria === 'oficina') {
-      return [
-        { value: 'cambio-divisas', label: 'Cambio de Divisas' },
-        { value: 'ajuste-caja', label: 'Ajuste de Caja' },
-        { value: 'mensajeria', label: 'Mensajería' }
-      ];
-    }
-    
-    // Caso 2: Pago en oficina
-    if (currentType === 'pago' && currentCategoria === 'oficina') {
-      return [
-        { value: 'obra-social-empleada', label: 'Obra Social Empleada' },
-        { value: 'mantencion-cuenta-corriente', label: 'Mantención Cuenta Corriente' },
-        { value: 'seguro-galicia', label: 'Seguro Galicia' },
-        { value: 'tarjeta-credito', label: 'Tarjeta de Crédito Business' },
-        { value: 'deriva', label: 'Deriva' },
-        { value: 'expensas', label: 'Expensas' },
-        { value: 'alquiler', label: 'Alquiler' },
-        { value: 'prepaga', label: 'Prepaga' },
-        { value: 'contador', label: 'Contador' },
-        { value: 'mantenimiento-pc', label: 'Mantenimiento PC' },
-        { value: 'impuestos', label: 'Impuestos' },
-        { value: 'servicio', label: 'Servicios' },
-        { value: 'regaleria', label: 'Regalería' },
-        { value: 'compras', label: 'Compras' },
-        { value: 'sueldos', label: 'Sueldos' }
-      ];
-    }
+  const availableSubcargos = React.useMemo(() => getAvailableSubcargos(currentType, currentCategoria), [currentType, currentCategoria]);
+  const availableDetalles = React.useMemo(() => getAvailableDetalles(currentType, currentCategoria, currentSubcargo), [currentType, currentCategoria, currentSubcargo]);
 
-    // Caso 3: Pago en evento
-    if (currentType === 'pago' && currentCategoria === 'evento') {
-      return [
-        { value: 'otros', label: 'Otros' },
-        { value: 'sueldos', label: 'Sueldos' }
-      ];
-    }
-
-    // Caso 4: Cobro en evento
-    if (currentType === 'cobro' && currentCategoria === 'evento') {
-      return [
-        { value: 'proveedores', label: 'Proveedores' },
-        { value: 'clientes', label: 'Clientes' }
-      ];
-    }
-
-    // Caso por defecto
-    return [
-      { value: 'clientes', label: 'Clientes' },
-      { value: 'otros', label: 'Otros' },
-      { value: 'proveedores', label: 'Proveedores' },
-      { value: 'sueldos', label: 'Sueldos' }
-    ];
-  };
-
-  // Determinar las opciones disponibles de detalle basadas en subcargo y categoria
-  const getAvailableDetalles = () => {
-    // Caso 1: Cobro en oficina con cambio de divisas
-    if (currentType === 'cobro' && currentCategoria === 'oficina' && 
-        form.watch('subcargo') === 'cambio-divisas') {
-      return [
-        { value: 'compra-usd', label: 'Compra USD' },
-        { value: 'venta-usd', label: 'Venta USD' }
-      ];
-    }
-
-    // Caso 2: Cobro en evento
-    if (currentType === 'cobro' && currentCategoria === 'evento') {
-      return [
-        { value: 'comision', label: 'Comisión' }
-      ];
-    }
-
-    // Caso 3: Pago en evento
-    if (currentType === 'pago' && currentCategoria === 'evento') {
-      return [
-        { value: 'maquillaje', label: 'Maquillaje' },
-        { value: 'viandas', label: 'Viandas' },
-        { value: 'viatico', label: 'Viático' },
-        { value: 'handy', label: 'Handy' },
-        { value: 'honorarios', label: 'Honorarios' },
-        { value: 'planner', label: 'Planner' },
-        { value: 'staff', label: 'Staff' },
-        { value: 'seguro', label: 'Seguro' }
-      ];
-    }
-
-    // Caso 4: Pago en oficina - no mostrar detalles
-    if (currentType === 'pago' && currentCategoria === 'oficina') {
-      return [
-        { value: 'honorarios', label: 'Honorarios' }
-      ];
-    }
-
-    // Caso por defecto
-    return [
-      { value: 'compra-usd', label: 'Compra USD' },
-      { value: 'comision', label: 'Comisión' },
-      { value: 'handy', label: 'Handy' },
-      { value: 'honorarios', label: 'Honorarios' },
-      { value: 'maquillaje', label: 'Maquillaje' },
-      { value: 'planner', label: 'Planner' },
-      { value: 'staff', label: 'Staff' },
-      { value: 'viandas', label: 'Viandas' },
-      { value: 'venta-usd', label: 'Venta USD' },
-      { value: 'viatico', label: 'Viático' },
-      { value: 'seguro', label: 'Seguro' }
-    ];
-  };
-
-  // Efecto para resetear subcargo y detalle cuando cambian type o categoria
+  // Cargar relaciones solo cuando se abre el diálogo
   useEffect(() => {
-    if (currentType === 'cobro' && currentCategoria === 'oficina') {
-      form.setValue('subcargo', 'cambio-divisas');
-      form.setValue('detalle', 'compra-usd');
-    } else if (currentType === 'pago' && currentCategoria === 'oficina') {
-      form.setValue('subcargo', 'obra-social-empleada');
-      form.setValue('detalle', 'honorarios');
-    } else if (currentType === 'pago' && currentCategoria === 'evento') {
-      form.setValue('subcargo', 'otros');
-      form.setValue('detalle', 'honorarios');
-    } else if (currentType === 'cobro' && currentCategoria === 'evento') {
-      form.setValue('subcargo', 'clientes');
-      form.setValue('detalle', 'comision');
+    if (open) {
+      const loadRelations = async () => {
+        console.log('🔄 Iniciando carga de relaciones...');
+        setIsLoadingClientes(true);
+        setIsLoadingProveedores(true);
+        setIsLoadingEventos(true);
+        setIsLoadingEquipo(true);
+        try {
+          // Cargar todas las relaciones necesarias
+          const [clientesData, proveedoresData, eventosData, equipoData] = await Promise.all([
+            getClientes(),
+            getProveedores(),
+            getEventos(),
+            getEquipo()
+          ]);
+          
+          console.log('👥 Datos del equipo recibidos:', equipoData);
+          
+          // Si hay un ID de equipo seleccionado, verificar que exista
+          const currentEquipoId = form.getValues('equipo_id');
+          if (currentEquipoId && currentEquipoId !== 'none') {
+            const equipoExists = equipoData.some(e => e.id === currentEquipoId);
+            if (!equipoExists) {
+              console.warn('🚨 ID de equipo inválido, reseteando a none');
+              form.setValue('equipo_id', 'none');
+            }
+          }
+          
+          setClientes(clientesData);
+          setProveedores(proveedoresData);
+          setEventos(eventosData);
+          setEquipo(equipoData);
+        } catch (error) {
+          console.error('❌ Error cargando relaciones:', error);
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar algunos datos. Por favor, intente nuevamente.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsLoadingClientes(false);
+          setIsLoadingProveedores(false);
+          setIsLoadingEventos(false);
+          setIsLoadingEquipo(false);
+        }
+      };
+
+      loadRelations();
     }
-  }, [currentType, currentCategoria, form]);
+  }, [open, form]);
 
+  // Cargar dólar blue solo si es necesario
   useEffect(() => {
-    const loadRelations = async () => {
-      try {
-        const [clientesData, proveedoresData, eventosData, equipoData] = await Promise.all([
-          getClientes(),
-          getProveedores(),
-          getEventos(),
-          getEquipo()
-        ]);
-        setClientes(clientesData);
-        setProveedores(proveedoresData);
-        setEventos(eventosData);
-        setEquipo(equipoData);
-      } catch (error) {
-        console.error('Error loading relations:', error);
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los datos relacionados",
-          variant: "destructive",
-        });
-      }
-    };
-    loadRelations();
-  }, [toast]);
+    if (open && form.watch('moneda') === 'usd' && !dolarBlue) {
+      const loadDolarBlue = async () => {
+        try {
+          const response = await fetch('https://api.bluelytics.com.ar/v2/latest');
+          const data = await response.json();
+          setDolarBlue({
+            venta: data.blue.value_sell,
+            compra: data.blue.value_buy
+          });
+        } catch (error) {
+          console.error('Error loading dolar blue:', error);
+        }
+      };
 
-  useEffect(() => {
-    const loadDolarBlue = async () => {
-      try {
-        const response = await fetch('https://api.bluelytics.com.ar/v2/latest');
-        const data = await response.json();
-        setDolarBlue({
-          venta: data.blue.value_sell,
-          compra: data.blue.value_buy
-        });
-      } catch (error) {
-        console.error('Error fetching dolar blue:', error);
-        toast({
-          title: "Error",
-          description: "No se pudo obtener la cotización del dólar",
-          variant: "destructive",
-        });
-      }
-    };
-    loadDolarBlue();
-  }, [toast]);
+      loadDolarBlue();
+    }
+  }, [open, form.watch('moneda')]);
 
   useEffect(() => {
     const moneda = form.watch('moneda');
@@ -297,68 +421,133 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
     }
   }, [form.watch('moneda'), form.watch('montoEspera'), dolarBlue, form]);
 
+  // Funciones de búsqueda con debounce
+  const debouncedSearch = useMemo(
+    () => ({
+      cliente: debounce(async (value: string) => {
+        console.log('🔍 Buscando cliente:', value);
+        setIsLoadingClientes(true);
+        try {
+          const results = await searchClientes(value);
+          console.log('📋 Resultados clientes:', results);
+          setClientes(results);
+        } catch (error) {
+          console.error('❌ Error buscando clientes:', error);
+        } finally {
+          setIsLoadingClientes(false);
+        }
+      }, 300),
+
+      proveedor: debounce(async (value: string) => {
+        console.log('🔍 Buscando proveedor:', value);
+        setIsLoadingProveedores(true);
+        try {
+          const results = await searchProveedores(value);
+          console.log('📋 Resultados proveedores:', results);
+          setProveedores(results);
+        } catch (error) {
+          console.error('❌ Error buscando proveedores:', error);
+        } finally {
+          setIsLoadingProveedores(false);
+        }
+      }, 300),
+
+      evento: debounce(async (value: string) => {
+        console.log('🔍 Buscando evento:', value);
+        setIsLoadingEventos(true);
+        try {
+          const results = await searchEventos(value);
+          console.log('📋 Resultados eventos:', results);
+          setEventos(results);
+        } catch (error) {
+          console.error('❌ Error buscando eventos:', error);
+        } finally {
+          setIsLoadingEventos(false);
+        }
+      }, 300),
+
+      equipo: debounce(async (value: string) => {
+        console.log('🔍 Buscando equipo:', value);
+        setIsLoadingEquipo(true);
+        try {
+          const results = await searchEquipo(value);
+          console.log('📋 Resultados equipo:', results);
+          setEquipo(results);
+        } catch (error) {
+          console.error('❌ Error buscando equipo:', error);
+        } finally {
+          setIsLoadingEquipo(false);
+        }
+      }, 300)
+    }),
+    []
+  );
+
+  // Limpiar los debounces al desmontar
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cliente.cancel();
+      debouncedSearch.proveedor.cancel();
+      debouncedSearch.evento.cancel();
+      debouncedSearch.equipo.cancel();
+    };
+  }, [debouncedSearch]);
+
   const onSubmit = async (values: FormData) => {
     if (isSubmitting) return;
     
     setIsSubmitting(true);
     try {
-      // Asegurarnos de que las fechas estén en el día correcto
-      const fechaEspera = new Date(
-        values.fechaEspera.getFullYear(),
-        values.fechaEspera.getMonth(),
-        values.fechaEspera.getDate(),
-        12, 0, 0
-      );
-
-      const fechaEfectuado = values.esEsperado ? null : new Date();
-      if (fechaEfectuado) {
-        fechaEfectuado.setHours(12, 0, 0, 0);
+      // Validar que el ID del equipo exista antes de enviar
+      if (values.equipo_id && values.equipo_id !== "none") {
+        const equipoExists = equipo.some(e => e.id === values.equipo_id);
+        if (!equipoExists) {
+          throw new Error(`ID de equipo inválido: ${values.equipo_id}`);
+        }
       }
 
-      const baseData = {
+      const recordData = {
         ...values,
-        fechaEspera: fechaEspera.toISOString(),
-        fechaEfectuado: fechaEfectuado?.toISOString() || null,
+        fechaEspera: values.fechaEspera.toISOString(),
+        // Si no es fecha programada, establecer fechaEfectuado
+        ...(values.esEsperado ? {} : { fechaEfectuado: new Date().toISOString() }),
+        // Convertir "none" a cadena vacía para las relaciones
         cliente_id: values.cliente_id === "none" ? "" : values.cliente_id,
         proveedor_id: values.proveedor_id === "none" ? "" : values.proveedor_id,
         evento_id: values.evento_id === "none" ? "" : values.evento_id,
         equipo_id: values.equipo_id === "none" ? "" : values.equipo_id,
       };
 
-      let submitData;
-      // Si es pago y oficina, creamos un nuevo objeto sin el campo detalle
-      if (values.type === 'pago' && values.categoria === 'oficina') {
-        const { detalle, ...dataWithoutDetalle } = baseData;
-        submitData = dataWithoutDetalle;
-      } else {
-        // En otros casos, incluimos el detalle
-        submitData = {
-          ...baseData,
-          detalle: values.detalle
-        };
-      }
-      
-      if (mode === 'edit' && recordToEdit) {
-        await updateContabilidadRecord(recordToEdit.id, submitData);
+      // Remover campos vacíos para evitar errores de validación
+      Object.keys(recordData).forEach(key => {
+        if (recordData[key] === "") {
+          delete recordData[key];
+        }
+      });
+
+      console.log('📤 Datos a enviar:', recordData);
+
+      if (mode === 'create') {
+        await createContabilidadRecord(recordData);
         toast({
-          title: "Registro actualizado",
-          description: "El registro contable se ha actualizado correctamente",
+          title: "¡Registro creado!",
+          description: "El registro contable ha sido creado exitosamente.",
         });
       } else {
-        await createContabilidadRecord(submitData);
+        if (!recordToEdit?.id) throw new Error('No se puede editar sin ID');
+        await updateContabilidadRecord(recordToEdit.id, recordData);
         toast({
-          title: "Registro creado",
-          description: "El registro contable se ha creado correctamente",
+          title: "¡Registro actualizado!",
+          description: "El registro contable ha sido actualizado exitosamente.",
         });
       }
-      
+
       setOpen(false);
-      form.reset();
-      
       if (onRecordCreated) {
         onRecordCreated();
       }
     } catch (error) {
+      console.error('❌ Error en la operación:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Error al procesar el registro",
@@ -598,7 +787,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {getAvailableSubcargos().map(({ value, label }) => (
+                        {availableSubcargos.map(({ value, label }) => (
                           <SelectItem key={value} value={value}>
                             {label}
                           </SelectItem>
@@ -623,7 +812,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {getAvailableDetalles().map(({ value, label }) => (
+                          {availableDetalles.map(({ value, label }) => (
                             <SelectItem key={value} value={value}>
                               {label}
                             </SelectItem>
@@ -645,24 +834,16 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                 render={({ field }) => (
                   <FormItem className="space-y-1">
                     <FormLabel>👤 Cliente</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue defaultValue={field.value}>
-                            {field.value === "none" ? "Ninguno" : 
-                              clientes.find(c => c.id === field.value)?.nombre || "Seleccionar"}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">Ninguno</SelectItem>
-                        {clientes.map((cliente) => (
-                          <SelectItem key={cliente.id} value={cliente.id}>
-                            {cliente.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <SearchInput
+                        value={field.value}
+                        onSearch={debouncedSearch.cliente}
+                        placeholder="Buscar cliente..."
+                        isLoading={isLoadingClientes}
+                        items={clientes}
+                        onSelect={field.onChange}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -673,24 +854,16 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                 render={({ field }) => (
                   <FormItem className="space-y-1">
                     <FormLabel>🏢 Proveedor</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue defaultValue={field.value}>
-                            {field.value === "none" ? "Ninguno" : 
-                              proveedores.find(p => p.id === field.value)?.nombre || "Seleccionar"}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">Ninguno</SelectItem>
-                        {proveedores.map((proveedor) => (
-                          <SelectItem key={proveedor.id} value={proveedor.id}>
-                            {proveedor.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <SearchInput
+                        value={field.value}
+                        onSearch={debouncedSearch.proveedor}
+                        placeholder="Buscar proveedor..."
+                        isLoading={isLoadingProveedores}
+                        items={proveedores}
+                        onSelect={field.onChange}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -705,24 +878,16 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                 render={({ field }) => (
                   <FormItem className="space-y-1">
                     <FormLabel>🎉 Evento</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue defaultValue={field.value}>
-                            {field.value === "none" ? "Ninguno" : 
-                              eventos.find(e => e.id === field.value)?.nombre || "Seleccionar"}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">Ninguno</SelectItem>
-                        {eventos.map((evento) => (
-                          <SelectItem key={evento.id} value={evento.id}>
-                            {evento.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <SearchInput
+                        value={field.value}
+                        onSearch={debouncedSearch.evento}
+                        placeholder="Buscar evento..."
+                        isLoading={isLoadingEventos}
+                        items={eventos}
+                        onSelect={field.onChange}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -733,25 +898,16 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                 render={({ field }) => (
                   <FormItem className="space-y-1">
                     <FormLabel>👥 Equipo</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue defaultValue={field.value}>
-                            {field.value === "none" ? "Ninguno" : 
-                              equipo.find(m => m.id === field.value)?.nombre + " " + 
-                              equipo.find(m => m.id === field.value)?.apellido || "Seleccionar"}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">Ninguno</SelectItem>
-                        {equipo.map((miembro) => (
-                          <SelectItem key={miembro.id} value={miembro.id}>
-                            {miembro.nombre} {miembro.apellido}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <SearchInput
+                        value={field.value}
+                        onSearch={debouncedSearch.equipo}
+                        placeholder="Buscar miembro del equipo..."
+                        isLoading={isLoadingEquipo}
+                        items={equipo}
+                        onSelect={field.onChange}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

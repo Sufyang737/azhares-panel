@@ -30,22 +30,11 @@ export interface Equipo {
   nombre: string;
   apellido: string;
   cargo: string;
-  email?: string;
 }
 
 export interface ApiError extends Error {
   status?: number;
   data?: Record<string, unknown>;
-}
-
-async function authenticateAdmin() {
-  const adminToken = process.env.NEXT_PUBLIC_POCKETBASE_ADMIN_TOKEN;
-
-  if (!adminToken) {
-    throw new Error('Admin token not configured');
-  }
-
-  pb.authStore.save(adminToken);
 }
 
 export async function getClientes(): Promise<Cliente[]> {
@@ -87,15 +76,115 @@ export async function getEventos(): Promise<Evento[]> {
   }
 }
 
-export async function getEquipo(): Promise<Equipo[]> {
+async function authenticateAsAdmin() {
   try {
-    const response = await fetch('/api/relations?collection=equipo');
-    if (!response.ok) {
-      throw new Error('Failed to fetch team members');
+    console.log('🔐 Verificando autenticación admin...');
+    const adminToken = process.env.NEXT_PUBLIC_POCKETBASE_ADMIN_TOKEN;
+
+    if (!adminToken) {
+      throw new Error('Token de admin no configurado');
     }
-    return await response.json();
+
+    // Solo autenticar si no hay una sesión válida o si el token es diferente
+    if (!pb.authStore.isValid || pb.authStore.token !== adminToken) {
+      pb.authStore.save(adminToken);
+      console.log('✅ Token de admin establecido');
+    } else {
+      console.log('✅ Ya autenticado con token de admin');
+    }
   } catch (error) {
-    console.error('Error fetching team members:', error);
+    console.error('❌ Error en autenticación:', error);
+    throw error;
+  }
+}
+
+export async function getEquipo() {
+  try {
+    console.log('🚀 Iniciando getEquipo...');
+    await authenticateAsAdmin();
+
+    const resultList = await pb.collection('equipo').getFullList({
+      sort: 'created',
+      expand: 'persona_id'
+    });
+    
+    console.log('📦 Datos recibidos:', {
+      total: resultList?.length || 0,
+      muestra: resultList?.[0] || 'sin datos'
+    });
+
+    return resultList.map(item => ({
+      id: item.id,
+      nombre: item.nombre,
+      apellido: item.apellido,
+      cargo: item.cargo
+    }));
+  } catch (error) {
+    console.error('❌ Error en getEquipo:', error);
+    throw error; // Propagar el error para mejor debugging
+  }
+}
+
+export async function searchClientes(query: string): Promise<Cliente[]> {
+  console.log('🔍 Query de búsqueda:', query);
+  try {
+    const response = await fetch(`/api/relations?collection=cliente&search=${encodeURIComponent(query)}`);
+    if (!response.ok) {
+      throw new Error('Error buscando clientes');
+    }
+    const data = await response.json();
+    console.log('📋 Datos recibidos:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Error en la búsqueda:', error);
+    return [];
+  }
+}
+
+export async function searchProveedores(query: string): Promise<Proveedor[]> {
+  console.log('🔍 Query de búsqueda:', query);
+  try {
+    const response = await fetch(`/api/relations?collection=proveedor&search=${encodeURIComponent(query)}`);
+    if (!response.ok) {
+      throw new Error('Error buscando proveedores');
+    }
+    const data = await response.json();
+    console.log('📋 Datos recibidos:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Error en la búsqueda:', error);
+    return [];
+  }
+}
+
+export async function searchEventos(query: string): Promise<Evento[]> {
+  console.log('🔍 Query de búsqueda:', query);
+  try {
+    const response = await fetch(`/api/relations?collection=evento&search=${encodeURIComponent(query)}`);
+    if (!response.ok) {
+      throw new Error('Error buscando eventos');
+    }
+    const data = await response.json();
+    console.log('📋 Datos recibidos:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Error en la búsqueda:', error);
+    return [];
+  }
+}
+
+export async function searchEquipo(query: string): Promise<Equipo[]> {
+  console.log('🔍 Query de búsqueda:', query);
+  try {
+    const response = await fetch(`/api/relations?collection=equipo&search=${encodeURIComponent(query)}`);
+    if (!response.ok) {
+      throw new Error('Error buscando equipo');
+    }
+    const data = await response.json();
+    console.log('📋 Datos recibidos:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Error en la búsqueda:', error);
     return [];
   }
 } 

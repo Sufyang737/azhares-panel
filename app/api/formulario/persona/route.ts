@@ -1,6 +1,23 @@
 import { NextResponse } from 'next/server';
 import PocketBase from 'pocketbase';
 
+// Agregar las opciones de relación
+const RELACIONES = [
+  { value: "hijo", label: "Hijo/a" },
+  { value: "hermano", label: "Hermano/a" },
+  { value: "esposo", label: "Esposo" },
+  { value: "esposa", label: "Esposa" },
+  { value: "padre", label: "Padre" },
+  { value: "madre", label: "Madre" },
+  { value: "primo", label: "Primo/a" },
+  { value: "tio", label: "Tío/a" },
+  { value: "sobrino", label: "Sobrino/a" },
+  { value: "abuelo", label: "Abuelo/a" },
+  { value: "nieto", label: "Nieto/a" },
+  { value: "amigo", label: "Amigo/a" },
+  { value: "otro", label: "Otro" }
+];
+
 export async function POST(request: Request) {
   try {
     // Obtener los datos del formulario
@@ -43,8 +60,11 @@ export async function POST(request: Request) {
       console.warn('API Formulario Persona - POCKETBASE_ADMIN_TOKEN no configurado');
     }
 
-    // Preparar los datos a guardar (asegurarse que cumpla con el esquema)
-    const record = {
+    // Array para almacenar todos los IDs de personas creadas
+    let personasIds = [];
+
+    // Preparar los datos de la persona principal
+    const mainRecord = {
       nombre: data.nombre.trim(),
       apellido: data.apellido.trim(),
       telefono: parseInt(data.telefono.toString().replace(/\D/g, '')),
@@ -55,56 +75,87 @@ export async function POST(request: Request) {
       instagram: data.instagram ? `https://instagram.com/${data.instagram.replace(/^@/, '')}` : '',
       direccion: data.direccion || '',
       comentario: data.comentario || '',
-      cliente_id: data.cliente_id
+      cliente_id: data.cliente_id,
+      es_principal: true
     };
 
-    console.log('Datos a enviar a PocketBase:', record);
-
     try {
-      // Crear el registro en la colección "personas"
-      const persona = await pb.collection('personas').create(record);
-      console.log('Persona creada:', persona);
+      // Crear el registro de la persona principal
+      const personaPrincipal = await pb.collection('personas').create(mainRecord);
+      console.log('Persona principal creada:', personaPrincipal);
+      personasIds.push(personaPrincipal.id);
+
+      // Procesar personas adicionales si existen
+      if (data.personasAdicionales && Array.isArray(data.personasAdicionales)) {
+        for (const persona of data.personasAdicionales) {
+          if (persona.nombre && persona.apellido && persona.telefono && persona.email) {
+            // Procesar la fecha de cumpleaños
+            let cumpleanio = null;
+            if (persona.cumpleanio?.mes && persona.cumpleanio?.dia) {
+              const currentYear = new Date().getFullYear();
+              cumpleanio = new Date(currentYear, parseInt(persona.cumpleanio.mes) - 1, parseInt(persona.cumpleanio.dia));
+            }
+
+            // Obtener el label de la relación
+            const relacionLabel = RELACIONES.find(r => r.value === persona.relacion)?.label || persona.relacion;
+
+            const personaRecord = {
+              nombre: persona.nombre.trim(),
+              apellido: persona.apellido.trim(),
+              telefono: parseInt(persona.telefono.toString().replace(/\D/g, '')),
+              email: persona.email.trim(),
+              cumpleanio: cumpleanio ? cumpleanio.toISOString() : null,
+              pais: persona.pais || '',
+              ciudad: persona.ciudad || '',
+              instagram: persona.instagram ? `https://instagram.com/${persona.instagram.replace(/^@/, '')}` : '',
+              direccion: persona.direccion || '',
+              comentario: `Relación: ${relacionLabel}`,
+              cliente_id: data.cliente_id,
+              es_principal: false,
+              relacion: persona.relacion || ''
+            };
+
+            const personaAdicional = await pb.collection('personas').create(personaRecord);
+            console.log('Persona adicional creada:', personaAdicional);
+            personasIds.push(personaAdicional.id);
+          }
+        }
+      }
 
       try {
-        // Obtener el cliente actual para verificar sus personas relacionadas
+        // Obtener el cliente actual para actualizar sus personas relacionadas
         const cliente = await pb.collection('cliente').getOne(data.cliente_id);
         
         // Comprobar si el cliente ya tiene personas_id definido
-        let personasIds = cliente.persona_id || [];
+        let existingPersonasIds = cliente.persona_id || [];
         
-        // Asegurarnos de que personasIds sea un array
-        if (!Array.isArray(personasIds)) {
-          personasIds = [];
+        // Asegurarnos de que existingPersonasIds sea un array
+        if (!Array.isArray(existingPersonasIds)) {
+          existingPersonasIds = [];
         }
         
-        // Añadir el ID de la nueva persona al array, evitando duplicados
-        if (!personasIds.includes(persona.id)) {
-          personasIds.push(persona.id);
-        }
+        // Combinar los IDs existentes con los nuevos, evitando duplicados
+        const allPersonasIds = [...new Set([...existingPersonasIds, ...personasIds])];
         
-        // Actualizar el cliente con la nueva relación
+        // Actualizar el cliente con todas las relaciones
         await pb.collection('cliente').update(data.cliente_id, {
-          persona_id: personasIds
+          persona_id: allPersonasIds
         });
         
-        console.log(`Relación actualizada: Cliente ${data.cliente_id} ahora tiene ${personasIds.length} personas asociadas`);
+        console.log(`Relación actualizada: Cliente ${data.cliente_id} ahora tiene ${allPersonasIds.length} personas asociadas`);
       } catch (error) {
         console.error('Error al actualizar la relación con el cliente:', error);
-        // No fallaremos el proceso completo si solo falla la actualización de la relación
       }
 
       // Responder con éxito
       return NextResponse.json({
         success: true,
         mensaje: 'Información guardada correctamente',
-        persona: {
-          id: persona.id
-        }
+        personas: personasIds
       });
     } catch (pocketbaseError: any) {
       console.error('Error específico de PocketBase:', pocketbaseError);
       
-      // Intentar extraer el mensaje de error detallado
       const errorMessage = pocketbaseError.response?.data?.message || 
                          pocketbaseError.message || 
                          'Error al crear el registro';

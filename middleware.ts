@@ -84,6 +84,15 @@ export async function middleware(request: NextRequest) {
     console.log('Middleware - Rol del usuario:', userRole);
     console.log('Middleware - Ruta actual:', request.nextUrl.pathname);
 
+    // Si el usuario es admin o dev, permitir acceso a todas las rutas
+    if (userRole === 'admin' || userRole === 'dev') {
+      const response = NextResponse.next();
+      response.headers.set('Cache-Control', 'no-store, must-revalidate, max-age=0');
+      response.headers.set('Pragma', 'no-cache');
+      response.headers.set('Expires', '0');
+      return response;
+    }
+
     if (userRole && roleRestrictions[userRole]) {
       const { restricted, allowedPaths } = roleRestrictions[userRole];
       

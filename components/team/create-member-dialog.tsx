@@ -172,7 +172,7 @@ export function CreateMemberDialog({ onSuccess }: CreateMemberDialogProps) {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="juan@azhares.com" type="email" {...field} />
+                    <Input placeholder="juan@azares.com" type="email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconLoader2, IconCalendar } from "@tabler/icons-react";
+import { IconLoader2, IconCalendar, IconSearch } from "@tabler/icons-react";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
+import { ReactSearchAutocomplete } from 'react-search-autocomplete';
 
 import {
   Dialog,
@@ -37,6 +38,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // Interfaz para los clientes
 interface Cliente {
@@ -190,6 +206,17 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
     
     fetchClientes();
   }, [isOpen, toast]);
+
+  // Convertir clientes al formato requerido por ReactSearchAutocomplete
+  const clientesFormatted = clientes.map((cliente) => ({
+    id: cliente.id,
+    name: cliente.nombre,
+    email: cliente.email,
+  }));
+
+  const handleOnSelect = (item: any) => {
+    form.setValue("cliente_id", item.id);
+  };
 
   async function onSubmit(data: EventoFormValues) {
     setIsSubmitting(true);
@@ -417,7 +444,57 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
               />
               
               {/* Campos para cliente nuevo o selección de cliente frecuente */}
-              {clienteNuevo ? (
+              {!clienteNuevo ? (
+                <FormField
+                  control={form.control}
+                  name="cliente_id"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel>Cliente</FormLabel>
+                      <FormControl>
+                        <div style={{ zIndex: 100 }}>
+                          <ReactSearchAutocomplete
+                            items={clientesFormatted}
+                            onSelect={handleOnSelect}
+                            showIcon={false}
+                            styling={{
+                              height: "44px",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: "6px",
+                              backgroundColor: "white",
+                              boxShadow: "none",
+                              hoverBackgroundColor: "#f7fafc",
+                              color: "#1a202c",
+                              fontSize: "14px",
+                              fontFamily: "inherit",
+                              iconColor: "grey",
+                              lineColor: "#e2e8f0",
+                              placeholderColor: "#a0aec0",
+                              clearIconMargin: "3px 8px 0 0",
+                              zIndex: 2
+                            }}
+                            placeholder="Buscar cliente..."
+                            formatResult={(item) => (
+                              <div style={{ display: "flex", flexDirection: "column" }}>
+                                <span style={{ fontWeight: "bold" }}>{item.name}</span>
+                                {item.email && (
+                                  <span style={{ fontSize: "12px", color: "#718096" }}>
+                                    {item.email}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        Selecciona un cliente frecuente
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : (
                 <>
                   <FormField
                     control={form.control}
@@ -426,13 +503,12 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
                       <FormItem>
                         <FormLabel>Nombre del Cliente</FormLabel>
                         <FormControl>
-                          <Input placeholder="Nombre del cliente" {...field} value={field.value || ""} />
+                          <Input placeholder="Nombre del cliente" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
                   <FormField
                     control={form.control}
                     name="cliente_email"
@@ -440,7 +516,7 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
                       <FormItem>
                         <FormLabel>Email del Cliente</FormLabel>
                         <FormControl>
-                          <Input placeholder="Email del cliente" {...field} value={field.value || ""} />
+                          <Input type="email" placeholder="cliente@ejemplo.com" {...field} />
                         </FormControl>
                         <FormDescription>
                           Se enviará un correo de bienvenida personalizado a esta dirección con los detalles del evento.
@@ -450,49 +526,6 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
                     )}
                   />
                 </>
-              ) : (
-                <FormField
-                  control={form.control}
-                  name="cliente_id"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2">
-                      <FormLabel>Cliente</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                        disabled={loadingClientes}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={loadingClientes ? "Cargando clientes..." : "Seleccionar cliente"} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {loadingClientes ? (
-                            <div className="flex items-center justify-center p-2">
-                              <IconLoader2 className="h-4 w-4 animate-spin mr-2" />
-                              <span>Cargando clientes...</span>
-                            </div>
-                          ) : clientes.length > 0 ? (
-                            clientes.map(cliente => (
-                              <SelectItem key={cliente.id} value={cliente.id}>
-                                {cliente.nombre} {cliente.email && `(${cliente.email})`}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <div className="p-2 text-center text-sm text-muted-foreground">
-                              No hay clientes disponibles
-                            </div>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Selecciona un cliente frecuente
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               )}
               
               <FormField
@@ -503,7 +536,7 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
                     <FormLabel>Planner asignado</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                      value={field.value}
                       disabled={loadingPlanners}
                     >
                       <FormControl>
@@ -521,17 +554,19 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
                           planners.map(planner => (
                             <SelectItem key={planner.id} value={planner.id}>
                               {planner.username} 
-                              {planner.email ? `(${planner.email})` : ''} 
-                              {planner.rol ? ` - ${planner.rol}` : ''}
+                              {planner.email && ` (${planner.email})`}
                             </SelectItem>
                           ))
                         ) : (
                           <div className="p-2 text-center text-sm text-muted-foreground">
-                            No hay planners disponibles. Asegúrate de que los usuarios tengan el rol &ldquo;planner&rdquo; asignado.
+                            No hay planners disponibles
                           </div>
                         )}
                       </SelectContent>
                     </Select>
+                    <FormDescription>
+                      Selecciona el planner asignado al evento
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

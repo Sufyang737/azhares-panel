@@ -67,16 +67,16 @@ export async function GET(request: NextRequest) {
     try {
       // Obtener los clientes frecuentes
       console.log('API Clientes - Consultando clientes...');
-      const clientes = await pb.collection('cliente').getList(1, 50, {
+      const clientes = await pb.collection('cliente').getFullList({
         sort: 'nombre',
         fields: 'id,nombre,contacto,email'
       });
       
-      console.log(`API Clientes - Encontrados ${clientes.items.length} clientes`);
+      console.log(`API Clientes - Encontrados ${clientes.length} clientes`);
       
       return NextResponse.json({
         success: true,
-        clientes: clientes.items
+        clientes: clientes
       });
     } catch (error) {
       console.error('API Clientes - Error al obtener clientes:', error);

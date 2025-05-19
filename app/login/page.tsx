@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,11 +119,20 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Azares Panel</CardTitle>
-          <CardDescription>
-            Ingresa tus credenciales para acceder al panel administrativo
-          </CardDescription>
+        <CardHeader className="space-y-4">
+          <div className="flex justify-center w-full">
+            <img
+              src="/logo.png"
+              alt="Azhares Logo"
+              className="h-12 w-auto dark:brightness-0 dark:invert"
+            />
+          </div>
+          <div className="text-center space-y-1">
+            <CardTitle className="text-2xl font-bold">Panel Administrativo</CardTitle>
+            <CardDescription>
+              Ingresa tus credenciales para acceder al sistema
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

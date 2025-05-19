@@ -21,8 +21,8 @@ const apiResponseSchema = z.object({
     page: z.number(),
     perPage: z.number(),
     totalItems: z.number(),
-    totalPages: z.number(),
-  }),
+    totalPages: z.number()
+  })
 });
 
 type Persona = z.infer<typeof personaSchema>;
@@ -86,14 +86,18 @@ export default function PeoplePage() {
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const perPage = 10;
   
   // Función para obtener personas desde la API
-  const fetchPersonas = async () => {
+  const fetchPersonas = async (page: number = 1) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/personas?page=1&perPage=100&sort=-created&expand=cliente_id');
+      const response = await fetch(`/api/personas?page=${page}&perPage=${perPage}&sort=-created&expand=cliente_id`);
       
       if (!response.ok) {
         throw new Error(`Error en la petición: ${response.status}`);
@@ -112,6 +116,9 @@ export default function PeoplePage() {
         // Validar respuesta con Zod
         const validatedData = apiResponseSchema.parse(cleanData);
         setPersonas(validatedData.data);
+        setCurrentPage(validatedData.pagination.page);
+        setTotalPages(validatedData.pagination.totalPages);
+        setTotalItems(validatedData.pagination.totalItems);
       } catch (validationError) {
         console.error('Error de validación:', validationError);
         // Si hay error de validación, usamos los datos limpios de todas formas
@@ -127,8 +134,12 @@ export default function PeoplePage() {
   };
 
   useEffect(() => {
-    fetchPersonas();
-  }, []);
+    fetchPersonas(currentPage);
+  }, [currentPage]);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
 
   return (
     <SidebarProvider
@@ -147,9 +158,14 @@ export default function PeoplePage() {
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               <div className="px-4 lg:px-6">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-muted-foreground text-lg font-semibold">
-                    Directorio de Personas
-                  </h2>
+                  <div>
+                    <h2 className="text-muted-foreground text-lg font-semibold">
+                      Directorio de Personas
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      Total: {totalItems} personas
+                    </p>
+                  </div>
                   <Button size="sm" className="h-8" asChild>
                     <Link href="/dashboard/people/new">
                       <IconUserPlus className="mr-2 h-4 w-4" />
@@ -169,13 +185,38 @@ export default function PeoplePage() {
                     <Button 
                       variant="outline"
                       className="mt-4" 
-                      onClick={() => fetchPersonas()}
+                      onClick={() => fetchPersonas(currentPage)}
                     >
                       Reintentar
                     </Button>
                   </div>
                 ) : (
-                  <PeopleDataTable data={personas} />
+                  <>
+                    <PeopleDataTable data={personas} />
+                    <div className="mt-4 flex items-center justify-between">
+                      <div className="text-sm text-muted-foreground">
+                        Página {currentPage} de {totalPages}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1 || loading}
+                        >
+                          Anterior
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages || loading}
+                        >
+                          Siguiente
+                        </Button>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -183,5 +224,5 @@ export default function PeoplePage() {
         </div>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 } 

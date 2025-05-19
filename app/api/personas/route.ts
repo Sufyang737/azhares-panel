@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     // Obtener parámetros de consulta para paginación, filtrado, etc.
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get('page') || '1');
-    const limit = parseInt(url.searchParams.get('limit') || '50');
+    const perPage = parseInt(url.searchParams.get('perPage') || '10');
     const search = url.searchParams.get('search') || '';
     const sort = url.searchParams.get('sort') || '-created';
     
@@ -29,10 +29,10 @@ export async function GET(request: NextRequest) {
       ? `nombre ~ "${search}" || apellido ~ "${search}" || email ~ "${search}" || telefono ~ "${search}"`
       : '';
     
-    console.log('GET Personas - Parámetros:', { page, limit, search, sort, filter });
+    console.log('GET Personas - Parámetros:', { page, perPage, search, sort, filter });
     
     // Obtener personas con paginación y filtros
-    const personas = await pb.collection('personas').getList(page, limit, {
+    const personas = await pb.collection('personas').getList(page, perPage, {
       sort: sort,
       filter: filter
     });
@@ -112,9 +112,9 @@ export async function GET(request: NextRequest) {
       data: personasFormateadas,
       pagination: {
         page: personas.page,
-        totalPages: personas.totalPages,
+        perPage: personas.perPage,
         totalItems: personas.totalItems,
-        perPage: personas.perPage
+        totalPages: personas.totalPages
       }
     });
   } catch (error) {

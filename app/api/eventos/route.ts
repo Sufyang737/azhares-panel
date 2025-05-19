@@ -19,14 +19,14 @@ export async function GET() {
     }
     
     // Obtener eventos con expansión de relaciones
-    const eventos = await pb.collection('evento').getList(1, 50, {
+    const eventos = await pb.collection('evento').getFullList({
       sort: '-created',
-      expand: 'cliente_id,planner_id' // Expandir las relaciones
+      expand: 'cliente_id,planner_id'
     });
     
     // Imprimir información de diagnóstico
-    console.log("Número total de eventos:", eventos.items.length);
-    eventos.items.forEach((evento, index) => {
+    console.log("Número total de eventos:", eventos.length);
+    eventos.forEach((evento, index) => {
       console.log(`Evento ${index + 1} (ID ${evento.id}):`);
       console.log("  - planner_id:", evento.planner_id || "no asignado");
       console.log("  - expand:", evento.expand ? Object.keys(evento.expand).join(", ") : "no hay expand");
@@ -38,44 +38,21 @@ export async function GET() {
       }
     });
     
-    // Transformar los datos para incluir las relaciones expandidas
-    const eventosFormateados = eventos.items.map(evento => {
-      // Construir el objeto cliente a partir de la relación expandida
-      const cliente = evento.expand?.cliente_id ? {
-        id: evento.expand.cliente_id.id,
-        nombre: evento.expand.cliente_id.nombre,
-        contacto: evento.expand.cliente_id.contacto,
-        email: evento.expand.cliente_id.email
-      } : null;
-      
-      // Construir el objeto planner a partir de la relación expandida
-      let planner = null;
-      if (evento.expand?.planner_id) {
-        planner = {
-          id: evento.expand.planner_id.id,
-          nombre: evento.expand.planner_id.nombre || evento.expand.planner_id.username || "Planner"
-        };
-      }
-      
-      // Devolver el evento con las relaciones como propiedades directas
-      return {
-        id: evento.id,
-        nombre: evento.nombre,
-        tipo: evento.tipo,
-        fecha: evento.fecha,
-        estado: evento.estado,
-        comentario: evento.comentario,
-        drive: evento.drive,
-        cliente: cliente,
-        planner: planner,
-        created: evento.created,
-        updated: evento.updated
-      };
-    });
+    // Procesar los eventos para el formato deseado
+    const processedEventos = eventos.map(evento => ({
+      id: evento.id,
+      nombre: evento.nombre,
+      tipo: evento.tipo,
+      fecha: evento.fecha,
+      estado: evento.estado,
+      comentario: evento.comentario,
+      cliente: evento.expand?.cliente_id,
+      planner: evento.expand?.planner_id
+    }));
     
-    return NextResponse.json({ 
-      success: true, 
-      data: eventosFormateados
+    return NextResponse.json({
+      success: true,
+      eventos: processedEventos
     });
   } catch (error) {
     console.error('Error al obtener eventos:', error);
