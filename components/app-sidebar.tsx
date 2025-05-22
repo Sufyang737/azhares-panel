@@ -37,37 +37,37 @@ const navMain: NavItem[] = [
     title: "Events",
     url: "/dashboard/events",
     icon: IconCalendarEvent,
-    roles: ['admin', 'planner', 'dev', 'contabilidad'],
+    roles: ["admin", "planner", "contabilidad", "dev"]
   },
   {
     title: "Clients",
     url: "/dashboard/clients",
     icon: IconBuilding,
-    roles: ['admin', 'planner', 'dev', 'contabilidad'],
+    roles: ["admin", "planner", "contabilidad", "dev"]
   },
   {
     title: "People",
     url: "/dashboard/people",
     icon: IconUserCircle,
-    roles: ['admin', 'planner', 'dev', 'contabilidad'],
+    roles: ["admin", "planner", "contabilidad", "dev"]
   },
   {
     title: "Team",
     url: "/dashboard/team",
     icon: IconUsers,
-    roles: ['admin', 'dev', 'planner', 'contabilidad'],
+    roles: ["admin", "planner", "contabilidad", "dev"]
   },
   {
     title: "Proveedores",
     url: "/dashboard/proveedores",
     icon: IconTruck,
-    roles: ['admin', 'planner', 'dev', 'contabilidad'],
+    roles: ["admin", "planner", "contabilidad", "dev"]
   },
   {
     title: "Contabilidad",
     url: "/dashboard/contabilidad",
     icon: IconCash,
-    roles: ['admin', 'contabilidad', 'dev', 'planner'],
+    roles: ["admin", "planner", "contabilidad", "dev"]
   },
 ];
 
@@ -76,7 +76,7 @@ const navSecondary: NavItem[] = [
     title: "Settings",
     url: "/dashboard/settings",
     icon: IconSettings,
-    roles: ["admin", "dev"]
+    roles: ["admin", "planner", "contabilidad", "dev"]
   },
   {
     title: "Help",
