@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { format, isValid, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Loader2, Check, Edit, MoreHorizontal, Trash2 } from "lucide-react";
+import { CheckCircle, Loader2, Check, Edit, MoreHorizontal, Trash2, User, Building, PartyPopper, Users } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
 import { CreateRecordDialog } from "./create-record-dialog";
@@ -44,6 +44,13 @@ const formatDate = (dateString: string | null | undefined): string => {
     console.error('Error formatting date:', dateString, error);
     return 'Error en fecha';
   }
+};
+
+const getRelationName = (expandData: any, relationKey: string): string => {
+  if (expandData && expandData[relationKey] && typeof expandData[relationKey] === 'object' && expandData[relationKey].nombre) {
+    return expandData[relationKey].nombre;
+  }
+  return 'N/A';
 };
 
 export function ContabilidadTable({ records, onRecordUpdate, onRecordDelete }: ContabilidadTableProps) {
@@ -133,6 +140,10 @@ export function ContabilidadTable({ records, onRecordUpdate, onRecordDelete }: C
               <TableHead>Detalle</TableHead>
               <TableHead className="text-right">Monto</TableHead>
               <TableHead>Fecha Esperada</TableHead>
+              <TableHead><User className="h-4 w-4 inline-block mr-1"/>Cliente</TableHead>
+              <TableHead><Building className="h-4 w-4 inline-block mr-1"/>Proveedor</TableHead>
+              <TableHead><PartyPopper className="h-4 w-4 inline-block mr-1"/>Evento</TableHead>
+              <TableHead><Users className="h-4 w-4 inline-block mr-1"/>Equipo</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
@@ -140,7 +151,7 @@ export function ContabilidadTable({ records, onRecordUpdate, onRecordDelete }: C
           <TableBody>
             {records.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center">
+                <TableCell colSpan={14} className="text-center">
                   No hay registros disponibles
                 </TableCell>
               </TableRow>
@@ -170,6 +181,10 @@ export function ContabilidadTable({ records, onRecordUpdate, onRecordDelete }: C
                   <TableCell>
                     {formatDate(record.fechaEspera)}
                   </TableCell>
+                  <TableCell>{getRelationName(record.expand, 'cliente_id')}</TableCell>
+                  <TableCell>{getRelationName(record.expand, 'proveedor_id')}</TableCell>
+                  <TableCell>{getRelationName(record.expand, 'evento_id')}</TableCell>
+                  <TableCell>{getRelationName(record.expand, 'equipo_id')}</TableCell>
                   <TableCell>
                     <Badge 
                       variant={record.fechaEfectuado ? 'default' : 'secondary'}

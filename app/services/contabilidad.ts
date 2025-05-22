@@ -30,6 +30,12 @@ export type ContabilidadRecord = {
   evento_id?: string | ExpandedRecord;
   equipo_id?: string | ExpandedRecord;
   esEsperado: boolean;
+  expand?: {
+    cliente_id?: ExpandedRecord;
+    proveedor_id?: ExpandedRecord;
+    evento_id?: ExpandedRecord;
+    equipo_id?: ExpandedRecord;
+  };
 };
 
 export async function createContabilidadRecord(data: Omit<ContabilidadRecord, 'id' | 'created' | 'updated'>) {

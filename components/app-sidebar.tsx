@@ -37,37 +37,37 @@ const navMain: NavItem[] = [
     title: "Events",
     url: "/dashboard/events",
     icon: IconCalendarEvent,
-    roles: ['admin', 'planner', 'dev'],
+    roles: ['admin', 'planner', 'dev', 'contabilidad'],
   },
   {
     title: "Clients",
     url: "/dashboard/clients",
     icon: IconBuilding,
-    roles: ['admin', 'planner', 'dev'],
+    roles: ['admin', 'planner', 'dev', 'contabilidad'],
   },
   {
     title: "People",
     url: "/dashboard/people",
     icon: IconUserCircle,
-    roles: ['admin', 'planner', 'dev'],
+    roles: ['admin', 'planner', 'dev', 'contabilidad'],
   },
   {
     title: "Team",
     url: "/dashboard/team",
     icon: IconUsers,
-    roles: ['admin', 'dev'],
+    roles: ['admin', 'dev', 'planner', 'contabilidad'],
   },
   {
     title: "Proveedores",
     url: "/dashboard/proveedores",
     icon: IconTruck,
-    roles: ['admin', 'planner', 'dev'],
+    roles: ['admin', 'planner', 'dev', 'contabilidad'],
   },
   {
     title: "Contabilidad",
     url: "/dashboard/contabilidad",
     icon: IconCash,
-    roles: ['admin', 'contabilidad', 'dev'],
+    roles: ['admin', 'contabilidad', 'dev', 'planner'],
   },
 ];
 

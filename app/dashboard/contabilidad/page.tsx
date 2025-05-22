@@ -72,12 +72,13 @@ export default function ContabilidadPage() {
 
       const data = await getContabilidadRecords({
         sort: '-created',
-        expand: 'cliente_id,evento_id,proveedor_id',
+        expand: 'cliente_id,evento_id,proveedor_id,equipo_id',
         page,
         perPage,
         filter
       });
       
+      console.log("Registros recibidos de getContabilidadRecords:", data?.items);
       setRecords(data?.items || []);
       setTotalPages(data?.totalPages || 1);
       setTotalItems(data?.totalItems || 0);
