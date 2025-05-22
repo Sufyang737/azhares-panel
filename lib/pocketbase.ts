@@ -1,7 +1,7 @@
 import PocketBase from 'pocketbase';
 
 // Inicializa PocketBase con la URL del servidor desde la variable de entorno
-const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || 'https://pocketbase-ykw4ks40gswowocosk80k440.srv.clostech.tech';
+const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || '';
 export const pb = new PocketBase(pocketbaseUrl);
 
 // Configurar el token de administrador si existe

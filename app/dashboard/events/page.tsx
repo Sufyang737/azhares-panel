@@ -4,14 +4,15 @@ import { useState, useEffect } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
+import { format, parse, startOfWeek, getDay, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 import { EventsDataTable } from "@/components/events/events-data-table";
 import { CreateEventDialog } from "@/components/events/create-event-dialog";
-import { EventDetailsDialog } from "../../../components/events/event-details-dialog";
+import { EventDetailsDialog } from "@/components/events/event-details-dialog";
+import { EventFilters } from "@/components/events/events-filters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Configuración del localizador para el calendario
@@ -19,10 +20,25 @@ const locales = {
   'es': es,
 }
 
+const messages = {
+  next: "Siguiente",
+  previous: "Anterior",
+  today: "Hoy",
+  month: "Mes",
+  week: "Semana",
+  day: "Día",
+  agenda: "Agenda",
+  date: "Fecha",
+  time: "Hora",
+  event: "Evento",
+  noEventsInRange: "No hay eventos en este rango",
+  showMore: (total: number) => `+ Ver ${total} más`,
+};
+
 const localizer = dateFnsLocalizer({
   format,
   parse,
-  startOfWeek,
+  startOfWeek: () => 1, // Comenzar la semana en lunes
   getDay,
   locales,
 });
@@ -51,6 +67,7 @@ interface Evento {
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Evento[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<Evento[]>([]);
   const [birthdays, setBirthdays] = useState<Array<{
     id: string;
     title: string;
@@ -130,9 +147,42 @@ export default function EventsPage() {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  // Función para manejar los cambios en los filtros
+  const handleFiltersChange = ({
+    startDate,
+    endDate,
+    eventType
+  }: {
+    startDate: Date | undefined;
+    endDate: Date | undefined;
+    eventType: string;
+  }) => {
+    let filtered = [...events];
+
+    // Filtrar por fechas
+    if (startDate && endDate) {
+      filtered = filtered.filter(event => {
+        const eventDate = new Date(event.fecha);
+        return isWithinInterval(eventDate, { start: startDate, end: endDate });
+      });
+    }
+
+    // Filtrar por tipo de evento
+    if (eventType && eventType !== "todos") {
+      filtered = filtered.filter(event => event.tipo.toLowerCase() === eventType.toLowerCase());
+    }
+
+    setFilteredEvents(filtered);
+  };
+
+  // Actualizar eventos filtrados cuando cambian los eventos
+  useEffect(() => {
+    setFilteredEvents(events);
+  }, [events]);
+
   // Convertir eventos para el calendario
   const calendarEvents = [
-    ...(events || []).map(event => ({
+    ...(filteredEvents || []).map(event => ({
       id: event.id,
       title: event.nombre,
       start: new Date(event.fecha),
@@ -142,6 +192,16 @@ export default function EventsPage() {
     })),
     ...birthdays
   ];
+
+  // Estilos personalizados para el calendario
+  const calendarStyles = {
+    height: 600,
+    style: {
+      backgroundColor: 'white',
+      padding: '1rem',
+      borderRadius: '0.5rem',
+    }
+  };
 
   // Manejador para cuando se hace clic en un evento
   const handleSelectEvent = (event: { id: string; resource?: Evento }) => {
@@ -173,34 +233,62 @@ export default function EventsPage() {
                       <h2 className="text-2xl font-bold tracking-tight">Eventos</h2>
                       <CreateEventDialog onEventCreated={handleEventCreated} />
                     </div>
-                    <EventsDataTable data={events} />
+                    <EventFilters onFiltersChange={handleFiltersChange} />
+                    <EventsDataTable data={filteredEvents} />
                   </TabsContent>
                   <TabsContent value="calendar" className="space-y-4">
                     <div className="flex justify-between">
                       <h2 className="text-2xl font-bold tracking-tight">Calendario</h2>
                       <CreateEventDialog onEventCreated={handleEventCreated} />
                     </div>
+                    <EventFilters onFiltersChange={handleFiltersChange} />
                     <div className="h-[600px]">
                       <Calendar
+                        {...calendarStyles}
                         localizer={localizer}
                         events={calendarEvents}
                         startAccessor="start"
                         endAccessor="end"
                         culture="es"
-                        messages={{
-                          next: "Siguiente",
-                          previous: "Anterior",
-                          today: "Hoy",
-                          month: "Mes",
-                          week: "Semana",
-                          day: "Día",
-                          agenda: "Agenda",
-                          date: "Fecha",
-                          time: "Hora",
-                          event: "Evento",
-                          noEventsInRange: "No hay eventos en este rango",
-                        }}
+                        views={['month', 'week', 'day', 'agenda']}
+                        defaultView="month"
+                        selectable={true}
+                        popup={true}
+                        messages={messages}
                         onSelectEvent={handleSelectEvent}
+                        onNavigate={(date: Date, view: View, action: 'PREV' | 'NEXT' | 'TODAY') => {
+                          console.log('Navegación:', { date, view, action });
+                        }}
+                        components={{
+                          toolbar: (toolbarProps: any) => (
+                            <div className="rbc-toolbar">
+                              <span className="rbc-btn-group">
+                                <button type="button" onClick={() => toolbarProps.onNavigate('PREV')}>
+                                  {messages.previous}
+                                </button>
+                                <button type="button" onClick={() => toolbarProps.onNavigate('TODAY')}>
+                                  {messages.today}
+                                </button>
+                                <button type="button" onClick={() => toolbarProps.onNavigate('NEXT')}>
+                                  {messages.next}
+                                </button>
+                              </span>
+                              <span className="rbc-toolbar-label">{toolbarProps.label}</span>
+                              <span className="rbc-btn-group">
+                                {toolbarProps.views.map((view: string) => (
+                                  <button
+                                    key={view}
+                                    type="button"
+                                    className={view === toolbarProps.view ? 'rbc-active' : ''}
+                                    onClick={() => toolbarProps.onView(view)}
+                                  >
+                                    {messages[view as keyof typeof messages]}
+                                  </button>
+                                ))}
+                              </span>
+                            </div>
+                          )
+                        }}
                       />
                     </div>
                   </TabsContent>

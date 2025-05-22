@@ -7,7 +7,7 @@ async function main() {
     
     // Usar la misma URL de PocketBase que en la aplicación
     const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || 
-      'https://pocketbase-ykw4ks40gswowocosk80k440.srv.clostech.tech';
+      '';
     
     console.log(`Conectando a PocketBase en: ${pocketbaseUrl}`);
     const pb = new PocketBase(pocketbaseUrl);

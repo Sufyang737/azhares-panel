@@ -21,7 +21,7 @@ interface PocketBaseUser {
 
 export async function GET(request: NextRequest) {
   try {
-    const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || 'https://pocketbase-ykw4ks40gswowocosk80k440.srv.clostech.tech';
+    const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || '';
     const pb = new PocketBase(pocketbaseUrl);
     
     // Obtener cookie de autenticación

@@ -286,20 +286,19 @@ export function EventsDataTable({
     },
     {
       accessorKey: "drive",
-      header: "Carpeta Drive",
+      header: "Drive",
       cell: ({ row }) => {
-        const driveUrl = row.getValue("drive") as string | null;
-        return driveUrl ? (
-          <a 
-            href={driveUrl} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-blue-600 hover:text-blue-800 hover:underline"
+        const drive = row.getValue("drive") as string | null;
+        if (!drive) return null;
+        return (
+          <a
+            href={drive}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline"
           >
             Ver carpeta
           </a>
-        ) : (
-          <span className="text-muted-foreground">No disponible</span>
         );
       },
     },

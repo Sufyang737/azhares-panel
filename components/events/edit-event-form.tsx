@@ -63,6 +63,26 @@ interface EditEventFormProps {
 export function EditEventForm({ initialData, onSuccess, onCancel }: EditEventFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = React.useState(false)
+  const [planners, setPlanners] = React.useState<Array<{ id: string; nombre: string }>>([])
+
+  // Cargar la lista de planners
+  React.useEffect(() => {
+    async function fetchPlanners() {
+      try {
+        const response = await fetch('/api/usuarios/planners')
+        const data = await response.json()
+        if (data.success) {
+          setPlanners(data.planners.map((planner: any) => ({
+            id: planner.id,
+            nombre: planner.username // Usamos username como nombre
+          })))
+        }
+      } catch (error) {
+        console.error('Error al cargar planners:', error)
+      }
+    }
+    fetchPlanners()
+  }, [])
 
   const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
@@ -212,6 +232,38 @@ export function EditEventForm({ initialData, onSuccess, onCancel }: EditEventFor
                     />
                   </PopoverContent>
                 </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="planner_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Planner asignado</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value || "none"}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar planner" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="none">Sin asignar</SelectItem>
+                    {planners.map((planner) => (
+                      <SelectItem key={planner.id} value={planner.id}>
+                        {planner.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Selecciona el planner responsable del evento
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

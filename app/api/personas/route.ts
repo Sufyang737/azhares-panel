@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import PocketBase from 'pocketbase';
 
 // Inicialización de PocketBase usando la variable de entorno
-const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || 'https://pocketbase-ykw4ks40gswowocosk80k440.srv.clostech.tech';
+const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || '';
 
 // Handler para GET (obtener personas)
 export async function GET(request: NextRequest) {

@@ -3,7 +3,7 @@ import PocketBase from 'pocketbase';
 import { createEventFolder } from "@/app/services/drive";
 
 // Inicialización de PocketBase usando la variable de entorno
-const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || 'https://pocketbase-ykw4ks40gswowocosk80k440.srv.clostech.tech';
+const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || '';
 
 // Handler para GET (obtener eventos)
 export async function GET() {
@@ -47,7 +47,11 @@ export async function GET() {
       estado: evento.estado,
       comentario: evento.comentario,
       cliente: evento.expand?.cliente_id,
-      planner: evento.expand?.planner_id
+      planner: evento.expand?.planner_id ? {
+        id: evento.expand.planner_id.id,
+        nombre: evento.expand.planner_id.username || evento.expand.planner_id.nombre || "Sin nombre"
+      } : null,
+      drive: evento.drive
     }));
     
     return NextResponse.json({
@@ -270,8 +274,13 @@ export async function PATCH(request: NextRequest) {
     
     // Extraer ID y preparar datos para actualización
     const eventId = data.id;
-    const updateData = { ...data };
-    delete updateData.id; // Eliminar ID de los datos a actualizar
+    const { planner_id, ...rest } = data;
+    
+    // Si planner_id es "none", lo establecemos como null
+    const updateData = {
+      ...rest,
+      planner_id: planner_id === "none" ? null : planner_id,
+    };
     
     console.log(`PATCH Evento - Actualizando evento ${eventId} con:`, JSON.stringify(updateData, null, 2));
     

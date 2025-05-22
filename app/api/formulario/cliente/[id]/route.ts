@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
 
     // Inicializar PocketBase
-    const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || 'https://pocketbase-ykw4ks40gswowocosk80k440.srv.clostech.tech';
+    const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || '';
     const pb = new PocketBase(pocketbaseUrl);
     
     // Autenticar directamente usando el token de administrador guardado en variables de entorno

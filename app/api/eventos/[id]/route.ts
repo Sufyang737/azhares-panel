@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import PocketBase from 'pocketbase';
 
 // Inicialización de PocketBase
-const pb = new PocketBase('https://pocketbase-ykw4ks40gswowocosk80k440.srv.clostech.tech');
+const pb = new PocketBase('https://pocketbase.suite.azaresweb.com.ar');
 
 // Obtener un evento específico
 export async function GET(request: NextRequest) {
