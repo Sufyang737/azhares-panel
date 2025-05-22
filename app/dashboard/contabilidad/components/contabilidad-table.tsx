@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { format, isValid, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Loader2, Check, Edit, MoreHorizontal } from "lucide-react";
+import { CheckCircle, Loader2, Check, Edit, MoreHorizontal, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
 import { CreateRecordDialog } from "./create-record-dialog";
@@ -31,6 +31,7 @@ import { EditRecordDialog } from "./edit-record-dialog";
 interface ContabilidadTableProps {
   records: ContabilidadRecord[];
   onRecordUpdate?: () => void;
+  onRecordDelete?: (recordId: string) => void;
 }
 
 const formatDate = (dateString: string | null | undefined): string => {
@@ -45,7 +46,7 @@ const formatDate = (dateString: string | null | undefined): string => {
   }
 };
 
-export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTableProps) {
+export function ContabilidadTable({ records, onRecordUpdate, onRecordDelete }: ContabilidadTableProps) {
   const { toast } = useToast();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -107,6 +108,14 @@ export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTable
         description: "No se pudo actualizar el registro.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleDeleteRecord = async (recordId: string) => {
+    if (window.confirm("¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.")) {
+      if (onRecordDelete) {
+        onRecordDelete(recordId);
+      }
     }
   };
 
@@ -196,6 +205,13 @@ export function ContabilidadTable({ records, onRecordUpdate }: ContabilidadTable
                         >
                           <Check className="mr-2 h-4 w-4" />
                           Marcar como {record.type === "cobro" ? "cobrado" : "pagado"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteRecord(record.id)}
+                          className="text-red-600 hover:text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Eliminar
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

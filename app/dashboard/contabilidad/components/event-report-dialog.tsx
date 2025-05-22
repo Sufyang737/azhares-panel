@@ -140,7 +140,7 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
     .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   // Filtrar eventos basados en el cliente seleccionado
-  const filteredEvents = eventos
+  const filteredEvents = (eventos || [])
     .filter(event => {
       if (selectedClient === 'all') return true;
       return event.cliente?.id === selectedClient;

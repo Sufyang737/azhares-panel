@@ -37,17 +37,17 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createContabilidadRecord, updateContabilidadRecord, ContabilidadRecord } from "@/app/services/contabilidad";
 import { useToast } from "@/components/ui/use-toast";
-import { useEffect, useState, useRef, useMemo, useCallback } from "react";
-import { CalendarIcon, Plus, Edit2, Search, Loader2 } from "lucide-react";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { CalendarIcon, Plus, Edit2, Search, Loader2, ChevronsUpDown } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { Cliente, Proveedor, Evento, Equipo, getClientes, getProveedores, getEventos, getEquipo, searchClientes, searchProveedores, searchEventos, searchEquipo } from "@/app/services/relations";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import debounce from 'lodash/debounce';
+// import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"; // Comentado Command
 import { ReactSearchAutocomplete } from 'react-search-autocomplete';
+import debounce from 'lodash/debounce';
 
 interface DolarBlue {
   venta: number;
@@ -59,13 +59,8 @@ type FormData = {
   especie: 'efectivo' | 'trasferencia';
   moneda: 'ars' | 'usd';
   categoria: 'evento' | 'oficina';
-  subcargo: 'clientes' | 'otros' | 'proveedores' | 'sueldos' | 'mensajeria' | 
-    'cambio-divisas' | 'ajuste-caja' | 'obra-social-empleada' | 
-    'mantencion-cuenta-corriente' | 'seguro-galicia' | 'tarjeta-credito' | 
-    'deriva' | 'expensas' | 'alquiler' | 'prepaga' | 'contador' | 
-    'mantenimiento-pc' | 'impuestos' | 'servicio' | 'regaleria' | 'compras';
-  detalle: 'compra-usd' | 'comision' | 'handy' | 'honorarios' | 'maquillaje' | 
-    'planner' | 'staff' | 'viandas' | 'venta-usd' | 'viatico' | 'seguro';
+  subcargo: string;
+  detalle: string;
   montoEspera: number;
   dolarEsperado: number;
   fechaEspera: Date;
@@ -126,37 +121,26 @@ const getAvailableSubcargos = (type: string, categoria: string) => {
   // Caso 4: Cobro en evento
   if (type === 'cobro' && categoria === 'evento') {
     return [
-      { value: 'proveedores', label: 'Proveedores' },
-      { value: 'clientes', label: 'Clientes' }
+      { value: 'clientes', label: 'Clientes (Comisión)' }
     ];
   }
 
-  // Caso por defecto
-  return [
-    { value: 'clientes', label: 'Clientes' },
-    { value: 'otros', label: 'Otros' },
-    { value: 'proveedores', label: 'Proveedores' },
-    { value: 'sueldos', label: 'Sueldos' }
-  ];
+  // Default, should ideally be more specific or empty
+  return [{ value: 'otros', label: 'Otros' }];
 };
 
 const getAvailableDetalles = (type: string, categoria: string, subcargo: string) => {
-  // Caso 1: Cobro en oficina con cambio de divisas
   if (type === 'cobro' && categoria === 'oficina' && subcargo === 'cambio-divisas') {
     return [
       { value: 'compra-usd', label: 'Compra USD' },
       { value: 'venta-usd', label: 'Venta USD' }
     ];
   }
-
-  // Caso 2: Cobro en evento
-  if (type === 'cobro' && categoria === 'evento') {
+  if (type === 'cobro' && categoria === 'evento' && subcargo === 'clientes') {
     return [
       { value: 'comision', label: 'Comisión' }
     ];
   }
-
-  // Caso 3: Pago en evento
   if (type === 'pago' && categoria === 'evento') {
     return [
       { value: 'maquillaje', label: 'Maquillaje' },
@@ -166,230 +150,226 @@ const getAvailableDetalles = (type: string, categoria: string, subcargo: string)
       { value: 'honorarios', label: 'Honorarios' },
       { value: 'planner', label: 'Planner' },
       { value: 'staff', label: 'Staff' },
-      { value: 'seguro', label: 'Seguro' }
+      { value: 'seguro', label: 'Seguro' },
+      { value: 'otros', label: 'Otros' }
     ];
   }
-
-  // Caso 4: Pago en oficina
   if (type === 'pago' && categoria === 'oficina') {
+    if (subcargo === 'impuestos') return [{value: 'iva', label: 'IVA'}, {value: 'ganancias', label: 'Ganancias'}];
+    if (subcargo === 'servicios') return [{value: 'luz', label: 'Luz'}, {value: 'gas', label: 'Gas'}, {value: 'internet', label: 'Internet'}];
     return [
+      { value: 'general', label: 'General' },
       { value: 'honorarios', label: 'Honorarios' }
     ];
   }
-
-  // Caso por defecto
-  return [
-    { value: 'honorarios', label: 'Honorarios' }
-  ];
+  return [{ value: 'general', label: 'General' }];
 };
 
-// Componente de búsqueda simplificado
-interface SearchInputProps {
-  value: string;
-  onSearch: (query: string) => Promise<void>;
-  placeholder: string;
-  isLoading?: boolean;
-  items: any[];
-  onSelect: (value: string) => void;
-}
+// Componente de búsqueda reutilizable con Command
+// interface SearchableCommandProps<T> {
+//   valueId: string | null;
+//   valueName: string | null;
+//   onSearch: (query: string) => void;
+//   placeholder: string;
+//   searchPlaceholder: string;
+//   items: T[];
+//   onSelect: (item: T) => void;
+//   getItemValue: (item: T) => string;
+//   getItemLabel: (item: T) => string;
+//   getItemSubtext?: (item: T) => string | null | undefined;
+//   isLoading?: boolean;
+//   triggerClassName?: string;
+// }
 
-function SearchInput({
-  value,
-  onSearch,
-  placeholder,
-  isLoading,
-  items,
-  onSelect
-}: SearchInputProps) {
-  const [open, setOpen] = useState(false);
-  const [inputValue, setInputValue] = useState("");
+// function SearchableCommand<T>({
+//   valueId,
+//   valueName,
+//   onSearch,
+//   placeholder,
+//   searchPlaceholder,
+//   items,
+//   onSelect,
+//   getItemValue,
+//   getItemLabel,
+//   getItemSubtext,
+//   isLoading,
+//   triggerClassName,
+// }: SearchableCommandProps<T>) {
+//   const [openPopover, setOpenPopover] = useState(false);
+//   const [searchQuery, setSearchQuery] = useState("");
 
-  const debouncedSearch = useCallback(
-    debounce((value: string) => {
-      onSearch(value);
-    }, 300),
-    [onSearch]
-  );
+//   const debouncedSearchHandler = useMemo(() => debounce(onSearch, 300), [onSearch]);
 
-  const handleInputChange = (value: string) => {
-    setInputValue(value);
-    debouncedSearch(value);
-  };
+//   const handleSearchChange = (query: string) => {
+//     setSearchQuery(query);
+//     debouncedSearchHandler(query);
+//   };
 
-  // Función para formatear el nombre completo
-  const formatName = (item: any) => {
-    const nombre = item.nombre || '';
-    const apellido = item.apellido ? ` ${item.apellido}` : '';
-    return `${nombre}${apellido}`;
-  };
-
-  // Función para formatear el email/contacto
-  const formatEmail = (email: string) => {
-    if (!email) return '';
-    const atIndex = email.indexOf('@');
-    if (atIndex > 15) {
-      return email.substring(0, 12) + '...' + email.substring(atIndex);
-    }
-    return email;
-  };
-
-  return (
-    <div className="relative">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="w-full justify-between"
-          >
-            {value ? items.find(item => item.id === value)?.nombre || placeholder : placeholder}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0" align="start">
-          <Command shouldFilter={false}>
-            <CommandInput
-              placeholder={`Buscar ${placeholder.toLowerCase()}...`}
-              value={inputValue}
-              onValueChange={handleInputChange}
-            />
-            <CommandList>
-              <CommandEmpty>
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-6">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="ml-2">Buscando...</span>
-                  </div>
-                ) : (
-                  "No se encontraron resultados."
-                )}
-              </CommandEmpty>
-              <CommandGroup>
-                {items.map((item) => (
-                  <CommandItem
-                    key={item.id}
-                    value={item.id}
-                    onSelect={() => {
-                      onSelect(item.id);
-                      setOpen(false);
-                    }}
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-medium">{formatName(item)}</span>
-                      {(item.email || item.contacto) && (
-                        <span className="text-xs text-muted-foreground">
-                          {formatEmail(item.email || item.contacto)}
-                        </span>
-                      )}
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-}
+//   return (
+//     <Command shouldFilter={false} className="border rounded-md">
+//       <CommandInput
+//         placeholder={searchPlaceholder}
+//         value={searchQuery}
+//         onValueChange={handleSearchChange}
+//       />
+//       <CommandList>
+//         {isLoading && (
+//           <div className="p-2 text-sm text-center text-muted-foreground flex items-center justify-center">
+//             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+//             Buscando...
+//           </div>
+//         )}
+//         {!isLoading && items.length === 0 && searchQuery !== '' && (
+//           <CommandEmpty>No se encontraron resultados.</CommandEmpty>
+//         )}
+//         {!isLoading && items.length === 0 && searchQuery === '' && (
+//           <CommandEmpty>Escribe para buscar {placeholder.toLowerCase().replace("buscar ", "")}...</CommandEmpty>
+//         )}
+//         <CommandGroup>
+//           {items.map((item) => (
+//             <CommandItem
+//               key={getItemValue(item)}
+//               value={getItemValue(item)}
+//               onSelect={() => {
+//                 console.log("SearchableCommand: CommandItem onSelect triggered. Item:", item, "Value:", getItemValue(item));
+//                 onSelect(item);
+//                 setSearchQuery("");
+//               }}
+//             >
+//               <div>
+//                 {getItemLabel(item)}
+//                 {getItemSubtext && getItemSubtext(item) && (
+//                   <div className="text-xs text-muted-foreground">
+//                     {getItemSubtext(item)}
+//                   </div>
+//                 )}
+//               </div>
+//             </CommandItem>
+//           ))}
+//         </CommandGroup>
+//       </CommandList>
+//     </Command>
+//   );
+// } // Fin de SearchableCommand comentado
 
 export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToEdit }: CreateRecordDialogProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [dolarBlue, setDolarBlue] = useState<DolarBlue | null>(null);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
-  const [eventos, setEventos] = useState<Evento[]>([]);
-  const [equipo, setEquipo] = useState<Equipo[]>([]);
+  
+  // Estados para las listas de resultados de búsqueda
+  const [clientesResult, setClientesResult] = useState<Cliente[]>([]);
+  const [proveedoresResult, setProveedoresResult] = useState<Proveedor[]>([]);
+  const [eventosResult, setEventosResult] = useState<Evento[]>([]);
+  const [equipoResult, setEquipoResult] = useState<Equipo[]>([]);
+
+  // Estados para los nombres seleccionados (para mostrar en el trigger del Popover)
+  const [selectedClienteName, setSelectedClienteName] = useState<string | null>(null);
+  const [selectedProveedorName, setSelectedProveedorName] = useState<string | null>(null);
+  const [selectedEventoName, setSelectedEventoName] = useState<string | null>(null);
+  const [selectedEquipoName, setSelectedEquipoName] = useState<string | null>(null);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingClientes, setIsLoadingClientes] = useState(false);
   const [isLoadingProveedores, setIsLoadingProveedores] = useState(false);
   const [isLoadingEventos, setIsLoadingEventos] = useState(false);
   const [isLoadingEquipo, setIsLoadingEquipo] = useState(false);
 
+  const defaultFormValues = useMemo(() => ({
+    type: "cobro" as 'cobro' | 'pago',
+    especie: "efectivo" as 'efectivo' | 'trasferencia',
+    moneda: "ars" as 'ars' | 'usd',
+    categoria: "oficina" as 'evento' | 'oficina',
+    subcargo: "otros",
+    detalle: "comision",
+    montoEspera: 0,
+    dolarEsperado: 0,
+    fechaEspera: new Date(),
+    esEsperado: true,
+    comentario: "",
+    cliente_id: "",
+    proveedor_id: "",
+    evento_id: "",
+    equipo_id: "",
+  }), []);
+
   const form = useForm<FormData>({
-    defaultValues: {
-      type: recordToEdit?.type || "cobro",
-      especie: recordToEdit?.especie || "efectivo",
-      moneda: recordToEdit?.moneda || "ars",
-      categoria: recordToEdit?.categoria || "oficina",
-      subcargo: recordToEdit?.subcargo || "otros",
-      detalle: recordToEdit?.detalle || "comision",
-      montoEspera: recordToEdit?.montoEspera || 0,
-      dolarEsperado: recordToEdit?.dolarEsperado || 0,
-      fechaEspera: recordToEdit?.fechaEspera ? new Date(recordToEdit.fechaEspera) : new Date(),
-      esEsperado: recordToEdit?.esEsperado ?? true,
-      comentario: recordToEdit?.comentario || "",
-      cliente_id: typeof recordToEdit?.cliente_id === 'object' ? recordToEdit.cliente_id.id : (recordToEdit?.cliente_id || "none"),
-      proveedor_id: typeof recordToEdit?.proveedor_id === 'object' ? recordToEdit.proveedor_id.id : (recordToEdit?.proveedor_id || "none"),
-      evento_id: typeof recordToEdit?.evento_id === 'object' ? recordToEdit.evento_id.id : (recordToEdit?.evento_id || "none"),
-      equipo_id: typeof recordToEdit?.equipo_id === 'object' ? recordToEdit.equipo_id.id : (recordToEdit?.equipo_id || "none"),
-    },
+    defaultValues: defaultFormValues,
     mode: "onSubmit"
   });
 
-  // Memoizar las opciones disponibles para evitar recálculos innecesarios
+  useEffect(() => {
+    if (mode === 'edit' && recordToEdit) {
+      const getNombreFromId = (id: string, list: any[], nameKey = 'nombre') => list.find(item => item.id === id)?.[nameKey] || null;
+      
+      form.reset({
+        type: recordToEdit.type,
+        especie: recordToEdit.especie,
+        moneda: recordToEdit.moneda,
+        categoria: recordToEdit.categoria,
+        subcargo: recordToEdit.subcargo,
+        detalle: recordToEdit.detalle,
+        montoEspera: recordToEdit.montoEspera,
+        dolarEsperado: recordToEdit.dolarEsperado,
+        fechaEspera: recordToEdit.fechaEspera ? new Date(recordToEdit.fechaEspera) : new Date(),
+        esEsperado: recordToEdit.esEsperado ?? true,
+        comentario: recordToEdit.comentario || "",
+        cliente_id: typeof recordToEdit.cliente_id === 'object' ? recordToEdit.cliente_id.id : (recordToEdit.cliente_id || ""),
+        proveedor_id: typeof recordToEdit.proveedor_id === 'object' ? recordToEdit.proveedor_id.id : (recordToEdit.proveedor_id || ""),
+        evento_id: typeof recordToEdit.evento_id === 'object' ? recordToEdit.evento_id.id : (recordToEdit.evento_id || ""),
+        equipo_id: typeof recordToEdit.equipo_id === 'object' ? recordToEdit.equipo_id.id : (recordToEdit.equipo_id || ""),
+      });
+
+      if (typeof recordToEdit.cliente_id === 'object' && recordToEdit.cliente_id?.nombre) {
+        setSelectedClienteName(recordToEdit.cliente_id.nombre);
+      } else if (recordToEdit.cliente_id && typeof recordToEdit.cliente_id === 'string') {
+        // Necesitaríamos una forma de obtener el nombre del cliente solo con el ID si no está expandido
+        // Por ahora, si solo hay ID, el usuario tendrá que volver a buscarlo para ver el nombre.
+        // O podríamos hacer un fetch específico aquí.
+      }
+
+      if (typeof recordToEdit.proveedor_id === 'object' && recordToEdit.proveedor_id?.nombre) {
+        setSelectedProveedorName(recordToEdit.proveedor_id.nombre);
+      }
+
+      if (typeof recordToEdit.evento_id === 'object' && recordToEdit.evento_id?.nombre) {
+        setSelectedEventoName(recordToEdit.evento_id.nombre);
+      }
+
+      if (typeof recordToEdit.equipo_id === 'object' && recordToEdit.equipo_id?.nombre) {
+        setSelectedEquipoName(recordToEdit.equipo_id.nombre);
+      }
+
+    } else {
+      form.reset(defaultFormValues);
+      setSelectedClienteName(null);
+      setSelectedProveedorName(null);
+      setSelectedEventoName(null);
+      setSelectedEquipoName(null);
+    }
+  }, [mode, recordToEdit, form, defaultFormValues, open]);
+
   const currentType = form.watch('type');
   const currentCategoria = form.watch('categoria');
   const currentSubcargo = form.watch('subcargo');
 
   const availableSubcargos = React.useMemo(() => getAvailableSubcargos(currentType, currentCategoria), [currentType, currentCategoria]);
   const availableDetalles = React.useMemo(() => getAvailableDetalles(currentType, currentCategoria, currentSubcargo), [currentType, currentCategoria, currentSubcargo]);
-
-  // Cargar relaciones solo cuando se abre el diálogo
+  
   useEffect(() => {
-    if (open) {
-      const loadRelations = async () => {
-        console.log('🔄 Iniciando carga de relaciones...');
-        setIsLoadingClientes(true);
-        setIsLoadingProveedores(true);
-        setIsLoadingEventos(true);
-        setIsLoadingEquipo(true);
-        try {
-          // Cargar todas las relaciones necesarias
-          const [clientesData, proveedoresData, eventosData, equipoData] = await Promise.all([
-            getClientes(),
-            getProveedores(),
-            getEventos(),
-            getEquipo()
-          ]);
-          
-          console.log('👥 Datos del equipo recibidos:', equipoData);
-          
-          // Si hay un ID de equipo seleccionado, verificar que exista
-          const currentEquipoId = form.getValues('equipo_id');
-          if (currentEquipoId && currentEquipoId !== 'none') {
-            const equipoExists = equipoData.some(e => e.id === currentEquipoId);
-            if (!equipoExists) {
-              console.warn('🚨 ID de equipo inválido, reseteando a none');
-              form.setValue('equipo_id', 'none');
-            }
-          }
-          
-          setClientes(clientesData);
-          setProveedores(proveedoresData);
-          setEventos(eventosData);
-          setEquipo(equipoData);
-        } catch (error) {
-          console.error('❌ Error cargando relaciones:', error);
-          toast({
-            title: "Error",
-            description: "No se pudieron cargar algunos datos. Por favor, intente nuevamente.",
-            variant: "destructive",
-          });
-        } finally {
-          setIsLoadingClientes(false);
-          setIsLoadingProveedores(false);
-          setIsLoadingEventos(false);
-          setIsLoadingEquipo(false);
-        }
-      };
-
-      loadRelations();
+    const currentSubcargoValue = form.getValues('subcargo');
+    if (!availableSubcargos.find(s => s.value === currentSubcargoValue)) {
+      form.setValue('subcargo', availableSubcargos[0]?.value || '');
     }
-  }, [open, form]);
+  }, [availableSubcargos, form]);
 
-  // Cargar dólar blue solo si es necesario
+  useEffect(() => {
+    const currentDetalleValue = form.getValues('detalle');
+    if (!availableDetalles.find(d => d.value === currentDetalleValue)) {
+      form.setValue('detalle', availableDetalles[0]?.value || '');
+    }
+  }, [availableDetalles, form]);
+
   useEffect(() => {
     if (open && form.watch('moneda') === 'usd' && !dolarBlue) {
       const loadDolarBlue = async () => {
@@ -404,546 +384,501 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
           console.error('Error loading dolar blue:', error);
         }
       };
-
       loadDolarBlue();
     }
-  }, [open, form.watch('moneda')]);
+  }, [open, form.watch('moneda'), dolarBlue]);
 
   useEffect(() => {
     const moneda = form.watch('moneda');
     const montoEspera = form.watch('montoEspera');
-    
-    if (moneda === 'ars' && dolarBlue && montoEspera) {
-      const dolarEsperado = montoEspera / dolarBlue.venta;
-      form.setValue('dolarEsperado', Number(dolarEsperado.toFixed(2)));
-    } else if (moneda === 'usd' && montoEspera) {
+    if (moneda === 'ars' && dolarBlue && montoEspera > 0) {
+      const dolarCalculado = montoEspera / dolarBlue.venta;
+      form.setValue('dolarEsperado', Number(dolarCalculado.toFixed(2)));
+    } else if (moneda === 'usd' && montoEspera > 0) {
       form.setValue('dolarEsperado', montoEspera);
+    } else {
+       form.setValue('dolarEsperado', 0);
     }
   }, [form.watch('moneda'), form.watch('montoEspera'), dolarBlue, form]);
 
-  // Funciones de búsqueda con debounce
-  const debouncedSearch = useMemo(
+  // Funciones para buscar en la API (sin debounce aquí, se aplica en SearchableCommand)
+  const searchAPI = useMemo(
     () => ({
-      cliente: debounce(async (value: string) => {
-        console.log('🔍 Buscando cliente:', value);
+      cliente: async (value: string) => {
+        if (!value.trim()) {
+          setClientesResult([]);
+          // No es necesario setIsLoadingClientes(false) aquí si no se puso true
+          return;
+        }
         setIsLoadingClientes(true);
         try {
           const results = await searchClientes(value);
-          console.log('📋 Resultados clientes:', results);
-          setClientes(results);
+          setClientesResult(results);
         } catch (error) {
-          console.error('❌ Error buscando clientes:', error);
+          console.error('Error buscando clientes:', error);
+          setClientesResult([]); // Limpiar resultados en caso de error
         } finally {
           setIsLoadingClientes(false);
         }
-      }, 300),
-
-      proveedor: debounce(async (value: string) => {
-        console.log('🔍 Buscando proveedor:', value);
+      },
+      proveedor: async (value: string) => {
+        if (!value.trim()) {
+          setProveedoresResult([]);
+          return;
+        }
         setIsLoadingProveedores(true);
         try {
           const results = await searchProveedores(value);
-          console.log('📋 Resultados proveedores:', results);
-          setProveedores(results);
+          setProveedoresResult(results);
         } catch (error) {
-          console.error('❌ Error buscando proveedores:', error);
+          console.error('Error buscando proveedores:', error);
+          setProveedoresResult([]);
         } finally {
           setIsLoadingProveedores(false);
         }
-      }, 300),
-
-      evento: debounce(async (value: string) => {
-        console.log('🔍 Buscando evento:', value);
+      },
+      evento: async (value: string) => {
+        if (!value.trim()) {
+          setEventosResult([]);
+          return;
+        }
         setIsLoadingEventos(true);
         try {
           const results = await searchEventos(value);
-          console.log('📋 Resultados eventos:', results);
-          setEventos(results);
+          setEventosResult(results);
         } catch (error) {
-          console.error('❌ Error buscando eventos:', error);
+          console.error('Error buscando eventos:', error);
+          setEventosResult([]);
         } finally {
           setIsLoadingEventos(false);
         }
-      }, 300),
-
-      equipo: debounce(async (value: string) => {
-        console.log('🔍 Buscando equipo:', value);
+      },
+      equipo: async (value: string) => {
+        if (!value.trim()) {
+          setEquipoResult([]);
+          return;
+        }
         setIsLoadingEquipo(true);
         try {
           const results = await searchEquipo(value);
-          console.log('📋 Resultados equipo:', results);
-          setEquipo(results);
+          setEquipoResult(results);
         } catch (error) {
-          console.error('❌ Error buscando equipo:', error);
+          console.error('Error buscando equipo:', error);
+          setEquipoResult([]);
         } finally {
           setIsLoadingEquipo(false);
         }
-      }, 300)
+      }
     }),
-    []
+    [] // Dependencies: searchClientes, searchProveedores, etc. si fueran props o cambiaran. Como son imports, está bien vacío.
   );
-
-  // Limpiar los debounces al desmontar
-  useEffect(() => {
-    return () => {
-      debouncedSearch.cliente.cancel();
-      debouncedSearch.proveedor.cancel();
-      debouncedSearch.evento.cancel();
-      debouncedSearch.equipo.cancel();
-    };
-  }, [debouncedSearch]);
 
   const onSubmit = async (values: FormData) => {
     if (isSubmitting) return;
-    
     setIsSubmitting(true);
     try {
-      // Validar que el ID del equipo exista antes de enviar
-      if (values.equipo_id && values.equipo_id !== "none") {
-        const equipoExists = equipo.some(e => e.id === values.equipo_id);
-        if (!equipoExists) {
-          throw new Error(`ID de equipo inválido: ${values.equipo_id}`);
+      const recordData: Partial<ContabilidadRecord> & { [key: string]: any } = {
+        type: values.type,
+        especie: values.especie,
+        moneda: values.moneda,
+        categoria: values.categoria,
+        subcargo: values.subcargo as ContabilidadRecord['subcargo'],
+        detalle: values.detalle as ContabilidadRecord['detalle'],
+        montoEspera: Number(values.montoEspera),
+        dolarEsperado: Number(values.dolarEsperado),
+        fechaEspera: values.fechaEspera.toISOString(),
+        esEsperado: values.esEsperado,
+        comentario: values.comentario,
+        cliente_id: values.cliente_id || undefined,
+        proveedor_id: values.proveedor_id || undefined,
+        evento_id: values.evento_id || undefined,
+        equipo_id: values.equipo_id || undefined,
+      };
+
+      if (!values.esEsperado) {
+        recordData.fechaEfectuado = new Date().toISOString();
+      }
+      
+      for (const key of ['cliente_id', 'proveedor_id', 'evento_id', 'equipo_id']) {
+        if (!recordData[key]) {
+          delete recordData[key];
         }
       }
 
-      const recordData = {
-        ...values,
-        fechaEspera: values.fechaEspera.toISOString(),
-        // Si no es fecha programada, establecer fechaEfectuado
-        ...(values.esEsperado ? {} : { fechaEfectuado: new Date().toISOString() }),
-        // Convertir "none" a cadena vacía para las relaciones
-        cliente_id: values.cliente_id === "none" ? "" : values.cliente_id,
-        proveedor_id: values.proveedor_id === "none" ? "" : values.proveedor_id,
-        evento_id: values.evento_id === "none" ? "" : values.evento_id,
-        equipo_id: values.equipo_id === "none" ? "" : values.equipo_id,
-      };
-
-      // Remover campos vacíos para evitar errores de validación
-      Object.keys(recordData).forEach(key => {
-        if (recordData[key] === "") {
-          delete recordData[key];
-        }
-      });
-
-      console.log('📤 Datos a enviar:', recordData);
-
       if (mode === 'create') {
-        await createContabilidadRecord(recordData);
-        toast({
-          title: "¡Registro creado!",
-          description: "El registro contable ha sido creado exitosamente.",
-        });
+        await createContabilidadRecord(recordData as Omit<ContabilidadRecord, 'id' | 'created' | 'updated'>);
+        toast({ title: "¡Registro creado!", description: "El registro contable ha sido creado exitosamente." });
       } else {
-        if (!recordToEdit?.id) throw new Error('No se puede editar sin ID');
+        if (!recordToEdit?.id) throw new Error('No se puede editar sin ID de registro existente.');
         await updateContabilidadRecord(recordToEdit.id, recordData);
-        toast({
-          title: "¡Registro actualizado!",
-          description: "El registro contable ha sido actualizado exitosamente.",
-        });
+        toast({ title: "¡Registro actualizado!", description: "El registro contable ha sido actualizado exitosamente." });
       }
 
       setOpen(false);
+      form.reset(defaultFormValues);
+      setSelectedClienteName(null);
+      setSelectedProveedorName(null);
+      setSelectedEventoName(null);
+      setSelectedEquipoName(null);
+      setClientesResult([]);
+      setProveedoresResult([]);
+      setEventosResult([]);
+      setEquipoResult([]);
+
       if (onRecordCreated) {
         onRecordCreated();
       }
     } catch (error) {
-      console.error('❌ Error en la operación:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Error al procesar el registro",
-        variant: "destructive",
-      });
+      console.error('Error en la operación:', error);
+      const errorMessage = error instanceof Error ? error.message : "Error al procesar el registro";
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
   };
+  
+  useEffect(() => {
+    if (!open) {
+      form.reset(defaultFormValues);
+      setSelectedClienteName(null);
+      setSelectedProveedorName(null);
+      setSelectedEventoName(null);
+      setSelectedEquipoName(null);
+      setClientesResult([]);
+      setProveedoresResult([]);
+      setEventosResult([]);
+      setEquipoResult([]);
+      setDolarBlue(null);
+    }
+  }, [open, form, defaultFormValues]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {mode === 'create' ? (
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo Movimiento
-          </Button>
+          <Button> <Plus className="mr-2 h-4 w-4" /> Nuevo Movimiento </Button>
         ) : (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-          >
-            <Edit2 className="h-4 w-4" />
-          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8"> <Edit2 className="h-4 w-4" /> </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl w-[95vw] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-4">
-          <DialogTitle>
-            {mode === 'create' ? 'Crear Nuevo Registro' : 'Editar Registro'}
-          </DialogTitle>
-          <DialogDescription>
-            {dolarBlue ? (
-              `Dólar Blue: Compra $${dolarBlue.compra} | Venta $${dolarBlue.venta}`
-            ) : null}
-          </DialogDescription>
+          <DialogTitle>{mode === 'create' ? 'Crear Nuevo Registro' : 'Editar Registro'}</DialogTitle>
+          {dolarBlue && form.getValues('moneda') === 'usd' && (
+            <DialogDescription>
+              Dólar Blue: Compra ${dolarBlue.compra} | Venta ${dolarBlue.venta}
+            </DialogDescription>
+          )}
         </DialogHeader>
         <Form {...form}>
-          <form 
-            onSubmit={form.handleSubmit(onSubmit)} 
-            className="grid gap-4"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             {/* Primera fila: Tipo, Método, Moneda */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>💰 Tipo *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="cobro">Cobro</SelectItem>
-                        <SelectItem value="pago">Pago</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="especie"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>💳 Método *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="efectivo">Efectivo</SelectItem>
-                        <SelectItem value="trasferencia">Transferencia</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="moneda"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>💵 Moneda *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="ars">ARS</SelectItem>
-                        <SelectItem value="usd">USD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="type" render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel>💰 Tipo *</FormLabel>
+                  <Select onValueChange={(value) => field.onChange(value as 'cobro' | 'pago')} value={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
+                    <SelectContent><SelectItem value="cobro">Cobro</SelectItem><SelectItem value="pago">Pago</SelectItem></SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="especie" render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel>💳 Método *</FormLabel>
+                  <Select onValueChange={(value) => field.onChange(value as 'efectivo' | 'trasferencia')} value={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
+                    <SelectContent><SelectItem value="efectivo">Efectivo</SelectItem><SelectItem value="trasferencia">Transferencia</SelectItem></SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="moneda" render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel>💵 Moneda *</FormLabel>
+                  <Select onValueChange={(value) => field.onChange(value as 'ars' | 'usd')} value={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
+                    <SelectContent><SelectItem value="ars">ARS</SelectItem><SelectItem value="usd">USD</SelectItem></SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
             </div>
 
             {/* Segunda fila: Monto y Fecha */}
             <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="montoEspera"
-                render={({ field }) => (
+              <FormField control={form.control} name="montoEspera" render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel>💰 Monto *</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" min="0.01" placeholder="Ingrese el monto"
+                      {...field}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        field.onChange(isNaN(value) || value <= 0 ? '' : value);
+                      }}
+                      value={field.value || ''}
+                    />
+                  </FormControl>
+                  {form.watch('moneda') === "ars" && dolarBlue && field.value > 0 && (
+                    <FormDescription className="text-xs">
+                      ≈ USD {(Number(field.value) / dolarBlue.venta).toFixed(2)}
+                    </FormDescription>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <div className="space-y-3">
+                <FormField control={form.control} name="fechaEspera" render={({ field }) => (
                   <FormItem className="space-y-1">
-                    <FormLabel>💰 Monto *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        placeholder="Ingrese el monto"
-                        {...field}
-                        onChange={(e) => {
-                          const value = parseFloat(e.target.value);
-                          field.onChange(isNaN(value) ? 0 : value);
-                        }}
-                      />
-                    </FormControl>
-                    {form.watch('moneda') === "ars" && dolarBlue && field.value > 0 && (
-                      <FormDescription className="text-xs">
-                        ≈ USD {(field.value / dolarBlue.venta).toFixed(2)}
-                      </FormDescription>
-                    )}
+                    <FormLabel>📅 Fecha</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                            {field.value ? format(field.value, "dd/MM/yyyy", { locale: es }) : <span>Seleccionar fecha</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
-                )}
-              />
-
-              <div className="space-y-3">
-                <FormField
-                  control={form.control}
-                  name="fechaEspera"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel>📅 Fecha</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="date"
-                          value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              // Crear la fecha usando los componentes locales
-                              const [year, month, day] = e.target.value.split('-').map(Number);
-                              const date = new Date(year, month - 1, day, 12, 0, 0);
-                              field.onChange(date);
-                            } else {
-                              // Si no hay valor, usar la fecha actual
-                              const now = new Date();
-                              const today = new Date(
-                                now.getFullYear(),
-                                now.getMonth(),
-                                now.getDate(),
-                                12, 0, 0
-                              );
-                              field.onChange(today);
-                            }
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="esEsperado"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-0.5">
-                        <FormLabel>⏳ Fecha Programada</FormLabel>
-                        <FormDescription className="text-xs">
-                          {field.value 
-                            ? "Esta fecha es programada (el pago aún no se realizó)"
-                            : "Esta fecha es efectiva (el pago ya se realizó)"}
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+                )} />
+                <FormField control={form.control} name="esEsperado" render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-2 space-y-0 pt-2">
+                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                    <div className="space-y-0.5">
+                      <FormLabel>⏳ Fecha Programada</FormLabel>
+                      <FormDescription className="text-xs">
+                        {field.value ? "Esta fecha es programada (el pago aún no se realizó)" : "Esta fecha es efectiva (el pago ya se realizó)"}
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )} />
               </div>
             </div>
 
             {/* Tercera fila: Categoría, Subcargo y Detalle */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <FormField
-                control={form.control}
-                name="categoria"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>📁 Categoría *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="evento">Evento</SelectItem>
-                        <SelectItem value="oficina">Oficina</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="subcargo"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>📑 Subcargo *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {availableSubcargos.map(({ value, label }) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="categoria" render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel>📁 Categoría *</FormLabel>
+                  <Select onValueChange={(value) => field.onChange(value as 'evento' | 'oficina')} value={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
+                    <SelectContent><SelectItem value="evento">Evento</SelectItem><SelectItem value="oficina">Oficina</SelectItem></SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="subcargo" render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel>📑 Subcargo *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      {availableSubcargos.map(({ value, label }) => (<SelectItem key={value} value={value}>{label}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
               {!(currentType === 'pago' && currentCategoria === 'oficina') && (
-                <FormField
-                  control={form.control}
-                  name="detalle"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel>🔍 Detalle *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {availableDetalles.map(({ value, label }) => (
-                            <SelectItem key={value} value={value}>
-                              {label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                 <FormField control={form.control} name="detalle" render={({ field }) => (
+                  <FormItem className="space-y-1">
+                    <FormLabel>🔍 Detalle *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {availableDetalles.map(({ value, label }) => (<SelectItem key={value} value={value}>{label}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
               )}
             </div>
 
             {/* Cuarta fila: Cliente y Proveedor */}
             <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="cliente_id"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>👤 Cliente</FormLabel>
-                    <FormControl>
-                      <SearchInput
-                        value={field.value}
-                        onSearch={debouncedSearch.cliente}
-                        placeholder="Buscar cliente..."
-                        isLoading={isLoadingClientes}
-                        items={clientes}
-                        onSelect={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="proveedor_id"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>🏢 Proveedor</FormLabel>
-                    <FormControl>
-                      <SearchInput
-                        value={field.value}
-                        onSearch={debouncedSearch.proveedor}
-                        placeholder="Buscar proveedor..."
-                        isLoading={isLoadingProveedores}
-                        items={proveedores}
-                        onSelect={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="cliente_id" render={({ field }) => (
+                <FormItem className="flex flex-col space-y-1">
+                  <FormLabel>👤 Cliente</FormLabel>
+                  {isLoadingClientes && <div className="p-2 text-sm flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando...</div>}
+                  <ReactSearchAutocomplete
+                    items={clientesResult.map(c => ({ ...c, name: c.nombre }))}
+                    onSearch={(string, results) => {
+                      searchAPI.cliente(string);
+                    }}
+                    onSelect={(item: Cliente) => {
+                      console.log("Cliente selected (RSA):", item);
+                      field.onChange(item.id);
+                      setSelectedClienteName(item.nombre);
+                    }}
+                    onClear={() => {
+                      field.onChange("");
+                      setSelectedClienteName(null);
+                      setClientesResult([]);
+                    }}
+                    placeholder="Buscar cliente..."
+                    autoFocus={false}
+                    resultStringKeyName="name"
+                    inputSearchString={selectedClienteName || ""}
+                    styling={{
+                      height: "38px",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "6px",
+                      backgroundColor: "white",
+                      boxShadow: "none",
+                      hoverBackgroundColor: "#F3F4F6",
+                      color: "#111827",
+                      fontSize: "14px",
+                      fontFamily: "inherit",
+                      clearIconMargin: "3px 8px 0 0",
+                      zIndex: 10,
+                    }}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="proveedor_id" render={({ field }) => (
+                <FormItem className="flex flex-col space-y-1">
+                  <FormLabel>🏢 Proveedor</FormLabel>
+                  {isLoadingProveedores && <div className="p-2 text-sm flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando...</div>}
+                  <ReactSearchAutocomplete
+                    items={proveedoresResult.map(p => ({ ...p, name: p.nombre }))}
+                    onSearch={(string, results) => searchAPI.proveedor(string)}
+                    onSelect={(item: Proveedor) => {
+                      field.onChange(item.id);
+                      setSelectedProveedorName(item.nombre);
+                    }}
+                    onClear={() => {
+                        field.onChange("");
+                        setSelectedProveedorName(null);
+                        setProveedoresResult([]);
+                    }}
+                    placeholder="Buscar proveedor..."
+                    autoFocus={false}
+                    resultStringKeyName="name"
+                    inputSearchString={selectedProveedorName || ""}
+                    styling={{
+                      height: "38px",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "6px",
+                      backgroundColor: "white",
+                      boxShadow: "none",
+                      hoverBackgroundColor: "#F3F4F6",
+                      color: "#111827",
+                      fontSize: "14px",
+                      fontFamily: "inherit",
+                      clearIconMargin: "3px 8px 0 0",
+                      zIndex: 9,
+                    }}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )} />
             </div>
 
             {/* Quinta fila: Evento y Equipo */}
             <div className="grid grid-cols-2 gap-3">
-              <FormField
-                control={form.control}
-                name="evento_id"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>🎉 Evento</FormLabel>
-                    <FormControl>
-                      <SearchInput
-                        value={field.value}
-                        onSearch={debouncedSearch.evento}
-                        placeholder="Buscar evento..."
-                        isLoading={isLoadingEventos}
-                        items={eventos}
-                        onSelect={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="equipo_id"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>👥 Equipo</FormLabel>
-                    <FormControl>
-                      <SearchInput
-                        value={field.value}
-                        onSearch={debouncedSearch.equipo}
-                        placeholder="Buscar miembro del equipo..."
-                        isLoading={isLoadingEquipo}
-                        items={equipo}
-                        onSelect={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+               <FormField control={form.control} name="evento_id" render={({ field }) => (
+                <FormItem className="flex flex-col space-y-1">
+                  <FormLabel>🎉 Evento</FormLabel>
+                  {isLoadingEventos && <div className="p-2 text-sm flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando...</div>}
+                  <ReactSearchAutocomplete
+                    items={eventosResult.map(e => ({ ...e, name: e.nombre }))}
+                    onSearch={(string, results) => searchAPI.evento(string)}
+                    onSelect={(item: Evento) => {
+                      field.onChange(item.id);
+                      setSelectedEventoName(item.nombre);
+                    }}
+                    onClear={() => {
+                        field.onChange("");
+                        setSelectedEventoName(null);
+                        setEventosResult([]);
+                    }}
+                    placeholder="Buscar evento..."
+                    autoFocus={false}
+                    resultStringKeyName="name"
+                    inputSearchString={selectedEventoName || ""}
+                    styling={{
+                      height: "38px",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "6px",
+                      backgroundColor: "white",
+                      boxShadow: "none",
+                      hoverBackgroundColor: "#F3F4F6",
+                      color: "#111827",
+                      fontSize: "14px",
+                      fontFamily: "inherit",
+                      clearIconMargin: "3px 8px 0 0",
+                      zIndex: 8,
+                    }}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="equipo_id" render={({ field }) => (
+                <FormItem className="flex flex-col space-y-1">
+                  <FormLabel>👥 Equipo</FormLabel>
+                  {isLoadingEquipo && <div className="p-2 text-sm flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando...</div>}
+                   <ReactSearchAutocomplete
+                    items={equipoResult.map(eq => ({ ...eq, name: eq.nombre }))}
+                    onSearch={(string, results) => searchAPI.equipo(string)}
+                    onSelect={(item: Equipo) => {
+                      field.onChange(item.id);
+                      setSelectedEquipoName(item.nombre);
+                    }}
+                    onClear={() => {
+                        field.onChange("");
+                        setSelectedEquipoName(null);
+                        setEquipoResult([]);
+                    }}
+                    placeholder="Buscar miembro..."
+                    autoFocus={false}
+                    resultStringKeyName="name"
+                    inputSearchString={selectedEquipoName || ""}
+                    styling={{
+                      height: "38px",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "6px",
+                      backgroundColor: "white",
+                      boxShadow: "none",
+                      hoverBackgroundColor: "#F3F4F6",
+                      color: "#111827",
+                      fontSize: "14px",
+                      fontFamily: "inherit",
+                      clearIconMargin: "3px 8px 0 0",
+                      zIndex: 7,
+                    }}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )} />
             </div>
 
             {/* Sexta fila: Comentarios */}
-            <FormField
-              control={form.control}
-              name="comentario"
-              render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel>💭 Comentarios</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Agregar comentarios adicionales..."
-                      className="min-h-[60px] resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormField control={form.control} name="comentario" render={({ field }) => (
+              <FormItem className="space-y-1">
+                <FormLabel>💭 Comentarios</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Agregar comentarios adicionales..." className="min-h-[60px] resize-none" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
             <div className="flex justify-between items-center pt-2">
               <div className="text-xs text-muted-foreground">
-                {form.formState.isValid ? "✅ Formulario completo" : "⚠️ Complete los campos requeridos"}
+                {(form.formState.dirtyFields.type && form.formState.dirtyFields.especie && form.formState.dirtyFields.moneda && form.formState.dirtyFields.montoEspera && form.formState.dirtyFields.categoria && form.formState.dirtyFields.subcargo && ( (currentType === 'pago' && currentCategoria === 'oficina') ? true : form.formState.dirtyFields.detalle ) ) || mode === 'edit' ? "✅ Formulario listo" : "⚠️ Complete los campos requeridos"}
               </div>
-              <Button
-                type="submit"
-                size="sm"
-                className="ml-auto"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Guardando..." : "Guardar"}
+              <Button type="submit" size="sm" className="ml-auto" disabled={isSubmitting || !form.formState.isDirty && mode === 'create'}>
+                {isSubmitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</>) : (mode === 'create' ? 'Guardar' : 'Actualizar')}
               </Button>
             </div>
           </form>

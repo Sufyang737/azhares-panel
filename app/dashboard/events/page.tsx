@@ -38,7 +38,7 @@ const messages = {
 const localizer = dateFnsLocalizer({
   format,
   parse,
-  startOfWeek: () => 1, // Comenzar la semana en lunes
+  startOfWeek: () => 1,
   getDay,
   locales,
 });
@@ -249,45 +249,12 @@ export default function EventsPage() {
                         events={calendarEvents}
                         startAccessor="start"
                         endAccessor="end"
-                        culture="es"
-                        views={['month', 'week', 'day', 'agenda']}
-                        defaultView="month"
-                        selectable={true}
-                        popup={true}
+                        // components={{ toolbar: CustomToolbar }} // Toolbar Comentada temporalmente
                         messages={messages}
+                        culture='es'
                         onSelectEvent={handleSelectEvent}
                         onNavigate={(date: Date, view: View, action: 'PREV' | 'NEXT' | 'TODAY') => {
                           console.log('Navegación:', { date, view, action });
-                        }}
-                        components={{
-                          toolbar: (toolbarProps: any) => (
-                            <div className="rbc-toolbar">
-                              <span className="rbc-btn-group">
-                                <button type="button" onClick={() => toolbarProps.onNavigate('PREV')}>
-                                  {messages.previous}
-                                </button>
-                                <button type="button" onClick={() => toolbarProps.onNavigate('TODAY')}>
-                                  {messages.today}
-                                </button>
-                                <button type="button" onClick={() => toolbarProps.onNavigate('NEXT')}>
-                                  {messages.next}
-                                </button>
-                              </span>
-                              <span className="rbc-toolbar-label">{toolbarProps.label}</span>
-                              <span className="rbc-btn-group">
-                                {toolbarProps.views.map((view: string) => (
-                                  <button
-                                    key={view}
-                                    type="button"
-                                    className={view === toolbarProps.view ? 'rbc-active' : ''}
-                                    onClick={() => toolbarProps.onView(view)}
-                                  >
-                                    {messages[view as keyof typeof messages]}
-                                  </button>
-                                ))}
-                              </span>
-                            </div>
-                          )
                         }}
                       />
                     </div>

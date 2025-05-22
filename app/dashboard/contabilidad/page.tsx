@@ -11,9 +11,10 @@ import { DailyCashDialog } from "./components/daily-cash-dialog";
 import { EventReportDialog } from "./components/event-report-dialog";
 import { MonthlyReportDialog } from "./components/monthly-report-dialog";
 import { FiltersDialog } from "./components/filters-dialog";
-import { getContabilidadRecords } from "@/app/services/contabilidad";
+import { getContabilidadRecords, deleteContabilidadRecord } from "@/app/services/contabilidad";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface FilterValues {
   categoria?: string;
@@ -32,6 +33,7 @@ export default function ContabilidadPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [activeFilters, setActiveFilters] = useState<FilterValues>({});
   const perPage = 20;
+  const { toast } = useToast();
 
   const loadRecords = async (page = 1, filters: FilterValues = {}) => {
     setLoading(true);
@@ -107,6 +109,31 @@ export default function ContabilidadPage() {
     setCurrentPage(1); // Resetear a la primera página cuando se aplican filtros
   };
 
+  const handleDeleteRecord = async (recordId: string) => {
+    setLoading(true);
+    try {
+      await deleteContabilidadRecord(recordId);
+      toast({
+        title: "Registro eliminado",
+        description: "El registro contable ha sido eliminado exitosamente.",
+      });
+      if (records.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      } else {
+        loadRecords(currentPage, activeFilters);
+      }
+    } catch (error) {
+      console.error("Error deleting record:", error);
+      toast({
+        title: "Error al eliminar",
+        description: "No se pudo eliminar el registro. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SidebarProvider
       style={
@@ -155,6 +182,7 @@ export default function ContabilidadPage() {
                     <ContabilidadTable 
                       records={records} 
                       onRecordUpdate={handleRecordUpdate}
+                      onRecordDelete={handleDeleteRecord}
                     />
                     <div className="mt-4 flex items-center justify-between px-2">
                       <div className="text-sm text-muted-foreground">
