@@ -144,7 +144,7 @@ export async function searchClientes(query: string): Promise<Cliente[]> {
 export async function searchProveedores(query: string): Promise<Proveedor[]> {
   console.log('🔍 Query de búsqueda:', query);
   try {
-    const response = await fetch(`/api/relations?collection=proveedor&search=${encodeURIComponent(query)}`);
+    const response = await fetch(`/api/relations?collection=proveedores&search=${encodeURIComponent(query)}`);
     if (!response.ok) {
       throw new Error('Error buscando proveedores');
     }
