@@ -188,44 +188,38 @@ export function NewProveedorDialog({
             </DialogDescription>
           </DialogHeader>
           
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="nombre"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nombre del proveedor" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <div className="max-h-[calc(80vh-120px)] overflow-y-auto pr-6 space-y-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="nombre"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nombre del proveedor" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="alias"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Alias</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Alias del proveedor" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 
-                <FormField
-                  control={form.control}
-                  name="alias"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Alias</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Alias del proveedor" 
-                          {...field} 
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(e.target.value || null)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="contacto"
@@ -233,59 +227,41 @@ export function NewProveedorDialog({
                     <FormItem>
                       <FormLabel>Contacto</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Nombre del contacto" 
-                          {...field} 
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(e.target.value || null)}
-                        />
+                        <Input placeholder="Nombre del contacto" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 
-                <FormField
-                  control={form.control}
-                  name="telefono"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Teléfono</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Teléfono" 
-                          type="tel"
-                          {...field} 
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(e.target.value || null)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="correo@ejemplo.com" 
-                          type="email"
-                          {...field} 
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(e.target.value || null)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="telefono"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Teléfono</FormLabel>
+                        <FormControl>
+                          <Input type="tel" placeholder="Teléfono" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="correo@ejemplo.com" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 
                 <FormField
                   control={form.control}
@@ -293,22 +269,18 @@ export function NewProveedorDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>País</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(value || null)}
-                        defaultValue={field.value || undefined}
-                      >
+                      <Select onValueChange={(value) => field.onChange(value || null)} value={field.value ?? ""}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Seleccione un país" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="argentina">Argentina</SelectItem>
-                          <SelectItem value="brasil">Brasil</SelectItem>
-                          <SelectItem value="colombia">Colombia</SelectItem>
-                          <SelectItem value="espana">España</SelectItem>
-                          <SelectItem value="uruguay">Uruguay</SelectItem>
-                          <SelectItem value="usa">USA</SelectItem>
+                          {PAISES_PERMITIDOS.map((pais) => (
+                            <SelectItem key={pais} value={pais}>
+                              {pais.charAt(0).toUpperCase() + pais.slice(1)}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormDescription>
@@ -318,9 +290,7 @@ export function NewProveedorDialog({
                     </FormItem>
                   )}
                 />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                 <FormField
                   control={form.control}
                   name="web"
@@ -328,19 +298,16 @@ export function NewProveedorDialog({
                     <FormItem>
                       <FormLabel>Sitio Web</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="ejemplo.com" 
-                          {...field} 
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(e.target.value || null)}
-                        />
+                        <Input placeholder="ejemplo.com" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
                       </FormControl>
-                      <FormDescription>Ingrese solo el dominio, se añadirá https:// automáticamente</FormDescription>
+                      <FormDescription>
+                        Ingrese solo el dominio, se añadirá https:// automáticamente
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="instagram"
@@ -348,21 +315,16 @@ export function NewProveedorDialog({
                     <FormItem>
                       <FormLabel>Instagram</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="usuario" 
-                          {...field} 
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(e.target.value || null)}
-                        />
+                        <Input placeholder="usuario" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
                       </FormControl>
-                      <FormDescription>Ingrese solo el usuario, se añadirá https://instagram.com/ automáticamente</FormDescription>
+                      <FormDescription>
+                        Ingrese solo el usuario, se añadirá https://instagram.com/ automáticamente
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                 <FormField
                   control={form.control}
                   name="direccion"
@@ -370,18 +332,13 @@ export function NewProveedorDialog({
                     <FormItem>
                       <FormLabel>Dirección</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Dirección" 
-                          {...field} 
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(e.target.value || null)}
-                        />
+                        <Input placeholder="Dirección" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="comision"
@@ -389,43 +346,36 @@ export function NewProveedorDialog({
                     <FormItem>
                       <FormLabel>Comisión (%)</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Porcentaje de comisión" 
-                          type="number"
-                          step="0.01"
-                          {...field} 
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(e.target.value || null)}
-                        />
+                        <Input type="number" placeholder="Porcentaje de comisión" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              
-              <div className="grid grid-cols-1 gap-4 items-end md:grid-cols-[3fr_1fr]">
+
                 <FormField
                   control={form.control}
                   name="categoria"
-                  render={() => (
+                  render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Categoría</FormLabel>
-                      <Select
-                        onValueChange={(value) => form.setValue('categoria', value || null)}
-                        value={form.watch('categoria') || ""}
-                      >
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Categoría</FormLabel>
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsCreateCategoriaDialogOpen(true)}
+                        >
+                          <IconPlus className="mr-2 h-4 w-4" /> Nueva
+                        </Button>
+                      </div>
+                      <Select onValueChange={field.onChange} value={field.value ?? ""}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Seleccione una categoría" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {categoriasInternas.length === 0 && (
-                            <div className="p-2 text-sm text-muted-foreground">
-                              No hay categorías. Puede crear una nueva.
-                            </div>
-                          )}
                           {categoriasInternas.map((cat) => (
                             <SelectItem key={cat} value={cat}>
                               {cat}
@@ -433,45 +383,28 @@ export function NewProveedorDialog({
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormDescription>
+                        Seleccione o cree una categoría para el proveedor.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsCreateCategoriaDialogOpen(true)} 
-                  className="mb-2 md:mb-[calc(var(--form-message-height,1rem)+0.5rem)]"
-                >
-                  <IconPlus className="mr-2 h-4 w-4" /> Nueva
-                </Button>
-              </div>
-              <FormDescription className="-mt-3 text-xs text-muted-foreground px-1 md:col-start-1 md:col-span-1">
-                Seleccione o cree una categoría para el proveedor.
-              </FormDescription>
-              
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => onOpenChange(false)}
-                  disabled={isSubmitting}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
+                
+                <DialogFooter className="pt-6">
+                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
                       <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creando...
-                    </>
-                  ) : (
-                    "Crear Proveedor"
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                    ) : null}
+                    Guardar Proveedor
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </div>
         </DialogContent>
       </Dialog>
 

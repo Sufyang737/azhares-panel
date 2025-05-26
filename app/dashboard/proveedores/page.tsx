@@ -194,14 +194,14 @@ export default function ProveedoresPage() {
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               <div className="px-4 lg:px-6">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                   <h1 className="text-3xl font-bold tracking-tight">Proveedores</h1>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setIsManageCategoriasDialogOpen(true)}>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button variant="outline" onClick={() => setIsManageCategoriasDialogOpen(true)} className="w-full sm:w-auto">
                       <IconTags className="mr-2 h-4 w-4" />
                       Gestionar Categorías
                     </Button>
-                    <Button onClick={() => setIsNewDialogOpen(true)}>
+                    <Button onClick={() => setIsNewDialogOpen(true)} className="w-full sm:w-auto">
                       <IconPlus className="mr-2 h-4 w-4" />
                       Nuevo Proveedor
                     </Button>
