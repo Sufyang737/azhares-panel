@@ -99,7 +99,7 @@ export function EditProveedorDialog({
       // Asegurarse que la categoría actual del proveedor (si existe) esté en la lista de opciones
       if (proveedor?.categoria && !initialCategorias.includes(proveedor.categoria)) {
         initialCategorias.push(proveedor.categoria);
-      }
+            }
       setCategoriasInternas(initialCategorias.sort((a, b) => a.localeCompare(b)));
     }
   }, [open, proveedor, categoriasDisponibles]);
@@ -205,251 +205,251 @@ export function EditProveedorDialog({
     // Podría ser útil un estado de carga o simplemente no renderizar si no hay proveedor
     return null;
   }
-
+  
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
             <DialogTitle>Editar Proveedor: {proveedor?.nombre}</DialogTitle>
-            <DialogDescription>
+          <DialogDescription>
               Modifique los detalles del proveedor y guárdelos cuando haya terminado.
-            </DialogDescription>
-          </DialogHeader>
-          
+          </DialogDescription>
+        </DialogHeader>
+        
           {proveedor && (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="nombre"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Nombre del proveedor" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="alias"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Alias</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Alias del proveedor" 
-                            {...field} 
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value || null)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="contacto"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Contacto</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Nombre del contacto" 
-                            {...field} 
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value || null)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="telefono"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Teléfono</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Teléfono" 
-                            type="tel"
-                            {...field} 
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value || null)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="correo@ejemplo.com" 
-                            type="email"
-                            {...field} 
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value || null)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="pais"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>País</FormLabel>
-                        <Select
-                          onValueChange={(value) => field.onChange(value || null)}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="nombre"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nombre del proveedor" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="alias"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Alias</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Alias del proveedor" 
+                        {...field} 
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="contacto"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contacto</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Nombre del contacto" 
+                        {...field} 
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="telefono"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Teléfono" 
+                        type="tel"
+                        {...field} 
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="correo@ejemplo.com" 
+                        type="email"
+                        {...field} 
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="pais"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>País</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(value || null)}
                           value={form.watch('pais') || undefined}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccione un país" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="argentina">Argentina</SelectItem>
-                            <SelectItem value="brasil">Brasil</SelectItem>
-                            <SelectItem value="colombia">Colombia</SelectItem>
-                            <SelectItem value="espana">España</SelectItem>
-                            <SelectItem value="uruguay">Uruguay</SelectItem>
-                            <SelectItem value="usa">USA</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Seleccione uno de los países disponibles
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="web"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Sitio Web</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="ejemplo.com" 
-                            {...field} 
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value || null)}
-                          />
-                        </FormControl>
-                        <FormDescription>Ingrese solo el dominio, se añadirá https:// automáticamente</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="instagram"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Instagram</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="usuario" 
-                            {...field} 
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value || null)}
-                          />
-                        </FormControl>
-                        <FormDescription>Ingrese solo el usuario, se añadirá https://instagram.com/ automáticamente</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="direccion"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Dirección</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Dirección" 
-                            {...field} 
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value || null)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="comision"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Comisión (%)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Porcentaje de comisión" 
-                            type="number"
-                            step="0.01"
-                            {...field} 
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value || null)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione un país" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="argentina">Argentina</SelectItem>
+                        <SelectItem value="brasil">Brasil</SelectItem>
+                        <SelectItem value="colombia">Colombia</SelectItem>
+                        <SelectItem value="espana">España</SelectItem>
+                        <SelectItem value="uruguay">Uruguay</SelectItem>
+                        <SelectItem value="usa">USA</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Seleccione uno de los países disponibles
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="web"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sitio Web</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="ejemplo.com" 
+                        {...field} 
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                      />
+                    </FormControl>
+                    <FormDescription>Ingrese solo el dominio, se añadirá https:// automáticamente</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="instagram"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Instagram</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="usuario" 
+                        {...field} 
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                      />
+                    </FormControl>
+                    <FormDescription>Ingrese solo el usuario, se añadirá https://instagram.com/ automáticamente</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="direccion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Dirección" 
+                        {...field} 
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="comision"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Comisión (%)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Porcentaje de comisión" 
+                        type="number"
+                        step="0.01"
+                        {...field} 
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
                 <div className="grid grid-cols-1 gap-4 items-end md:grid-cols-[3fr_1fr]">
-                  <FormField
-                    control={form.control}
-                    name="categoria"
+              <FormField
+                control={form.control}
+                name="categoria"
                     render={() => (
                       <FormItem>
-                        <FormLabel>Categoría</FormLabel>
+                    <FormLabel>Categoría</FormLabel>
                         <Select
                           onValueChange={(value) => form.setValue('categoria', value || null)}
                           value={form.watch('categoria') || ""}
                         >
-                          <FormControl>
+                        <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Seleccione una categoría" />
                             </SelectTrigger>
-                          </FormControl>
+                        </FormControl>
                           <SelectContent>
                             {categoriasInternas.length === 0 && (
                               <div className="p-2 text-sm text-muted-foreground">
@@ -463,10 +463,10 @@ export function EditProveedorDialog({
                             ))}
                           </SelectContent>
                         </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
                   <Button 
                     type="button" 
                     variant="outline" 
@@ -475,33 +475,33 @@ export function EditProveedorDialog({
                   >
                     <IconPlus className="mr-2 h-4 w-4" /> Nueva
                   </Button>
-                </div>
+            </div>
                 <FormDescription className="-mt-3 text-xs text-muted-foreground px-1 md:col-start-1 md:col-span-1">
                   Seleccione o cree una categoría para el proveedor.
                 </FormDescription>
-                
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    type="button"
-                    onClick={() => onOpenChange(false)}
-                    disabled={isSubmitting}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Guardando...
-                      </>
-                    ) : (
-                      "Guardar Cambios"
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
+            
+            <DialogFooter>
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  "Guardar Cambios"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
           )}
         </DialogContent>
       </Dialog>
@@ -530,8 +530,8 @@ export function EditProveedorDialog({
             <Button variant="outline" onClick={() => { setIsCreateCategoriaDialogOpen(false); setNewCategoriaName(""); }}>Cancelar</Button>
             <Button onClick={handleCreateNuevaCategoriaInterna}>Añadir y Seleccionar</Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </DialogContent>
+    </Dialog>
     </>
   )
 } 

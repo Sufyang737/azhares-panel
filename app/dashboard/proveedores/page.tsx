@@ -177,7 +177,7 @@ export default function ProveedoresPage() {
     // Nota: Esto no afecta a los proveedores que ya usan esta categoría.
     // Se limpiará la selección en NewProveedorDialog/EditProveedorDialog si la categoría activa se elimina.
   };
-
+  
   return (
     <SidebarProvider
       style={
@@ -202,9 +202,9 @@ export default function ProveedoresPage() {
                       Gestionar Categorías
                     </Button>
                     <Button onClick={() => setIsNewDialogOpen(true)} className="w-full sm:w-auto">
-                      <IconPlus className="mr-2 h-4 w-4" />
-                      Nuevo Proveedor
-                    </Button>
+                    <IconPlus className="mr-2 h-4 w-4" />
+                    Nuevo Proveedor
+                  </Button>
                   </div>
                 </div>
                 

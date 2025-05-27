@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     console.log('Datos recibidos en POST:', body);
 
     // Validate required fields and their values
-    const requiredFields = ["type", "especie", "moneda", "categoria", "subcargo", "detalle", "montoEspera"];
+    const requiredFields = ["type", "especie", "moneda", "categoria", "subcargo", "montoEspera"];
     for (const field of requiredFields) {
       if (!body[field] && body[field] !== 0) {
         return NextResponse.json(
@@ -75,16 +75,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const validDetalles = [
-      "compra-usd", "comision", "handy", "honorarios", "maquillaje",
-      "planner", "staff", "viandas", "venta-usd", "viatico", "seguro"
-    ];
+    if (body.detalle) {
+      const validDetalles = [
+        "compra-usd", "comision", "handy","otros", "honorarios", "maquillaje", "Loli", "Noe",
+        "planner", "staff", "viandas", "venta-usd", "viatico", "seguro",
+        "iva", "ganancias", "luz", "gas", "internet", "general"
+      ];
 
-    if (body.detalle && !validDetalles.includes(body.detalle)) {
-      return NextResponse.json(
-        { error: "El campo 'detalle' debe ser uno de los valores permitidos" },
-        { status: 400 }
-      );
+      if (!validDetalles.includes(body.detalle)) {
+        return NextResponse.json(
+          { error: `El campo 'detalle' debe ser uno de los valores permitidos: ${validDetalles.join(", ")}` },
+          { status: 400 }
+        );
+      }
     }
 
     // Create the record with proper type handling

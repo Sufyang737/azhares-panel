@@ -86,7 +86,7 @@ export function NewProveedorDialog({
   useEffect(() => {
     if (open) {
       setCategoriasInternas(categoriasDisponibles.sort((a,b) => a.localeCompare(b)));
-    }
+          }
   }, [open, categoriasDisponibles]);
   
   useEffect(() => {
@@ -176,190 +176,190 @@ export function NewProveedorDialog({
       setIsSubmitting(false);
     }
   }
-
+  
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Nuevo Proveedor</DialogTitle>
-            <DialogDescription>
-              Introduce los detalles del nuevo proveedor y guárdalos cuando hayas terminado.
-            </DialogDescription>
-          </DialogHeader>
-          
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Nuevo Proveedor</DialogTitle>
+          <DialogDescription>
+            Introduce los detalles del nuevo proveedor y guárdalos cuando hayas terminado.
+          </DialogDescription>
+        </DialogHeader>
+        
           <div className="max-h-[calc(80vh-120px)] overflow-y-auto pr-6 space-y-6">
-            <Form {...form}>
+        <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="nombre"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Nombre del proveedor" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="alias"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Alias</FormLabel>
-                        <FormControl>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="nombre"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nombre del proveedor" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="alias"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Alias</FormLabel>
+                    <FormControl>
                           <Input placeholder="Alias del proveedor" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="contacto"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contacto</FormLabel>
-                      <FormControl>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+              <FormField
+                control={form.control}
+                name="contacto"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contacto</FormLabel>
+                    <FormControl>
                         <Input placeholder="Nombre del contacto" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="telefono"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Teléfono</FormLabel>
-                        <FormControl>
+              <FormField
+                control={form.control}
+                name="telefono"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono</FormLabel>
+                    <FormControl>
                           <Input type="tel" placeholder="Teléfono" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
                           <Input type="email" placeholder="correo@ejemplo.com" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
                 </div>
-                
-                <FormField
-                  control={form.control}
-                  name="pais"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>País</FormLabel>
+              
+              <FormField
+                control={form.control}
+                name="pais"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>País</FormLabel>
                       <Select onValueChange={(value) => field.onChange(value || null)} value={field.value ?? ""}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione un país" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione un país" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
                           {PAISES_PERMITIDOS.map((pais) => (
                             <SelectItem key={pais} value={pais}>
                               {pais.charAt(0).toUpperCase() + pais.slice(1)}
                             </SelectItem>
                           ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Seleccione uno de los países disponibles
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="web"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sitio Web</FormLabel>
-                      <FormControl>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Seleccione uno de los países disponibles
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            
+              <FormField
+                control={form.control}
+                name="web"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sitio Web</FormLabel>
+                    <FormControl>
                         <Input placeholder="ejemplo.com" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
-                      </FormControl>
+                    </FormControl>
                       <FormDescription>
                         Ingrese solo el dominio, se añadirá https:// automáticamente
                       </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="instagram"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Instagram</FormLabel>
-                      <FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="instagram"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Instagram</FormLabel>
+                    <FormControl>
                         <Input placeholder="usuario" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
-                      </FormControl>
+                    </FormControl>
                       <FormDescription>
                         Ingrese solo el usuario, se añadirá https://instagram.com/ automáticamente
                       </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="direccion"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dirección</FormLabel>
-                      <FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            
+              <FormField
+                control={form.control}
+                name="direccion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección</FormLabel>
+                    <FormControl>
                         <Input placeholder="Dirección" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="comision"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Comisión (%)</FormLabel>
-                      <FormControl>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="comision"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Comisión (%)</FormLabel>
+                    <FormControl>
                         <Input type="number" placeholder="Porcentaje de comisión" {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value || null)} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="categoria"
-                  render={({ field }) => (
-                    <FormItem>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            
+              <FormField
+                control={form.control}
+                name="categoria"
+                render={({ field }) => (
+                  <FormItem>
                       <div className="flex items-center justify-between">
-                        <FormLabel>Categoría</FormLabel>
+                    <FormLabel>Categoría</FormLabel>
                         <Button 
                           type="button" 
                           variant="outline"
@@ -370,40 +370,40 @@ export function NewProveedorDialog({
                         </Button>
                       </div>
                       <Select onValueChange={field.onChange} value={field.value ?? ""}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione una categoría" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione una categoría" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
                           {categoriasInternas.map((cat) => (
                             <SelectItem key={cat} value={cat}>
                               {cat}
                             </SelectItem>
                           ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
                         Seleccione o cree una categoría para el proveedor.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            
                 <DialogFooter className="pt-6">
                   <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                    <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : null}
                     Guardar Proveedor
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
           </div>
         </DialogContent>
       </Dialog>
@@ -431,8 +431,8 @@ export function NewProveedorDialog({
             <Button variant="outline" onClick={() => { setIsCreateCategoriaDialogOpen(false); setNewCategoriaName(""); }}>Cancelar</Button>
             <Button onClick={handleCreateNuevaCategoriaInterna}>Añadir y Seleccionar</Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </DialogContent>
+    </Dialog>
     </>
   )
 } 

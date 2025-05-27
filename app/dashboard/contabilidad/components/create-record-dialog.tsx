@@ -48,6 +48,8 @@ import { Cliente, Proveedor, Evento, Equipo, getClientes, getProveedores, getEve
 // import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"; // Comentado Command
 import { ReactSearchAutocomplete } from 'react-search-autocomplete';
 import debounce from 'lodash/debounce';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 interface DolarBlue {
   venta: number;
@@ -60,16 +62,16 @@ type FormData = {
   moneda: 'ars' | 'usd';
   categoria: 'evento' | 'oficina';
   subcargo: string;
-  detalle: string;
+  detalle?: string;
   montoEspera: number;
   dolarEsperado: number;
   fechaEspera: Date;
   esEsperado: boolean;
-  comentario: string;
-  cliente_id: string;
-  proveedor_id: string;
-  evento_id: string;
-  equipo_id: string;
+  comentario?: string;
+  cliente_id?: string;
+  proveedor_id?: string;
+  evento_id?: string;
+  equipo_id?: string;
 };
 
 interface CreateRecordDialogProps {
@@ -141,6 +143,12 @@ const getAvailableDetalles = (type: string, categoria: string, subcargo: string)
       { value: 'comision', label: 'Comisión' }
     ];
   }
+  if (type === 'pago' && categoria === 'oficina' && subcargo === 'deriva') {
+    return [
+      { value: 'Noe', label: 'Noe' },
+      { value: 'Loli', label: 'Loli' }
+    ];
+  }
   if (type === 'pago' && categoria === 'evento') {
     return [
       { value: 'maquillaje', label: 'Maquillaje' },
@@ -157,12 +165,9 @@ const getAvailableDetalles = (type: string, categoria: string, subcargo: string)
   if (type === 'pago' && categoria === 'oficina') {
     if (subcargo === 'impuestos') return [{value: 'iva', label: 'IVA'}, {value: 'ganancias', label: 'Ganancias'}];
     if (subcargo === 'servicios') return [{value: 'luz', label: 'Luz'}, {value: 'gas', label: 'Gas'}, {value: 'internet', label: 'Internet'}];
-    return [
-      { value: 'general', label: 'General' },
-      { value: 'honorarios', label: 'Honorarios' }
-    ];
+    return [{ value: 'otros', label: 'Otros' }];
   }
-  return [{ value: 'general', label: 'General' }];
+  return [{ value: 'otros', label: 'Otros' }];
 };
 
 // Componente de búsqueda reutilizable con Command
@@ -252,6 +257,24 @@ const getAvailableDetalles = (type: string, categoria: string, subcargo: string)
 //   );
 // } // Fin de SearchableCommand comentado
 
+const formSchema = z.object({
+  type: z.enum(['cobro', 'pago']),
+  especie: z.enum(['efectivo', 'trasferencia']),
+  moneda: z.enum(['ars', 'usd']),
+  categoria: z.enum(['evento', 'oficina']),
+  subcargo: z.string().min(1, "Subcargo es requerido"),
+  detalle: z.string().optional(),
+  montoEspera: z.number().min(0.01, "El monto debe ser mayor a 0"),
+  dolarEsperado: z.number(),
+  fechaEspera: z.date(),
+  esEsperado: z.boolean(),
+  comentario: z.string().optional(),
+  cliente_id: z.string().optional(),
+  proveedor_id: z.string().optional(),
+  evento_id: z.string().optional(),
+  equipo_id: z.string().optional(),
+});
+
 export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToEdit }: CreateRecordDialogProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -280,8 +303,8 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
     especie: "efectivo" as 'efectivo' | 'trasferencia',
     moneda: "ars" as 'ars' | 'usd',
     categoria: "oficina" as 'evento' | 'oficina',
-    subcargo: "otros",
-    detalle: "comision",
+    subcargo: "",
+    detalle: "",
     montoEspera: 0,
     dolarEsperado: 0,
     fechaEspera: new Date(),
@@ -293,9 +316,10 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
     equipo_id: "",
   }), []);
 
-  const form = useForm<FormData>({
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: defaultFormValues,
-    mode: "onSubmit"
+    mode: "onChange"
   });
 
   useEffect(() => {
@@ -355,7 +379,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
 
   const availableSubcargos = React.useMemo(() => getAvailableSubcargos(currentType, currentCategoria), [currentType, currentCategoria]);
   const availableDetalles = React.useMemo(() => getAvailableDetalles(currentType, currentCategoria, currentSubcargo), [currentType, currentCategoria, currentSubcargo]);
-  
+
   useEffect(() => {
     const currentSubcargoValue = form.getValues('subcargo');
     if (!availableSubcargos.find(s => s.value === currentSubcargoValue)) {
@@ -473,36 +497,32 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
     [] // Dependencies: searchClientes, searchProveedores, etc. si fueran props o cambiaran. Como son imports, está bien vacío.
   );
 
-  const onSubmit = async (values: FormData) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const recordData: Partial<ContabilidadRecord> & { [key: string]: any } = {
+      const recordData: Partial<ContabilidadRecord> = {
         type: values.type,
         especie: values.especie,
         moneda: values.moneda,
         categoria: values.categoria,
         subcargo: values.subcargo as ContabilidadRecord['subcargo'],
-        detalle: values.detalle as ContabilidadRecord['detalle'],
+        detalle: (values.detalle || 'otros') as ContabilidadRecord['detalle'],
         montoEspera: Number(values.montoEspera),
         dolarEsperado: Number(values.dolarEsperado),
         fechaEspera: values.fechaEspera.toISOString(),
         esEsperado: values.esEsperado,
-        comentario: values.comentario,
-        cliente_id: values.cliente_id || undefined,
-        proveedor_id: values.proveedor_id || undefined,
-        evento_id: values.evento_id || undefined,
-        equipo_id: values.equipo_id || undefined,
       };
+
+      // Solo agregar campos opcionales si tienen valor
+      if (values.comentario) recordData.comentario = values.comentario;
+      if (values.cliente_id) recordData.cliente_id = values.cliente_id;
+      if (values.proveedor_id) recordData.proveedor_id = values.proveedor_id;
+      if (values.evento_id) recordData.evento_id = values.evento_id;
+      if (values.equipo_id) recordData.equipo_id = values.equipo_id;
 
       if (!values.esEsperado) {
         recordData.fechaEfectuado = new Date().toISOString();
-      }
-      
-      for (const key of ['cliente_id', 'proveedor_id', 'evento_id', 'equipo_id']) {
-        if (!recordData[key]) {
-          delete recordData[key];
-        }
       }
 
       if (mode === 'create') {
@@ -565,9 +585,9 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
         <DialogHeader className="pb-4">
           <DialogTitle>{mode === 'create' ? 'Crear Nuevo Registro' : 'Editar Registro'}</DialogTitle>
           {dolarBlue && form.getValues('moneda') === 'usd' && (
-            <DialogDescription>
+          <DialogDescription>
               Dólar Blue: Compra ${dolarBlue.compra} | Venta ${dolarBlue.venta}
-            </DialogDescription>
+          </DialogDescription>
           )}
         </DialogHeader>
         <Form {...form}>
@@ -575,90 +595,90 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
             {/* Primera fila: Tipo, Método, Moneda */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <FormField control={form.control} name="type" render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel>💰 Tipo *</FormLabel>
+                  <FormItem className="space-y-1">
+                    <FormLabel>💰 Tipo *</FormLabel>
                   <Select onValueChange={(value) => field.onChange(value as 'cobro' | 'pago')} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
                     <SelectContent><SelectItem value="cobro">Cobro</SelectItem><SelectItem value="pago">Pago</SelectItem></SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
               )} />
               <FormField control={form.control} name="especie" render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel>💳 Método *</FormLabel>
+                  <FormItem className="space-y-1">
+                    <FormLabel>💳 Método *</FormLabel>
                   <Select onValueChange={(value) => field.onChange(value as 'efectivo' | 'trasferencia')} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
                     <SelectContent><SelectItem value="efectivo">Efectivo</SelectItem><SelectItem value="trasferencia">Transferencia</SelectItem></SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
               )} />
               <FormField control={form.control} name="moneda" render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel>💵 Moneda *</FormLabel>
+                  <FormItem className="space-y-1">
+                    <FormLabel>💵 Moneda *</FormLabel>
                   <Select onValueChange={(value) => field.onChange(value as 'ars' | 'usd')} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
                     <SelectContent><SelectItem value="ars">ARS</SelectItem><SelectItem value="usd">USD</SelectItem></SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
               )} />
             </div>
 
             {/* Segunda fila: Monto y Fecha */}
             <div className="grid grid-cols-2 gap-3">
               <FormField control={form.control} name="montoEspera" render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel>💰 Monto *</FormLabel>
-                  <FormControl>
+                  <FormItem className="space-y-1">
+                    <FormLabel>💰 Monto *</FormLabel>
+                    <FormControl>
                     <Input type="number" step="0.01" min="0.01" placeholder="Ingrese el monto"
-                      {...field}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value);
+                        {...field}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value);
                         field.onChange(isNaN(value) || value <= 0 ? '' : value);
-                      }}
+                        }}
                       value={field.value || ''}
-                    />
-                  </FormControl>
-                  {form.watch('moneda') === "ars" && dolarBlue && field.value > 0 && (
-                    <FormDescription className="text-xs">
+                      />
+                    </FormControl>
+                    {form.watch('moneda') === "ars" && dolarBlue && field.value > 0 && (
+                      <FormDescription className="text-xs">
                       ≈ USD {(Number(field.value) / dolarBlue.venta).toFixed(2)}
-                    </FormDescription>
-                  )}
-                  <FormMessage />
-                </FormItem>
+                      </FormDescription>
+                    )}
+                    <FormMessage />
+                  </FormItem>
               )} />
               <div className="space-y-3">
                 <FormField control={form.control} name="fechaEspera" render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>📅 Fecha</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel>📅 Fecha</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <FormControl>
+                      <FormControl>
                           <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
                             {field.value ? format(field.value, "dd/MM/yyyy", { locale: es }) : <span>Seleccionar fecha</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
-                        </FormControl>
+                      </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
-                  </FormItem>
+                      <FormMessage />
+                    </FormItem>
                 )} />
                 <FormField control={form.control} name="esEsperado" render={({ field }) => (
                   <FormItem className="flex flex-row items-center space-x-2 space-y-0 pt-2">
                     <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                    <div className="space-y-0.5">
-                      <FormLabel>⏳ Fecha Programada</FormLabel>
-                      <FormDescription className="text-xs">
+                      <div className="space-y-0.5">
+                        <FormLabel>⏳ Fecha Programada</FormLabel>
+                        <FormDescription className="text-xs">
                         {field.value ? "Esta fecha es programada (el pago aún no se realizó)" : "Esta fecha es efectiva (el pago ya se realizó)"}
-                      </FormDescription>
-                    </div>
-                  </FormItem>
+                        </FormDescription>
+                      </div>
+                    </FormItem>
                 )} />
               </div>
             </div>
@@ -666,39 +686,39 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
             {/* Tercera fila: Categoría, Subcargo y Detalle */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <FormField control={form.control} name="categoria" render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel>📁 Categoría *</FormLabel>
+                  <FormItem className="space-y-1">
+                    <FormLabel>📁 Categoría *</FormLabel>
                   <Select onValueChange={(value) => field.onChange(value as 'evento' | 'oficina')} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
                     <SelectContent><SelectItem value="evento">Evento</SelectItem><SelectItem value="oficina">Oficina</SelectItem></SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
               )} />
               <FormField control={form.control} name="subcargo" render={({ field }) => (
-                <FormItem className="space-y-1">
-                  <FormLabel>📑 Subcargo *</FormLabel>
+                  <FormItem className="space-y-1">
+                    <FormLabel>📑 Subcargo *</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      {availableSubcargos.map(({ value, label }) => (<SelectItem key={value} value={value}>{label}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              {!(currentType === 'pago' && currentCategoria === 'oficina') && (
-                 <FormField control={form.control} name="detalle" render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>🔍 Detalle *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
                       <SelectContent>
-                        {availableDetalles.map(({ value, label }) => (<SelectItem key={value} value={value}>{label}</SelectItem>))}
+                      {availableSubcargos.map(({ value, label }) => (<SelectItem key={value} value={value}>{label}</SelectItem>))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
+              )} />
+              {(currentType === 'cobro' || (currentType === 'pago' && currentCategoria === 'oficina' && currentSubcargo === 'deriva')) && (
+                 <FormField control={form.control} name="detalle" render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel>🔍 Detalle</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar (opcional)" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                        {availableDetalles.map(({ value, label }) => (<SelectItem key={value} value={value}>{label}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
                 )} />
               )}
             </div>
@@ -707,7 +727,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
             <div className="grid grid-cols-2 gap-3">
               <FormField control={form.control} name="cliente_id" render={({ field }) => (
                 <FormItem className="flex flex-col space-y-1">
-                  <FormLabel>👤 Cliente</FormLabel>
+                    <FormLabel>👤 Cliente</FormLabel>
                   {isLoadingClientes && <div className="p-2 text-sm flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando...</div>}
                   <ReactSearchAutocomplete
                     items={clientesResult.map(c => ({ ...c, name: c.nombre }))}
@@ -724,7 +744,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                       setSelectedClienteName(null);
                       setClientesResult([]);
                     }}
-                    placeholder="Buscar cliente..."
+                        placeholder="Buscar cliente..."
                     autoFocus={false}
                     resultStringKeyName="name"
                     inputSearchString={selectedClienteName || ""}
@@ -741,13 +761,13 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                       clearIconMargin: "3px 8px 0 0",
                       zIndex: 10,
                     }}
-                  />
-                  <FormMessage />
-                </FormItem>
+                      />
+                    <FormMessage />
+                  </FormItem>
               )} />
               <FormField control={form.control} name="proveedor_id" render={({ field }) => (
                 <FormItem className="flex flex-col space-y-1">
-                  <FormLabel>🏢 Proveedor</FormLabel>
+                    <FormLabel>🏢 Proveedor</FormLabel>
                   {isLoadingProveedores && <div className="p-2 text-sm flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando...</div>}
                   <ReactSearchAutocomplete
                     items={proveedoresResult.map(p => ({ ...p, name: p.nombre }))}
@@ -761,7 +781,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                         setSelectedProveedorName(null);
                         setProveedoresResult([]);
                     }}
-                    placeholder="Buscar proveedor..."
+                        placeholder="Buscar proveedor..."
                     autoFocus={false}
                     resultStringKeyName="name"
                     inputSearchString={selectedProveedorName || ""}
@@ -778,9 +798,9 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                       clearIconMargin: "3px 8px 0 0",
                       zIndex: 9,
                     }}
-                  />
-                  <FormMessage />
-                </FormItem>
+                      />
+                    <FormMessage />
+                  </FormItem>
               )} />
             </div>
 
@@ -788,7 +808,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
             <div className="grid grid-cols-2 gap-3">
                <FormField control={form.control} name="evento_id" render={({ field }) => (
                 <FormItem className="flex flex-col space-y-1">
-                  <FormLabel>🎉 Evento</FormLabel>
+                    <FormLabel>🎉 Evento</FormLabel>
                   {isLoadingEventos && <div className="p-2 text-sm flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando...</div>}
                   <ReactSearchAutocomplete
                     items={eventosResult.map(e => ({ ...e, name: e.nombre }))}
@@ -802,7 +822,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                         setSelectedEventoName(null);
                         setEventosResult([]);
                     }}
-                    placeholder="Buscar evento..."
+                        placeholder="Buscar evento..."
                     autoFocus={false}
                     resultStringKeyName="name"
                     inputSearchString={selectedEventoName || ""}
@@ -819,13 +839,13 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                       clearIconMargin: "3px 8px 0 0",
                       zIndex: 8,
                     }}
-                  />
-                  <FormMessage />
-                </FormItem>
+                      />
+                    <FormMessage />
+                  </FormItem>
               )} />
               <FormField control={form.control} name="equipo_id" render={({ field }) => (
                 <FormItem className="flex flex-col space-y-1">
-                  <FormLabel>👥 Equipo</FormLabel>
+                    <FormLabel>👥 Equipo</FormLabel>
                   {isLoadingEquipo && <div className="p-2 text-sm flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando...</div>}
                    <ReactSearchAutocomplete
                     items={equipoResult.map(eq => ({ ...eq, name: eq.nombre }))}
@@ -857,28 +877,43 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                       zIndex: 7,
                     }}
                   />
-                  <FormMessage />
-                </FormItem>
+                    <FormMessage />
+                  </FormItem>
               )} />
             </div>
 
             {/* Sexta fila: Comentarios */}
             <FormField control={form.control} name="comentario" render={({ field }) => (
-              <FormItem className="space-y-1">
-                <FormLabel>💭 Comentarios</FormLabel>
-                <FormControl>
+                <FormItem className="space-y-1">
+                  <FormLabel>💭 Comentarios</FormLabel>
+                  <FormControl>
                   <Textarea placeholder="Agregar comentarios adicionales..." className="min-h-[60px] resize-none" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
             )} />
 
             <div className="flex justify-between items-center pt-2">
               <div className="text-xs text-muted-foreground">
-                {(form.formState.dirtyFields.type && form.formState.dirtyFields.especie && form.formState.dirtyFields.moneda && form.formState.dirtyFields.montoEspera && form.formState.dirtyFields.categoria && form.formState.dirtyFields.subcargo && ( (currentType === 'pago' && currentCategoria === 'oficina') ? true : form.formState.dirtyFields.detalle ) ) || mode === 'edit' ? "✅ Formulario listo" : "⚠️ Complete los campos requeridos"}
+                {form.formState.isValid ? (
+                  "✅ Formulario listo"
+                ) : (
+                  <span className="text-destructive">
+                    ⚠️ {Object.values(form.formState.errors)[0]?.message || "Complete los campos requeridos"}
+                  </span>
+                )}
               </div>
-              <Button type="submit" size="sm" className="ml-auto" disabled={isSubmitting || !form.formState.isDirty && mode === 'create'}>
-                {isSubmitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</>) : (mode === 'create' ? 'Guardar' : 'Actualizar')}
+              <Button 
+                type="submit" 
+                size="sm" 
+                className="ml-auto" 
+                disabled={isSubmitting || !form.formState.isValid}
+              >
+                {isSubmitting ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando...</>
+                ) : (
+                  mode === 'create' ? 'Guardar' : 'Actualizar'
+                )}
               </Button>
             </div>
           </form>
