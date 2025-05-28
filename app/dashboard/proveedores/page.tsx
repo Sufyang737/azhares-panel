@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 // import { useRouter } from "next/navigation" // Comentado ya que router no se usa
 import { toast } from "sonner"
-import { IconPlus, IconTags, IconTrash } from "@tabler/icons-react"
+import { IconPlus, IconTags, IconTrash, IconSearch } from "@tabler/icons-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
@@ -19,10 +19,12 @@ import { type Proveedor } from "@/components/proveedores/proveedores-data-table"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function ProveedoresPage() {
   // const router = useRouter() // Comentado ya que no se usa
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
+  const [filteredProveedores, setFilteredProveedores] = useState<Proveedor[]>([])
   const [loading, setLoading] = useState(true)
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -35,6 +37,12 @@ export default function ProveedoresPage() {
   const [loadingCategorias, setLoadingCategorias] = useState(true);
   const [isManageCategoriasDialogOpen, setIsManageCategoriasDialogOpen] = useState(false);
   const [nuevaCategoriaInput, setNuevaCategoriaInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('todos');
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Proveedor; direction: 'asc' | 'desc' }>({
+    key: 'nombre',
+    direction: 'asc'
+  });
 
   // Cargar categorías globales
   const fetchCategoriasGlobales = useCallback(async () => {
@@ -177,7 +185,49 @@ export default function ProveedoresPage() {
     // Nota: Esto no afecta a los proveedores que ya usan esta categoría.
     // Se limpiará la selección en NewProveedorDialog/EditProveedorDialog si la categoría activa se elimina.
   };
-  
+
+  // Función para filtrar y ordenar proveedores
+  const filterAndSortProveedores = useCallback(() => {
+    let filtered = [...proveedores];
+
+    // Filtrar por búsqueda
+    if (searchTerm) {
+      filtered = filtered.filter(proveedor => 
+        (String(proveedor.nombre || '').toLowerCase()).includes(searchTerm.toLowerCase()) ||
+        (String(proveedor.email || '').toLowerCase()).includes(searchTerm.toLowerCase()) ||
+        (String(proveedor.telefono || '').toLowerCase()).includes(searchTerm.toLowerCase()) ||
+        (String(proveedor.categoria || '').toLowerCase()).includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtrar por pestaña activa
+    if (activeTab !== 'todos') {
+      filtered = filtered.filter(proveedor => proveedor.categoria === activeTab);
+    }
+
+    // Aplicar ordenamiento
+    filtered.sort((a, b) => {
+      const aValue = (a[sortConfig.key] || '') as string;
+      const bValue = (b[sortConfig.key] || '') as string;
+
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    setFilteredProveedores(filtered);
+  }, [proveedores, searchTerm, activeTab, sortConfig]);
+
+  // Efecto para aplicar filtros cuando cambian las dependencias
+  useEffect(() => {
+    filterAndSortProveedores();
+  }, [filterAndSortProveedores]);
+
+  // Efecto para inicializar filteredProveedores cuando se cargan los proveedores
+  useEffect(() => {
+    setFilteredProveedores(proveedores);
+  }, [proveedores]);
+
   return (
     <SidebarProvider
       style={
@@ -202,19 +252,61 @@ export default function ProveedoresPage() {
                       Gestionar Categorías
                     </Button>
                     <Button onClick={() => setIsNewDialogOpen(true)} className="w-full sm:w-auto">
-                    <IconPlus className="mr-2 h-4 w-4" />
-                    Nuevo Proveedor
-                  </Button>
+                      <IconPlus className="mr-2 h-4 w-4" />
+                      Nuevo Proveedor
+                    </Button>
                   </div>
                 </div>
+
+                {/* Barra de búsqueda y filtros */}
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar proveedores..."
+                        className="pl-8"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <Select
+                    value={`${sortConfig.key}-${sortConfig.direction}`}
+                    onValueChange={(value) => {
+                      const [key, direction] = value.split('-');
+                      setSortConfig({
+                        key: key as keyof Proveedor,
+                        direction: direction as 'asc' | 'desc'
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Ordenar por" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nombre-asc">Nombre (A-Z)</SelectItem>
+                      <SelectItem value="nombre-desc">Nombre (Z-A)</SelectItem>
+                      <SelectItem value="categoria-asc">Categoría (A-Z)</SelectItem>
+                      <SelectItem value="categoria-desc">Categoría (Z-A)</SelectItem>
+                      <SelectItem value="created-desc">Más recientes</SelectItem>
+                      <SelectItem value="created-asc">Más antiguos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 
-                <Tabs defaultValue="todos" className="w-full mt-6">
-                  <TabsList>
-                    <TabsTrigger value="todos">Todos los Proveedores</TabsTrigger>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="todos">Todos</TabsTrigger>
+                    {categoriasGlobales.map((categoria) => (
+                      <TabsTrigger key={categoria} value={categoria}>
+                        {categoria}
+                      </TabsTrigger>
+                    ))}
                   </TabsList>
-                  <TabsContent value="todos" className="mt-6">
+                  <TabsContent value={activeTab} className="mt-6">
                     <ProveedoresDataTable 
-                      data={proveedores} 
+                      data={filteredProveedores} 
                       loading={loading} 
                       onDelete={handleDeleteClick}
                       onEdit={handleEdit}

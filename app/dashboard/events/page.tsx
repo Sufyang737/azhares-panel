@@ -14,6 +14,9 @@ import { CreateEventDialog } from "@/components/events/create-event-dialog";
 import { EventDetailsDialog } from "@/components/events/event-details-dialog";
 import { EventFilters } from "@/components/events/events-filters";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { IconSearch } from "@tabler/icons-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Configuración del localizador para el calendario
 const locales = {
@@ -68,6 +71,15 @@ interface Evento {
 export default function EventsPage() {
   const [events, setEvents] = useState<Evento[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Evento[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof Evento | 'cliente.nombre';
+    direction: 'asc' | 'desc';
+  }>({
+    key: 'fecha',
+    direction: 'desc'
+  });
+  const [filterEstado, setFilterEstado] = useState<string>('todos');
   const [birthdays, setBirthdays] = useState<Array<{
     id: string;
     title: string;
@@ -147,7 +159,7 @@ export default function EventsPage() {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Función para manejar los cambios en los filtros
+  // Función mejorada para manejar los filtros
   const handleFiltersChange = ({
     startDate,
     endDate,
@@ -158,6 +170,16 @@ export default function EventsPage() {
     eventType: string;
   }) => {
     let filtered = [...events];
+
+    // Filtrar por búsqueda
+    if (searchTerm) {
+      filtered = filtered.filter(event => 
+        String(event.nombre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(event.cliente?.nombre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(event.planner?.nombre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(event.comentario || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
 
     // Filtrar por fechas
     if (startDate && endDate) {
@@ -172,8 +194,44 @@ export default function EventsPage() {
       filtered = filtered.filter(event => event.tipo.toLowerCase() === eventType.toLowerCase());
     }
 
+    // Filtrar por estado
+    if (filterEstado !== 'todos') {
+      filtered = filtered.filter(event => event.estado.toLowerCase() === filterEstado.toLowerCase());
+    }
+
+    // Aplicar ordenamiento
+    filtered.sort((a, b) => {
+      let aValue: any = a[sortConfig.key as keyof Evento];
+      let bValue: any = b[sortConfig.key as keyof Evento];
+
+      // Manejar ordenamiento especial para nombre del cliente
+      if (sortConfig.key === 'cliente.nombre') {
+        aValue = a.cliente?.nombre || '';
+        bValue = b.cliente?.nombre || '';
+      }
+
+      // Manejar ordenamiento de fechas
+      if (sortConfig.key === 'fecha' || sortConfig.key === 'created' || sortConfig.key === 'updated') {
+        aValue = new Date(aValue || '').getTime();
+        bValue = new Date(bValue || '').getTime();
+      }
+
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
     setFilteredEvents(filtered);
   };
+
+  // Efecto para actualizar filtros cuando cambia la búsqueda o el ordenamiento
+  useEffect(() => {
+    handleFiltersChange({
+      startDate: undefined,
+      endDate: undefined,
+      eventType: 'todos'
+    });
+  }, [searchTerm, sortConfig, filterEstado, events]);
 
   // Actualizar eventos filtrados cuando cambian los eventos
   useEffect(() => {
@@ -233,6 +291,61 @@ export default function EventsPage() {
                       <h2 className="text-2xl font-bold tracking-tight">Eventos</h2>
                       <CreateEventDialog onEventCreated={handleEventCreated} />
                     </div>
+                    
+                    {/* Barra de búsqueda y filtros */}
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="flex-1">
+                        <div className="relative">
+                          <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Buscar eventos..."
+                            className="pl-8"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <Select
+                        value={filterEstado}
+                        onValueChange={setFilterEstado}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todos">Todos los estados</SelectItem>
+                          <SelectItem value="pendiente">Pendiente</SelectItem>
+                          <SelectItem value="confirmado">Confirmado</SelectItem>
+                          <SelectItem value="cancelado">Cancelado</SelectItem>
+                          <SelectItem value="completado">Completado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={`${sortConfig.key}-${sortConfig.direction}`}
+                        onValueChange={(value) => {
+                          const [key, direction] = value.split('-');
+                          setSortConfig({
+                            key: key as keyof Evento | 'cliente.nombre',
+                            direction: direction as 'asc' | 'desc'
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Ordenar por" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fecha-desc">Fecha (más reciente)</SelectItem>
+                          <SelectItem value="fecha-asc">Fecha (más antigua)</SelectItem>
+                          <SelectItem value="nombre-asc">Nombre (A-Z)</SelectItem>
+                          <SelectItem value="nombre-desc">Nombre (Z-A)</SelectItem>
+                          <SelectItem value="cliente.nombre-asc">Cliente (A-Z)</SelectItem>
+                          <SelectItem value="cliente.nombre-desc">Cliente (Z-A)</SelectItem>
+                          <SelectItem value="created-desc">Creación (más reciente)</SelectItem>
+                          <SelectItem value="created-asc">Creación (más antigua)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <EventFilters onFiltersChange={handleFiltersChange} />
                     <EventsDataTable data={filteredEvents} />
                   </TabsContent>
