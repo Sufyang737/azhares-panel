@@ -322,8 +322,8 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
         
         <div className="flex-1 overflow-y-auto pr-2">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 flex flex-col h-full">
+              <div className="grid grid-cols-2 gap-4 flex-1">
                 <FormField
                   control={form.control}
                   name="nombre"
@@ -592,26 +592,26 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
                   )}
                 />
               </div>
+              
+              <DialogFooter className="mt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && (
+                    <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Guardar Evento
+                </Button>
+              </DialogFooter>
             </form>
           </Form>
         </div>
-
-        <DialogFooter className="mt-4">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => setIsOpen(false)}
-            disabled={isSubmitting}
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && (
-              <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            Guardar Evento
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
