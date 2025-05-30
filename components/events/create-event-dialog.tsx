@@ -312,303 +312,306 @@ export function CreateEventDialog({ onEventCreated }: { onEventCreated?: () => v
           Nuevo Evento
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Crear Nuevo Evento</DialogTitle>
+          <DialogTitle>Crear nuevo evento</DialogTitle>
           <DialogDescription>
-            Completa el formulario para crear un nuevo evento. Haz clic en guardar cuando hayas terminado.
+            Complete los detalles del evento a continuación.
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="nombre"
-                render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel>Nombre del Evento</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nombre del evento" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="tipo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de Evento</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar tipo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="aniversario">Aniversario</SelectItem>
-                        <SelectItem value="bat-bar">Bat/Bar mitzvah</SelectItem>
-                        <SelectItem value="bautismo">Bautismo</SelectItem>
-                        <SelectItem value="casamiento">Casamiento</SelectItem>
-                        <SelectItem value="civil">Civil</SelectItem>
-                        <SelectItem value="comunion">Comunión</SelectItem>
-                        <SelectItem value="corporativo">Corporativo</SelectItem>
-                        <SelectItem value="cumpleanos">Cumpleaños</SelectItem>
-                        <SelectItem value="egresados">Egresados</SelectItem>
-                        <SelectItem value="en-casa">En Casa</SelectItem>
-                        <SelectItem value="festejo">Festejo</SelectItem>
-                        <SelectItem value="fiesta15">Fiesta de 15</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="estado"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estado</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar estado" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="en-curso">En curso</SelectItem>
-                        <SelectItem value="finalizado">Finalizado</SelectItem>
-                        <SelectItem value="cancelado">Cancelado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="fecha"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Fecha del evento</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
-                        onChange={(e) => {
-                          const date = new Date(e.target.value);
-                          field.onChange(date);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Toggle para cliente nuevo/frecuente */}
-              <FormField
-                control={form.control}
-                name="cliente_nuevo"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between col-span-2 rounded-lg border p-3 shadow-sm">
-                    <div className="space-y-0.5">
-                      <FormLabel>Cliente nuevo</FormLabel>
-                      <FormDescription>
-                        Activa esta opción si es un cliente nuevo
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={(checked) => {
-                          field.onChange(checked);
-                          handleClienteNuevoChange(checked);
-                        }}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              {/* Campos para cliente nuevo o selección de cliente frecuente */}
-              {!clienteNuevo ? (
+        
+        <div className="flex-1 overflow-y-auto pr-2">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="cliente_id"
+                  name="nombre"
                   render={({ field }) => (
                     <FormItem className="col-span-2">
-                      <FormLabel>Cliente</FormLabel>
+                      <FormLabel>Nombre del Evento</FormLabel>
                       <FormControl>
-                        <div style={{ zIndex: 100 }}>
-                          <ReactSearchAutocomplete
-                            items={clientesFormatted}
-                            onSelect={handleOnSelect}
-                            showIcon={false}
-                            styling={{
-                              height: "44px",
-                              border: "1px solid #e2e8f0",
-                              borderRadius: "6px",
-                              backgroundColor: "white",
-                              boxShadow: "none",
-                              hoverBackgroundColor: "#f7fafc",
-                              color: "#1a202c",
-                              fontSize: "14px",
-                              fontFamily: "inherit",
-                              iconColor: "grey",
-                              lineColor: "#e2e8f0",
-                              placeholderColor: "#a0aec0",
-                              clearIconMargin: "3px 8px 0 0",
-                              zIndex: 2
-                            }}
-                            placeholder="Buscar cliente..."
-                            formatResult={(item) => (
-                              <div style={{ display: "flex", flexDirection: "column" }}>
-                                <span style={{ fontWeight: "bold" }}>{item.name}</span>
-                                {item.email && (
-                                  <span style={{ fontSize: "12px", color: "#718096" }}>
-                                    {item.email}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          />
-                        </div>
+                        <Input placeholder="Nombre del evento" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        Selecciona un cliente frecuente
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              ) : (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="cliente_nombre"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre del Cliente</FormLabel>
+                
+                <FormField
+                  control={form.control}
+                  name="tipo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Evento</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
                         <FormControl>
-                          <Input placeholder="Nombre del cliente" {...field} />
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar tipo" />
+                          </SelectTrigger>
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        <SelectContent>
+                          <SelectItem value="aniversario">Aniversario</SelectItem>
+                          <SelectItem value="bat-bar">Bat/Bar mitzvah</SelectItem>
+                          <SelectItem value="bautismo">Bautismo</SelectItem>
+                          <SelectItem value="casamiento">Casamiento</SelectItem>
+                          <SelectItem value="civil">Civil</SelectItem>
+                          <SelectItem value="comunion">Comunión</SelectItem>
+                          <SelectItem value="corporativo">Corporativo</SelectItem>
+                          <SelectItem value="cumpleanos">Cumpleaños</SelectItem>
+                          <SelectItem value="egresados">Egresados</SelectItem>
+                          <SelectItem value="en-casa">En Casa</SelectItem>
+                          <SelectItem value="festejo">Festejo</SelectItem>
+                          <SelectItem value="fiesta15">Fiesta de 15</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="estado"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar estado" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="en-curso">En curso</SelectItem>
+                          <SelectItem value="finalizado">Finalizado</SelectItem>
+                          <SelectItem value="cancelado">Cancelado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="fecha"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Fecha del evento</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                          onChange={(e) => {
+                            const date = new Date(e.target.value);
+                            field.onChange(date);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Toggle para cliente nuevo/frecuente */}
+                <FormField
+                  control={form.control}
+                  name="cliente_nuevo"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between col-span-2 rounded-lg border p-3 shadow-sm">
+                      <div className="space-y-0.5">
+                        <FormLabel>Cliente nuevo</FormLabel>
+                        <FormDescription>
+                          Activa esta opción si es un cliente nuevo
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            handleClienteNuevoChange(checked);
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Campos para cliente nuevo o selección de cliente frecuente */}
+                {!clienteNuevo ? (
                   <FormField
                     control={form.control}
-                    name="cliente_email"
+                    name="cliente_id"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email del Cliente</FormLabel>
+                      <FormItem className="col-span-2">
+                        <FormLabel>Cliente</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="cliente@ejemplo.com" {...field} />
+                          <div style={{ zIndex: 100 }}>
+                            <ReactSearchAutocomplete
+                              items={clientesFormatted}
+                              onSelect={handleOnSelect}
+                              showIcon={false}
+                              styling={{
+                                height: "44px",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: "6px",
+                                backgroundColor: "white",
+                                boxShadow: "none",
+                                hoverBackgroundColor: "#f7fafc",
+                                color: "#1a202c",
+                                fontSize: "14px",
+                                fontFamily: "inherit",
+                                iconColor: "grey",
+                                lineColor: "#e2e8f0",
+                                placeholderColor: "#a0aec0",
+                                clearIconMargin: "3px 8px 0 0",
+                                zIndex: 2
+                              }}
+                              placeholder="Buscar cliente..."
+                              formatResult={(item) => (
+                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                  <span style={{ fontWeight: "bold" }}>{item.name}</span>
+                                  {item.email && (
+                                    <span style={{ fontSize: "12px", color: "#718096" }}>
+                                      {item.email}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            />
+                          </div>
                         </FormControl>
                         <FormDescription>
-                          Se enviará un correo de bienvenida personalizado a esta dirección con los detalles del evento.
+                          Selecciona un cliente frecuente
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </>
-              )}
-              
-              <FormField
-                control={form.control}
-                name="planner_id"
-                render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel>Planner asignado</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      value={field.value}
-                      disabled={loadingPlanners}
-                    >
+                ) : (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="cliente_nombre"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nombre del Cliente</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nombre del cliente" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="cliente_email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email del Cliente</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="cliente@ejemplo.com" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Se enviará un correo de bienvenida personalizado a esta dirección con los detalles del evento.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+                
+                <FormField
+                  control={form.control}
+                  name="planner_id"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel>Planner asignado</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        disabled={loadingPlanners}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={loadingPlanners ? "Cargando planners..." : "Seleccionar planner"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {loadingPlanners ? (
+                            <div className="flex items-center justify-center p-2">
+                              <IconLoader2 className="h-4 w-4 animate-spin mr-2" />
+                              <span>Cargando planners...</span>
+                            </div>
+                          ) : planners.length > 0 ? (
+                            planners.map(planner => (
+                              <SelectItem key={planner.id} value={planner.id}>
+                                {planner.username} 
+                                {planner.email && ` (${planner.email})`}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <div className="p-2 text-center text-sm text-muted-foreground">
+                              No hay planners disponibles
+                            </div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Selecciona el planner asignado al evento
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="comentario"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel>Comentarios</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={loadingPlanners ? "Cargando planners..." : "Seleccionar planner"} />
-                        </SelectTrigger>
+                        <Textarea 
+                          placeholder="Comentarios adicionales sobre el evento" 
+                          {...field} 
+                          value={field.value || ""}
+                        />
                       </FormControl>
-                      <SelectContent>
-                        {loadingPlanners ? (
-                          <div className="flex items-center justify-center p-2">
-                            <IconLoader2 className="h-4 w-4 animate-spin mr-2" />
-                            <span>Cargando planners...</span>
-                          </div>
-                        ) : planners.length > 0 ? (
-                          planners.map(planner => (
-                            <SelectItem key={planner.id} value={planner.id}>
-                              {planner.username} 
-                              {planner.email && ` (${planner.email})`}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <div className="p-2 text-center text-sm text-muted-foreground">
-                            No hay planners disponibles
-                          </div>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Selecciona el planner asignado al evento
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="comentario"
-                render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel>Comentarios</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Comentarios adicionales sobre el evento" 
-                        {...field} 
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsOpen(false)}
-                disabled={isSubmitting}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && (
-                  <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Guardar Evento
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </form>
+          </Form>
+        </div>
+
+        <DialogFooter className="mt-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => setIsOpen(false)}
+            disabled={isSubmitting}
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && (
+              <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            Guardar Evento
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
