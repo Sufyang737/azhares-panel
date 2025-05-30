@@ -124,30 +124,24 @@ export default function ClientsPage() {
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <div className="px-4 lg:px-6">
-                <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 p-3 sm:p-4 md:gap-6 md:p-6">
+              <div className="px-2 sm:px-4 lg:px-6">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
                   <h2 className="text-muted-foreground text-lg font-semibold">
                     Panel de Clientes
                   </h2>
-                  <Button size="sm" className="h-8" asChild>
-                    <Link href="/dashboard/clients/new">
-                      <IconBuilding className="mr-2 h-4 w-4" />
-                      Añadir Cliente
-                    </Link>
-                  </Button>
                 </div>
               </div>
 
               {/* Filtros */}
-              <div className="px-4 lg:px-6">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div className="flex flex-1 items-center space-x-2">
+              <div className="px-2 sm:px-4 lg:px-6">
+                <div className="flex flex-col gap-4 sm:gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                     <div className="relative flex-1">
                       <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         placeholder="Buscar clientes..."
-                        className="pl-8"
+                        className="pl-8 w-full"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
@@ -156,7 +150,7 @@ export default function ClientsPage() {
                       value={filterType}
                       onValueChange={setFilterType}
                     >
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue placeholder="Filtrar por estado" />
                       </SelectTrigger>
                       <SelectContent>
@@ -167,38 +161,40 @@ export default function ClientsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Select
-                    value={`${sortConfig.key}-${sortConfig.direction}`}
-                    onValueChange={(value) => {
-                      const [key, direction] = value.split('-');
-                      setSortConfig({ 
-                        key: key as keyof Cliente, 
-                        direction: direction as 'asc' | 'desc' 
-                      });
-                    }}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Ordenar por" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="nombre-asc">Nombre (A-Z)</SelectItem>
-                      <SelectItem value="nombre-desc">Nombre (Z-A)</SelectItem>
-                      <SelectItem value="created-desc">Más recientes</SelectItem>
-                      <SelectItem value="created-asc">Más antiguos</SelectItem>
-                      <SelectItem value="contacto-asc">Contacto (A-Z)</SelectItem>
-                      <SelectItem value="contacto-desc">Contacto (Z-A)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex justify-end">
+                    <Select
+                      value={`${sortConfig.key}-${sortConfig.direction}`}
+                      onValueChange={(value) => {
+                        const [key, direction] = value.split('-');
+                        setSortConfig({ 
+                          key: key as keyof Cliente, 
+                          direction: direction as 'asc' | 'desc' 
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Ordenar por" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nombre-asc">Nombre (A-Z)</SelectItem>
+                        <SelectItem value="nombre-desc">Nombre (Z-A)</SelectItem>
+                        <SelectItem value="created-desc">Más recientes</SelectItem>
+                        <SelectItem value="created-asc">Más antiguos</SelectItem>
+                        <SelectItem value="contacto-asc">Contacto (A-Z)</SelectItem>
+                        <SelectItem value="contacto-desc">Contacto (Z-A)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
-              <div className="px-4 lg:px-6">
+              <div className="px-2 sm:px-4 lg:px-6">
                 {loading ? (
                   <div className="flex items-center justify-center py-8">
                     <Spinner size="lg" />
                   </div>
                 ) : error ? (
-                  <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-8 text-center">
+                  <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 sm:p-8 text-center">
                     <p className="text-destructive">Error: {error}</p>
                     <Button 
                       variant="outline"
@@ -209,7 +205,9 @@ export default function ClientsPage() {
                     </Button>
                   </div>
                 ) : (
-                  <ClientsDataTable data={filteredClientes} />
+                  <div className="overflow-x-auto">
+                    <ClientsDataTable data={filteredClientes} />
+                  </div>
                 )}
               </div>
             </div>

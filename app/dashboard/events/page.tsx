@@ -279,97 +279,113 @@ export default function EventsPage() {
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <div className="px-4 lg:px-6">
+            <div className="flex flex-col gap-4 p-3 sm:p-4 md:gap-6 md:p-6">
+              <div className="px-2 sm:px-4 lg:px-6">
                 <Tabs defaultValue="list" className="space-y-4">
-                  <TabsList>
-                    <TabsTrigger value="list">Lista</TabsTrigger>
-                    <TabsTrigger value="calendar">Calendario</TabsTrigger>
-                  </TabsList>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 mb-4">
+                    <TabsList className="w-full sm:w-auto">
+                      <TabsTrigger value="list" className="flex-1 sm:flex-none">Lista</TabsTrigger>
+                      <TabsTrigger value="calendar" className="flex-1 sm:flex-none">Calendario</TabsTrigger>
+                    </TabsList>
+                  </div>
+
                   <TabsContent value="list" className="space-y-4">
-                    <div className="flex justify-between">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
                       <h2 className="text-2xl font-bold tracking-tight">Eventos</h2>
                       <CreateEventDialog onEventCreated={handleEventCreated} />
                     </div>
                     
                     {/* Barra de búsqueda y filtros */}
-                    <div className="flex flex-col md:flex-row gap-4">
-                      <div className="flex-1">
-                        <div className="relative">
-                          <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            placeholder="Buscar eventos..."
-                            className="pl-8"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                          />
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex-1">
+                          <div className="relative">
+                            <IconSearch className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Buscar eventos..."
+                              className="pl-8 w-full"
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                          <Select
+                            value={filterEstado}
+                            onValueChange={setFilterEstado}
+                          >
+                            <SelectTrigger className="w-full sm:w-[180px]">
+                              <SelectValue placeholder="Estado" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="todos">Todos los estados</SelectItem>
+                              <SelectItem value="pendiente">Pendiente</SelectItem>
+                              <SelectItem value="confirmado">Confirmado</SelectItem>
+                              <SelectItem value="cancelado">Cancelado</SelectItem>
+                              <SelectItem value="completado">Completado</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={`${sortConfig.key}-${sortConfig.direction}`}
+                            onValueChange={(value) => {
+                              const [key, direction] = value.split('-');
+                              setSortConfig({
+                                key: key as keyof Evento | 'cliente.nombre',
+                                direction: direction as 'asc' | 'desc'
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="w-full sm:w-[200px]">
+                              <SelectValue placeholder="Ordenar por" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="fecha-desc">Fecha (más reciente)</SelectItem>
+                              <SelectItem value="fecha-asc">Fecha (más antigua)</SelectItem>
+                              <SelectItem value="nombre-asc">Nombre (A-Z)</SelectItem>
+                              <SelectItem value="nombre-desc">Nombre (Z-A)</SelectItem>
+                              <SelectItem value="cliente.nombre-asc">Cliente (A-Z)</SelectItem>
+                              <SelectItem value="cliente.nombre-desc">Cliente (Z-A)</SelectItem>
+                              <SelectItem value="created-desc">Creación (más reciente)</SelectItem>
+                              <SelectItem value="created-asc">Creación (más antigua)</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
-                      <Select
-                        value={filterEstado}
-                        onValueChange={setFilterEstado}
-                      >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="todos">Todos los estados</SelectItem>
-                          <SelectItem value="pendiente">Pendiente</SelectItem>
-                          <SelectItem value="confirmado">Confirmado</SelectItem>
-                          <SelectItem value="cancelado">Cancelado</SelectItem>
-                          <SelectItem value="completado">Completado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select
-                        value={`${sortConfig.key}-${sortConfig.direction}`}
-                        onValueChange={(value) => {
-                          const [key, direction] = value.split('-');
-                          setSortConfig({
-                            key: key as keyof Evento | 'cliente.nombre',
-                            direction: direction as 'asc' | 'desc'
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="w-[200px]">
-                          <SelectValue placeholder="Ordenar por" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="fecha-desc">Fecha (más reciente)</SelectItem>
-                          <SelectItem value="fecha-asc">Fecha (más antigua)</SelectItem>
-                          <SelectItem value="nombre-asc">Nombre (A-Z)</SelectItem>
-                          <SelectItem value="nombre-desc">Nombre (Z-A)</SelectItem>
-                          <SelectItem value="cliente.nombre-asc">Cliente (A-Z)</SelectItem>
-                          <SelectItem value="cliente.nombre-desc">Cliente (Z-A)</SelectItem>
-                          <SelectItem value="created-desc">Creación (más reciente)</SelectItem>
-                          <SelectItem value="created-asc">Creación (más antigua)</SelectItem>
-                        </SelectContent>
-                      </Select>
+
+                      <div className="w-full overflow-x-auto">
+                        <EventFilters onFiltersChange={handleFiltersChange} />
+                      </div>
                     </div>
 
-                    <EventFilters onFiltersChange={handleFiltersChange} />
-                    <EventsDataTable data={filteredEvents} />
+                    <div className="overflow-x-auto">
+                      <EventsDataTable data={filteredEvents} />
+                    </div>
                   </TabsContent>
+
                   <TabsContent value="calendar" className="space-y-4">
-                    <div className="flex justify-between">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
                       <h2 className="text-2xl font-bold tracking-tight">Calendario</h2>
                       <CreateEventDialog onEventCreated={handleEventCreated} />
                     </div>
-                    <EventFilters onFiltersChange={handleFiltersChange} />
-                    <div className="h-[600px]">
-                      <Calendar
-                        {...calendarStyles}
-                        localizer={localizer}
-                        events={calendarEvents}
-                        startAccessor="start"
-                        endAccessor="end"
-                        // components={{ toolbar: CustomToolbar }} // Toolbar Comentada temporalmente
-                        messages={messages}
-                        culture='es'
-                        onSelectEvent={handleSelectEvent}
-                        onNavigate={(date: Date, view: View, action: 'PREV' | 'NEXT' | 'TODAY') => {
-                          console.log('Navegación:', { date, view, action });
-                        }}
-                      />
+                    <div className="w-full overflow-x-auto">
+                      <EventFilters onFiltersChange={handleFiltersChange} />
+                    </div>
+                    <div className="h-[600px] overflow-x-auto">
+                      <div className="min-w-[768px]">
+                        <Calendar
+                          {...calendarStyles}
+                          localizer={localizer}
+                          events={calendarEvents}
+                          startAccessor="start"
+                          endAccessor="end"
+                          messages={messages}
+                          culture='es'
+                          onSelectEvent={handleSelectEvent}
+                          onNavigate={(date: Date, view: View, action: 'PREV' | 'NEXT' | 'TODAY') => {
+                            console.log('Navegación:', { date, view, action });
+                          }}
+                        />
+                      </div>
                     </div>
                   </TabsContent>
                 </Tabs>
