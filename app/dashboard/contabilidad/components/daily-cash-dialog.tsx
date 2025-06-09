@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format, isValid, parseISO, startOfDay, endOfDay, isToday } from "date-fns";
 import { es } from "date-fns/locale";
-import { Wallet } from "lucide-react";
+import { Wallet, Calendar as CalendarIcon } from "lucide-react";
 import { ContabilidadRecord } from "@/app/services/contabilidad";
 import {
   Table,
@@ -24,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 
 interface DailyCashDialogProps {
   records: ContabilidadRecord[];
@@ -61,27 +62,32 @@ interface CashTotals {
 
 export function DailyCashDialog({ records }: DailyCashDialogProps) {
   const [open, setOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  // Filtrar registros del día actual que estén efectuados
-  const todayRecords = records.filter(record => {
+  // Función para manejar el cambio de fecha
+  const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = new Date(event.target.value);
+    if (isValid(newDate)) {
+      setSelectedDate(newDate);
+    }
+  };
+
+  // Filtrar registros según la fecha seleccionada
+  const filteredRecords = records.filter(record => {
     if (!record.fechaEfectuado) return false;
     
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
+    const startOfSelectedDay = startOfDay(selectedDate);
+    const endOfSelectedDay = endOfDay(selectedDate);
     const effectiveDate = new Date(record.fechaEfectuado);
     
-    return effectiveDate >= today && effectiveDate < tomorrow;
+    return effectiveDate >= startOfSelectedDay && effectiveDate <= endOfSelectedDay;
   });
 
-  console.log('Registros encontrados para hoy:', todayRecords.length);
-  console.log('Registros del día:', todayRecords);
+  console.log('Registros encontrados para la fecha:', filteredRecords.length);
+  console.log('Registros del día:', filteredRecords);
 
   // Calcular totales
-  const totals = todayRecords.reduce((acc: CashTotals, record) => {
+  const totals = filteredRecords.reduce((acc: CashTotals, record) => {
     try {
       const amount = record.montoEspera || 0;
       const especie = record.especie?.toLowerCase();
@@ -139,9 +145,9 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
         <Button variant="outline" className="gap-2">
           <Wallet className="h-4 w-4" />
           Caja del Día
-          {todayRecords.length > 0 && (
+          {filteredRecords.length > 0 && (
             <Badge variant="secondary" className="ml-2">
-              {todayRecords.length}
+              {filteredRecords.length}
             </Badge>
           )}
         </Button>
@@ -149,9 +155,47 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
       <DialogContent className="max-w-4xl w-[95vw]">
         <DialogHeader>
           <DialogTitle>Resumen de Efectivo Diario</DialogTitle>
+          <div className="flex items-center gap-4">
+            <DialogDescription className="flex items-center gap-2">
+              Fecha:
+              <Input
+                type="date"
+                value={format(selectedDate, 'yyyy-MM-dd')}
+                onChange={handleDateChange}
+                className="w-auto"
+              />
+            </DialogDescription>
+          </div>
         </DialogHeader>
         
-        <div className="grid grid-cols-2 gap-4 pt-4">
+        {/* Resumen Total */}
+        <div className="rounded-lg border-2 border-primary p-4 mb-4 bg-primary/5">
+          <h3 className="font-semibold text-lg mb-3">Balance Total del Día</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h4 className="text-sm font-medium mb-2">ARS</h4>
+              <div className="text-2xl font-bold">
+                {formatCurrency(
+                  (totals.efectivo.ars.ingresos + totals.transferencia.ars.ingresos) -
+                  (totals.efectivo.ars.egresos + totals.transferencia.ars.egresos),
+                  'ars'
+                )}
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium mb-2">USD</h4>
+              <div className="text-2xl font-bold">
+                {formatCurrency(
+                  (totals.efectivo.usd.ingresos + totals.transferencia.usd.ingresos) -
+                  (totals.efectivo.usd.egresos + totals.transferencia.usd.egresos),
+                  'usd'
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-4">
             <div className="rounded-lg border p-4">
               <h3 className="font-semibold mb-3">Efectivo</h3>
@@ -161,15 +205,21 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-green-600">Ingresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.ars.ingresos, 'ARS')}</span>
+                      <span className="font-medium">{formatCurrency(totals.efectivo.ars.ingresos, 'ars')}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-red-600">Egresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.ars.egresos, 'ARS')}</span>
+                      <span className="font-medium">{formatCurrency(totals.efectivo.ars.egresos, 'ars')}</span>
                     </div>
                     <div className="col-span-2 flex justify-between items-center border-t pt-1">
                       <span>Balance:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos, 'ARS')}</span>
+                      <span className={`font-medium ${
+                        totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos >= 0 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {formatCurrency(totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos, 'ars')}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -178,15 +228,21 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-green-600">Ingresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.usd.ingresos, 'USD')}</span>
+                      <span className="font-medium">{formatCurrency(totals.efectivo.usd.ingresos, 'usd')}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-red-600">Egresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.usd.egresos, 'USD')}</span>
+                      <span className="font-medium">{formatCurrency(totals.efectivo.usd.egresos, 'usd')}</span>
                     </div>
                     <div className="col-span-2 flex justify-between items-center border-t pt-1">
                       <span>Balance:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos, 'USD')}</span>
+                      <span className={`font-medium ${
+                        totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos >= 0 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {formatCurrency(totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos, 'usd')}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -201,15 +257,21 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-green-600">Ingresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.transferencia.ars.ingresos, 'ARS')}</span>
+                      <span className="font-medium">{formatCurrency(totals.transferencia.ars.ingresos, 'ars')}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-red-600">Egresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.transferencia.ars.egresos, 'ARS')}</span>
+                      <span className="font-medium">{formatCurrency(totals.transferencia.ars.egresos, 'ars')}</span>
                     </div>
                     <div className="col-span-2 flex justify-between items-center border-t pt-1">
                       <span>Balance:</span>
-                      <span className="font-medium">{formatCurrency(totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos, 'ARS')}</span>
+                      <span className={`font-medium ${
+                        totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos >= 0 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {formatCurrency(totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos, 'ars')}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -218,15 +280,21 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-green-600">Ingresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.transferencia.usd.ingresos, 'USD')}</span>
+                      <span className="font-medium">{formatCurrency(totals.transferencia.usd.ingresos, 'usd')}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-red-600">Egresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.transferencia.usd.egresos, 'USD')}</span>
+                      <span className="font-medium">{formatCurrency(totals.transferencia.usd.egresos, 'usd')}</span>
                     </div>
                     <div className="col-span-2 flex justify-between items-center border-t pt-1">
                       <span>Balance:</span>
-                      <span className="font-medium">{formatCurrency(totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos, 'USD')}</span>
+                      <span className={`font-medium ${
+                        totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos >= 0 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {formatCurrency(totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos, 'usd')}
+                      </span>
                     </div>
                   </div>
                 </div>

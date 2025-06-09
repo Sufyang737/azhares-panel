@@ -5,9 +5,10 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, isWithinInterval } from 'date-fns';
+import { format, parse, startOfWeek, getDay, isWithinInterval, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import { Button } from "@/components/ui/button";
 
 import { EventsDataTable } from "@/components/events/events-data-table";
 import { CreateEventDialog } from "@/components/events/create-event-dialog";
@@ -34,6 +35,10 @@ const messages = {
   date: "Fecha",
   time: "Hora",
   event: "Evento",
+  allDay: "Todo el día",
+  work_week: "Semana laboral",
+  yesterday: "Ayer",
+  tomorrow: "Mañana",
   noEventsInRange: "No hay eventos en este rango",
   showMore: (total: number) => `+ Ver ${total} más`,
 };
@@ -67,6 +72,90 @@ interface Evento {
   created: string;
   updated: string;
 }
+
+// Definir la interfaz para los eventos del calendario
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  resource?: {
+    tipo?: string;
+    estado?: string;
+  };
+}
+
+// Interfaz para la barra de herramientas
+interface ToolbarProps {
+  date: Date;
+  view: string;
+  onNavigate: (action: 'PREV' | 'NEXT' | 'TODAY') => void;
+  onView: (view: string) => void;
+}
+
+// Componente personalizado para la barra de herramientas
+const CustomToolbar = ({ date, view, onNavigate, onView }: ToolbarProps) => {
+  const goToBack = () => {
+    onNavigate('PREV');
+  };
+
+  const goToNext = () => {
+    onNavigate('NEXT');
+  };
+
+  const goToCurrent = () => {
+    onNavigate('TODAY');
+  };
+
+  return (
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" onClick={goToBack}>
+          Anterior
+        </Button>
+        <Button variant="outline" size="sm" onClick={goToCurrent}>
+          Hoy
+        </Button>
+        <Button variant="outline" size="sm" onClick={goToNext}>
+          Siguiente
+        </Button>
+      </div>
+      <h2 className="text-lg font-semibold">
+        {format(date, 'MMMM yyyy', { locale: es })}
+      </h2>
+      <div className="flex gap-2">
+        <Button
+          variant={view === 'month' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => onView('month')}
+        >
+          Mes
+        </Button>
+        <Button
+          variant={view === 'week' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => onView('week')}
+        >
+          Semana
+        </Button>
+        <Button
+          variant={view === 'day' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => onView('day')}
+        >
+          Día
+        </Button>
+        <Button
+          variant={view === 'agenda' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => onView('agenda')}
+        >
+          Agenda
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Evento[]>([]);
@@ -240,25 +329,63 @@ export default function EventsPage() {
 
   // Convertir eventos para el calendario
   const calendarEvents = [
-    ...(filteredEvents || []).map(event => ({
+    ...(events || []).map(event => ({
       id: event.id,
-      title: event.nombre,
+      title: `${event.nombre} ${event.cliente?.nombre ? `- ${event.cliente.nombre}` : ''}`,
       start: new Date(event.fecha),
       end: new Date(event.fecha),
       allDay: true,
-      resource: event,
+      resource: {
+        ...event,
+        tipo: event.tipo,
+        estado: event.estado
+      },
     })),
     ...birthdays
   ];
 
-  // Estilos personalizados para el calendario
-  const calendarStyles = {
-    height: 600,
-    style: {
-      backgroundColor: 'white',
-      padding: '1rem',
-      borderRadius: '0.5rem',
+  // Personalizar el estilo de los eventos según su tipo y estado
+  const eventStyleGetter = (event: CalendarEvent) => {
+    // Si es un cumpleaños
+    if (event.id.startsWith('birthday-')) {
+      return {
+        style: {
+          backgroundColor: '#FFB6C1',
+          color: '#000000',
+          border: 'none',
+          borderRadius: '4px',
+          fontSize: '0.9em'
+        }
+      };
     }
+
+    // Para eventos regulares, color según estado
+    let backgroundColor = '#3B82F6'; // Azul por defecto
+    
+    switch (event.resource?.estado?.toLowerCase()) {
+      case 'pendiente':
+        backgroundColor = '#FFA500'; // Naranja
+        break;
+      case 'confirmado':
+        backgroundColor = '#10B981'; // Verde
+        break;
+      case 'cancelado':
+        backgroundColor = '#EF4444'; // Rojo
+        break;
+      case 'completado':
+        backgroundColor = '#8B5CF6'; // Violeta
+        break;
+    }
+
+    return {
+      style: {
+        backgroundColor,
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        fontSize: '0.9em'
+      }
+    };
   };
 
   // Manejador para cuando se hace clic en un evento
@@ -370,22 +497,49 @@ export default function EventsPage() {
                     <div className="w-full overflow-x-auto">
                       <EventFilters onFiltersChange={handleFiltersChange} />
                     </div>
-                    <div className="h-[600px] overflow-x-auto">
-                      <div className="min-w-[768px]">
-                        <Calendar
-                          {...calendarStyles}
-                          localizer={localizer}
-                          events={calendarEvents}
-                          startAccessor="start"
-                          endAccessor="end"
-                          messages={messages}
-                          culture='es'
-                          onSelectEvent={handleSelectEvent}
-                          onNavigate={(date: Date, view: View, action: 'PREV' | 'NEXT' | 'TODAY') => {
-                            console.log('Navegación:', { date, view, action });
-                          }}
-                        />
-                      </div>
+                    <div className="h-[600px] bg-white rounded-lg border p-4">
+                      <Calendar
+                        localizer={localizer}
+                        events={calendarEvents}
+                        startAccessor="start"
+                        endAccessor="end"
+                        messages={messages}
+                        culture='es'
+                        onSelectEvent={handleSelectEvent}
+                        style={{ 
+                          height: '100%',
+                          fontFamily: 'inherit',
+                        }}
+                        views={['month', 'week', 'day', 'agenda']}
+                        defaultView="month"
+                        tooltipAccessor={event => 
+                          `${event.title}${event.resource?.tipo ? `\nTipo: ${event.resource.tipo}` : ''}${event.resource?.estado ? `\nEstado: ${event.resource.estado}` : ''}`
+                        }
+                        eventPropGetter={eventStyleGetter}
+                        dayPropGetter={(date) => ({
+                          style: {
+                            backgroundColor: 'white',
+                            padding: '0.5rem',
+                          },
+                        })}
+                        components={{
+                          toolbar: CustomToolbar,
+                          month: {
+                            dateHeader: ({ date, label }) => (
+                              <div className="text-sm font-medium">
+                                {format(date, 'd')}
+                              </div>
+                            )
+                          }
+                        }}
+                        formats={{
+                          monthHeaderFormat: (date: Date) => format(date, 'MMMM yyyy', { locale: es }),
+                          dayHeaderFormat: (date: Date) => format(date, 'EEEE d', { locale: es }),
+                          dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) => 
+                            `${format(start, 'd MMM', { locale: es })} - ${format(end, 'd MMM', { locale: es })}`,
+                        }}
+                        className="custom-calendar"
+                      />
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -404,6 +558,51 @@ export default function EventsPage() {
       )}
     </SidebarProvider>
   );
-} 
+}
+
+// Agregar estos estilos globales en tu archivo CSS global
+const styles = `
+.custom-calendar {
+  .rbc-calendar {
+    min-height: 580px;
+  }
+  
+  .rbc-header {
+    padding: 8px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+  
+  .rbc-date-cell {
+    padding: 4px;
+    text-align: center;
+    font-weight: 500;
+  }
+  
+  .rbc-off-range-bg {
+    background-color: #f9fafb;
+  }
+  
+  .rbc-today {
+    background-color: #e5edff !important;
+  }
+  
+  .rbc-button-link {
+    padding: 4px;
+    font-weight: 500;
+  }
+  
+  .rbc-show-more {
+    color: #3b82f6;
+    font-weight: 500;
+  }
+  
+  .rbc-event {
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+  }
+}
+`; 
 
 
