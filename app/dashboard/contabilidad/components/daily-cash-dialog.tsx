@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,38 +9,12 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { format, isValid, parseISO, startOfDay, endOfDay, isToday } from "date-fns";
-import { es } from "date-fns/locale";
-import { Wallet, Calendar as CalendarIcon } from "lucide-react";
+import { format, isValid, startOfDay, endOfDay } from "date-fns";
+import { Wallet, Loader2 } from "lucide-react";
 import { ContabilidadRecord } from "@/app/services/contabilidad";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-
-interface DailyCashDialogProps {
-  records: ContabilidadRecord[];
-}
-
-const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return 'N/A';
-  try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return 'Fecha inválida';
-    return format(date, 'dd/MM/yyyy HH:mm', { locale: es });
-  } catch (error) {
-    console.error('Error formatting date:', dateString, error);
-    return 'Error en fecha';
-  }
-};
 
 const formatCurrency = (amount: number, currency: string): string => {
   return amount.toLocaleString('es-AR', {
@@ -58,11 +32,59 @@ interface CashTotals {
     ars: { ingresos: number; egresos: number };
     usd: { ingresos: number; egresos: number };
   };
+  acumulado: {
+    efectivo: {
+      ars: number;
+      usd: number;
+    };
+    transferencia: {
+      ars: number;
+      usd: number;
+    };
+    total: {
+      ars: number;
+      usd: number;
+    };
+  };
 }
 
-export function DailyCashDialog({ records }: DailyCashDialogProps) {
+export function DailyCashDialog() {
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [allRecords, setAllRecords] = useState<ContabilidadRecord[]>([]);
+
+  // Cargar registros cuando se abre el diálogo o cambia la fecha
+  useEffect(() => {
+    if (open) {
+      loadRecordsForDay(selectedDate);
+    }
+  }, [open, selectedDate]);
+
+  const loadRecordsForDay = async (date: Date) => {
+    setLoading(true);
+    try {
+      const endOfSelectedDay = endOfDay(date);
+
+      // Obtener registros del día seleccionado
+      const response = await fetch('/api/contabilidad?' + new URLSearchParams({
+        sort: '-created',
+        expand: 'cliente_id,evento_id,proveedor_id',
+        filter: `fechaEfectuado <= "${format(endOfSelectedDay, 'yyyy-MM-dd')} 23:59:59"`,
+      }));
+
+      if (!response.ok) {
+        throw new Error('Error al cargar los registros');
+      }
+
+      const data = await response.json();
+      setAllRecords(data.items);
+    } catch (error) {
+      console.error('Error al cargar los registros:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Función para manejar el cambio de fecha
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,27 +94,26 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
     }
   };
 
-  // Filtrar registros según la fecha seleccionada
-  const filteredRecords = records.filter(record => {
+  // Filtrar registros del día seleccionado
+  const dailyRecords = allRecords.filter(record => {
     if (!record.fechaEfectuado) return false;
-    
     const startOfSelectedDay = startOfDay(selectedDate);
     const endOfSelectedDay = endOfDay(selectedDate);
     const effectiveDate = new Date(record.fechaEfectuado);
-    
     return effectiveDate >= startOfSelectedDay && effectiveDate <= endOfSelectedDay;
   });
 
-  console.log('Registros encontrados para la fecha:', filteredRecords.length);
-  console.log('Registros del día:', filteredRecords);
-
   // Calcular totales
-  const totals = filteredRecords.reduce((acc: CashTotals, record) => {
+  const totals = allRecords.reduce((acc: CashTotals, record) => {
     try {
+      if (!record.fechaEfectuado) return acc;
+
       const amount = record.montoEspera || 0;
-      const especie = record.especie?.toLowerCase();
+      const especie = record.especie?.toLowerCase() || 'efectivo';
       const moneda = record.moneda?.toLowerCase();
       const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
+      const effectiveDate = new Date(record.fechaEfectuado);
+      const isSelectedDay = effectiveDate >= startOfDay(selectedDate) && effectiveDate <= endOfDay(selectedDate);
 
       // Validar que los valores sean correctos
       if (especie !== 'efectivo' && especie !== 'transferencia') {
@@ -105,7 +126,7 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
         return acc;
       }
 
-      // Asegurarnos de que la estructura existe
+      // Inicializar estructura si no existe
       if (!acc[especie]) {
         acc[especie] = {
           ars: { ingresos: 0, egresos: 0 },
@@ -113,17 +134,22 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
         };
       }
 
-      if (!acc[especie][moneda]) {
-        acc[especie][moneda] = { ingresos: 0, egresos: 0 };
+      // Actualizar totales del día si corresponde
+      if (isSelectedDay) {
+        acc[especie][moneda][type] += amount;
       }
 
-      if (!acc[especie][moneda][type]) {
-        acc[especie][moneda][type] = 0;
+      // Actualizar balance acumulado solo si es del día seleccionado o anterior
+      if (effectiveDate <= endOfDay(selectedDate)) {
+        if (type === 'ingresos') {
+          acc.acumulado[especie][moneda] += amount;
+          acc.acumulado.total[moneda] += amount;
+        } else {
+          acc.acumulado[especie][moneda] -= amount;
+          acc.acumulado.total[moneda] -= amount;
+        }
       }
 
-      // Sumar el monto
-      acc[especie][moneda][type] += amount;
-      console.log(`Sumando ${amount} a ${especie} ${moneda} ${type}`);
     } catch (error) {
       console.error('Error procesando registro:', record, error);
     }
@@ -136,6 +162,11 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
     transferencia: {
       ars: { ingresos: 0, egresos: 0 },
       usd: { ingresos: 0, egresos: 0 }
+    },
+    acumulado: {
+      efectivo: { ars: 0, usd: 0 },
+      transferencia: { ars: 0, usd: 0 },
+      total: { ars: 0, usd: 0 }
     }
   });
 
@@ -145,9 +176,9 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
         <Button variant="outline" className="gap-2">
           <Wallet className="h-4 w-4" />
           Caja del Día
-          {filteredRecords.length > 0 && (
+          {dailyRecords.length > 0 && (
             <Badge variant="secondary" className="ml-2">
-              {filteredRecords.length}
+              {dailyRecords.length}
             </Badge>
           )}
         </Button>
@@ -167,197 +198,205 @@ export function DailyCashDialog({ records }: DailyCashDialogProps) {
             </DialogDescription>
           </div>
         </DialogHeader>
-        
-        {/* Resumen Total */}
-        <div className="rounded-lg border-2 border-primary p-4 mb-4 bg-primary/5">
-          <h3 className="font-semibold text-lg mb-3">Balance Total del Día</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h4 className="text-sm font-medium mb-2">ARS</h4>
-              <div className="text-2xl font-bold">
-                {formatCurrency(
-                  (totals.efectivo.ars.ingresos + totals.transferencia.ars.ingresos) -
-                  (totals.efectivo.ars.egresos + totals.transferencia.ars.egresos),
-                  'ars'
-                )}
-              </div>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium mb-2">USD</h4>
-              <div className="text-2xl font-bold">
-                {formatCurrency(
-                  (totals.efectivo.usd.ingresos + totals.transferencia.usd.ingresos) -
-                  (totals.efectivo.usd.egresos + totals.transferencia.usd.egresos),
-                  'usd'
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-4">
-            <div className="rounded-lg border p-4">
-              <h3 className="font-semibold mb-3">Efectivo</h3>
-              <div className="space-y-4">
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Cargando registros...</span>
+          </div>
+        ) : (
+          <>
+            {/* Balance Acumulado */}
+            <div className="rounded-lg border-2 border-primary p-4 mb-4 bg-primary/5">
+              <h3 className="font-semibold text-lg mb-3">Balance Acumulado hasta la fecha</h3>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-sm font-medium mb-2">ARS</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-green-600">Ingresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.ars.ingresos, 'ars')}</span>
+                      <span>Efectivo:</span>
+                      <span className={totals.acumulado.efectivo.ars >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(totals.acumulado.efectivo.ars, 'ars')}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-red-600">Egresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.ars.egresos, 'ars')}</span>
+                      <span>Transferencia:</span>
+                      <span className={totals.acumulado.transferencia.ars >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(totals.acumulado.transferencia.ars, 'ars')}
+                      </span>
                     </div>
-                    <div className="col-span-2 flex justify-between items-center border-t pt-1">
-                      <span>Balance:</span>
-                      <span className={`font-medium ${
-                        totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos >= 0 
-                          ? 'text-green-600' 
-                          : 'text-red-600'
-                      }`}>
-                        {formatCurrency(totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos, 'ars')}
+                    <div className="flex justify-between items-center pt-1 border-t font-bold">
+                      <span>Total:</span>
+                      <span className={totals.acumulado.total.ars >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(totals.acumulado.total.ars, 'ars')}
                       </span>
                     </div>
                   </div>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium mb-2">USD</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-green-600">Ingresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.usd.ingresos, 'usd')}</span>
+                      <span>Efectivo:</span>
+                      <span className={totals.acumulado.efectivo.usd >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(totals.acumulado.efectivo.usd, 'usd')}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-red-600">Egresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.usd.egresos, 'usd')}</span>
+                      <span>Transferencia:</span>
+                      <span className={totals.acumulado.transferencia.usd >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(totals.acumulado.transferencia.usd, 'usd')}
+                      </span>
                     </div>
-                    <div className="col-span-2 flex justify-between items-center border-t pt-1">
-                      <span>Balance:</span>
-                      <span className={`font-medium ${
-                        totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos >= 0 
-                          ? 'text-green-600' 
-                          : 'text-red-600'
-                      }`}>
-                        {formatCurrency(totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos, 'usd')}
+                    <div className="flex justify-between items-center pt-1 border-t font-bold">
+                      <span>Total:</span>
+                      <span className={totals.acumulado.total.usd >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(totals.acumulado.total.usd, 'usd')}
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            
-            <div className="rounded-lg border p-4">
-              <h3 className="font-semibold mb-3">Transferencias</h3>
-              <div className="space-y-4">
+
+            {/* Resumen del Día */}
+            <div className="rounded-lg border p-4 mb-4">
+              <h3 className="font-semibold text-lg mb-3">Movimientos del Día</h3>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-sm font-medium mb-2">ARS</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-green-600">Ingresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.transferencia.ars.ingresos, 'ars')}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-red-600">Egresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.transferencia.ars.egresos, 'ars')}</span>
-                    </div>
-                    <div className="col-span-2 flex justify-between items-center border-t pt-1">
-                      <span>Balance:</span>
-                      <span className={`font-medium ${
-                        totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos >= 0 
-                          ? 'text-green-600' 
-                          : 'text-red-600'
-                      }`}>
-                        {formatCurrency(totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos, 'ars')}
-                      </span>
-                    </div>
+                  <div className="text-xl">
+                    {formatCurrency(
+                      (totals.efectivo.ars.ingresos + totals.transferencia.ars.ingresos) -
+                      (totals.efectivo.ars.egresos + totals.transferencia.ars.egresos),
+                      'ars'
+                    )}
                   </div>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium mb-2">USD</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-green-600">Ingresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.transferencia.usd.ingresos, 'usd')}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-red-600">Egresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.transferencia.usd.egresos, 'usd')}</span>
-                    </div>
-                    <div className="col-span-2 flex justify-between items-center border-t pt-1">
-                      <span>Balance:</span>
-                      <span className={`font-medium ${
-                        totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos >= 0 
-                          ? 'text-green-600' 
-                          : 'text-red-600'
-                      }`}>
-                        {formatCurrency(totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos, 'usd')}
-                      </span>
-                    </div>
+                  <div className="text-xl">
+                    {formatCurrency(
+                      (totals.efectivo.usd.ingresos + totals.transferencia.usd.ingresos) -
+                      (totals.efectivo.usd.egresos + totals.transferencia.usd.egresos),
+                      'usd'
+                    )}
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-4">
-            <div className="rounded-lg border p-4">
-              <h3 className="font-semibold mb-3">Total del Día</h3>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium mb-2">ARS</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-green-600">Ingresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.ars.ingresos + totals.transferencia.ars.ingresos, 'ARS')}</span>
+                <div className="rounded-lg border p-4">
+                  <h3 className="font-semibold mb-3">Efectivo</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">ARS</h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-green-600">Ingresos:</span>
+                          <span className="font-medium">{formatCurrency(totals.efectivo.ars.ingresos, 'ars')}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-red-600">Egresos:</span>
+                          <span className="font-medium">{formatCurrency(totals.efectivo.ars.egresos, 'ars')}</span>
+                        </div>
+                        <div className="col-span-2 flex justify-between items-center border-t pt-1">
+                          <span>Balance:</span>
+                          <span className={`font-medium ${
+                            totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos >= 0 
+                              ? 'text-green-600' 
+                              : 'text-red-600'
+                          }`}>
+                            {formatCurrency(totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos, 'ars')}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-red-600">Egresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.ars.egresos + totals.transferencia.ars.egresos, 'ARS')}</span>
-                    </div>
-                    <div className="col-span-2 flex justify-between items-center border-t pt-1">
-                      <span>Balance:</span>
-                      <span className="font-medium">{formatCurrency(
-                        (totals.efectivo.ars.ingresos + totals.transferencia.ars.ingresos) - 
-                        (totals.efectivo.ars.egresos + totals.transferencia.ars.egresos), 
-                        'ARS'
-                      )}</span>
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">USD</h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-green-600">Ingresos:</span>
+                          <span className="font-medium">{formatCurrency(totals.efectivo.usd.ingresos, 'usd')}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-red-600">Egresos:</span>
+                          <span className="font-medium">{formatCurrency(totals.efectivo.usd.egresos, 'usd')}</span>
+                        </div>
+                        <div className="col-span-2 flex justify-between items-center border-t pt-1">
+                          <span>Balance:</span>
+                          <span className={`font-medium ${
+                            totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos >= 0 
+                              ? 'text-green-600' 
+                              : 'text-red-600'
+                          }`}>
+                            {formatCurrency(totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos, 'usd')}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div>
-                  <h4 className="text-sm font-medium mb-2">USD</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-green-600">Ingresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.usd.ingresos + totals.transferencia.usd.ingresos, 'USD')}</span>
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-lg border p-4">
+                  <h3 className="font-semibold mb-3">Transferencia</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">ARS</h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-green-600">Ingresos:</span>
+                          <span className="font-medium">{formatCurrency(totals.transferencia.ars.ingresos, 'ars')}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-red-600">Egresos:</span>
+                          <span className="font-medium">{formatCurrency(totals.transferencia.ars.egresos, 'ars')}</span>
+                        </div>
+                        <div className="col-span-2 flex justify-between items-center border-t pt-1">
+                          <span>Balance:</span>
+                          <span className={`font-medium ${
+                            totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos >= 0 
+                              ? 'text-green-600' 
+                              : 'text-red-600'
+                          }`}>
+                            {formatCurrency(totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos, 'ars')}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-red-600">Egresos:</span>
-                      <span className="font-medium">{formatCurrency(totals.efectivo.usd.egresos + totals.transferencia.usd.egresos, 'USD')}</span>
-                    </div>
-                    <div className="col-span-2 flex justify-between items-center border-t pt-1">
-                      <span>Balance:</span>
-                      <span className="font-medium">{formatCurrency(
-                        (totals.efectivo.usd.ingresos + totals.transferencia.usd.ingresos) - 
-                        (totals.efectivo.usd.egresos + totals.transferencia.usd.egresos), 
-                        'USD'
-                      )}</span>
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">USD</h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-green-600">Ingresos:</span>
+                          <span className="font-medium">{formatCurrency(totals.transferencia.usd.ingresos, 'usd')}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-red-600">Egresos:</span>
+                          <span className="font-medium">{formatCurrency(totals.transferencia.usd.egresos, 'usd')}</span>
+                        </div>
+                        <div className="col-span-2 flex justify-between items-center border-t pt-1">
+                          <span>Balance:</span>
+                          <span className={`font-medium ${
+                            totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos >= 0 
+                              ? 'text-green-600' 
+                              : 'text-red-600'
+                          }`}>
+                            {formatCurrency(totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos, 'usd')}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cerrar
-          </Button>
-        </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

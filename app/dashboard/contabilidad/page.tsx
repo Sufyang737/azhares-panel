@@ -164,8 +164,8 @@ export default function ContabilidadPage() {
                       activeFilters={Object.keys(activeFilters).length}
                     />
                     <EventReportDialog records={records} />
-                    <MonthlyReportDialog records={records} />
-                    <DailyCashDialog records={records} />
+                    <MonthlyReportDialog />
+                    <DailyCashDialog />
                     <ScheduledRecordsDialog 
                       records={records}
                       onRecordUpdate={handleRecordUpdate}
