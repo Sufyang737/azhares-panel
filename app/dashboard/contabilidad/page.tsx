@@ -13,7 +13,7 @@ import { MonthlyReportDialog } from "./components/monthly-report-dialog";
 import { FiltersDialog } from "./components/filters-dialog";
 import { getContabilidadRecords, deleteContabilidadRecord } from "@/app/services/contabilidad";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, ListFilter } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface FilterValues {
@@ -32,7 +32,7 @@ export default function ContabilidadPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [activeFilters, setActiveFilters] = useState<FilterValues>({});
-  const perPage = 20;
+  const [showAllRecords, setShowAllRecords] = useState(false);
   const { toast } = useToast();
 
   const loadRecords = async (page = 1, filters: FilterValues = {}) => {
@@ -70,22 +70,31 @@ export default function ContabilidadPage() {
         filter += `fechaEfectuado <= "${filters.fechaHasta} 23:59:59"`;
       }
 
-      const data = await getContabilidadRecords({
+      const options = {
         sort: '-created',
         expand: 'cliente_id,evento_id,proveedor_id,equipo_id',
+        filter,
+        skipTotal: false,
         page,
-        perPage,
-        filter
-      });
+        perPage: showAllRecords ? 999999 : 50 // Un número grande para obtener todos los registros
+      };
+
+      // Usar getContabilidadRecords para ambos casos
+      const data = await getContabilidadRecords(options);
       
-      console.log("Registros recibidos de getContabilidadRecords:", data?.items);
       setRecords(data?.items || []);
       setTotalPages(data?.totalPages || 1);
       setTotalItems(data?.totalItems || 0);
-      setCurrentPage(page);
+      setCurrentPage(showAllRecords ? 1 : page);
+      
     } catch (error) {
       console.error("Error loading records:", error);
       setRecords([]);
+      toast({
+        title: "Error al cargar registros",
+        description: "No se pudieron cargar los registros contables. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -159,6 +168,17 @@ export default function ContabilidadPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowAllRecords(!showAllRecords);
+                        loadRecords(1, activeFilters);
+                      }}
+                    >
+                      <ListFilter className="h-4 w-4 mr-2" />
+                      {showAllRecords ? "Ver paginado" : "Ver todos"}
+                    </Button>
                     <FiltersDialog 
                       onFiltersChange={handleFiltersChange}
                       activeFilters={Object.keys(activeFilters).length}

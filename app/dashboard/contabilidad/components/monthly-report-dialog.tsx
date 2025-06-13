@@ -145,7 +145,7 @@ export function MonthlyReportDialog() {
   const availableMonths = Array.from({ length: 12 }, (_, i) => {
     const date = new Date();
     date.setMonth(date.getMonth() - i);
-    return format(date, 'yyyy-MM');
+        return format(date, 'yyyy-MM');
   });
 
   // Filtrar y agrupar registros por mes
@@ -179,19 +179,19 @@ export function MonthlyReportDialog() {
 
     // Calcular totales del mes
     const monthlyTotals = monthlyRecords.reduce((acc, record) => {
-      const moneda = record.moneda.toLowerCase() as 'ars' | 'usd';
-      const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
-      const isPending = !record.fechaEfectuado;
+        const moneda = record.moneda.toLowerCase() as 'ars' | 'usd';
+        const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
+        const isPending = !record.fechaEfectuado;
 
-      if (isPending) {
-        acc.pendientes[type][moneda] += record.montoEspera;
-        acc.pendingRecords.push(record);
-      } else {
-        acc[type][moneda] += record.montoEspera;
-        acc.records.push(record);
-      }
+        if (isPending) {
+          acc.pendientes[type][moneda] += record.montoEspera;
+          acc.pendingRecords.push(record);
+        } else {
+          acc[type][moneda] += record.montoEspera;
+          acc.records.push(record);
+        }
 
-      return acc;
+        return acc;
     }, initialAcc);
 
     // Calcular balance acumulado (usando todos los registros hasta la fecha)
@@ -243,23 +243,23 @@ export function MonthlyReportDialog() {
                 </div>
               ) : (
                 <>
-                  <div className="mt-4 mb-6">
-                    <Select
-                      value={selectedMonth}
-                      onValueChange={setSelectedMonth}
-                    >
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Selecciona un mes" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableMonths.map((month) => (
-                          <SelectItem key={month} value={month}>
-                            {format(parseISO(`${month}-01`), 'MMMM yyyy', { locale: es })}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+            <div className="mt-4 mb-6">
+              <Select
+                value={selectedMonth}
+                onValueChange={setSelectedMonth}
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Selecciona un mes" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableMonths.map((month) => (
+                    <SelectItem key={month} value={month}>
+                      {format(parseISO(`${month}-01`), 'MMMM yyyy', { locale: es })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Balance Acumulado */}
@@ -318,124 +318,124 @@ export function MonthlyReportDialog() {
                     </div>
 
                     {/* Resumen del Mes */}
-                    <div className="rounded-lg border p-4">
+                <div className="rounded-lg border p-4">
                       <h3 className="font-semibold mb-3">Resumen del Mes</h3>
-                      
-                      {/* ARS */}
-                      <div className="mb-4">
-                        <h4 className="font-medium mb-2">ARS</h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span>Ingresos:</span>
-                            <span className="text-green-600">{formatCurrency(monthlyData.ingresos.ars, 'ars')}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Egresos:</span>
-                            <span className="text-red-600">{formatCurrency(monthlyData.egresos.ars, 'ars')}</span>
-                          </div>
-                          <div className="flex justify-between font-bold border-t pt-1">
+                  
+                  {/* ARS */}
+                  <div className="mb-4">
+                    <h4 className="font-medium mb-2">ARS</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Ingresos:</span>
+                        <span className="text-green-600">{formatCurrency(monthlyData.ingresos.ars, 'ars')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Egresos:</span>
+                        <span className="text-red-600">{formatCurrency(monthlyData.egresos.ars, 'ars')}</span>
+                      </div>
+                      <div className="flex justify-between font-bold border-t pt-1">
                             <span>Balance del Mes:</span>
-                            <span className={monthlyData.ingresos.ars - monthlyData.egresos.ars >= 0 ? 'text-green-600' : 'text-red-600'}>
-                              {formatCurrency(monthlyData.ingresos.ars - monthlyData.egresos.ars, 'ars')}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* USD */}
-                      <div>
-                        <h4 className="font-medium mb-2">USD</h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span>Ingresos:</span>
-                            <span className="text-green-600">{formatCurrency(monthlyData.ingresos.usd, 'usd')}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Egresos:</span>
-                            <span className="text-red-600">{formatCurrency(monthlyData.egresos.usd, 'usd')}</span>
-                          </div>
-                          <div className="flex justify-between font-bold border-t pt-1">
-                            <span>Balance del Mes:</span>
-                            <span className={monthlyData.ingresos.usd - monthlyData.egresos.usd >= 0 ? 'text-green-600' : 'text-red-600'}>
-                              {formatCurrency(monthlyData.ingresos.usd - monthlyData.egresos.usd, 'usd')}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Transacciones Pendientes */}
-                    <div className="rounded-lg border p-4">
-                      <h3 className="font-semibold mb-3">Transacciones Pendientes</h3>
-                      
-                      {/* ARS Pendientes */}
-                      <div className="mb-4">
-                        <h4 className="font-medium mb-2">ARS</h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span>Por Cobrar:</span>
-                            <span className="text-blue-600">{formatCurrency(monthlyData.pendientes.ingresos.ars, 'ars')}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Por Pagar:</span>
-                            <span className="text-orange-600">{formatCurrency(monthlyData.pendientes.egresos.ars, 'ars')}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* USD Pendientes */}
-                      <div>
-                        <h4 className="font-medium mb-2">USD</h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span>Por Cobrar:</span>
-                            <span className="text-blue-600">{formatCurrency(monthlyData.pendientes.ingresos.usd, 'usd')}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Por Pagar:</span>
-                            <span className="text-orange-600">{formatCurrency(monthlyData.pendientes.egresos.usd, 'usd')}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Transacciones Pendientes Lista */}
-                    <div className="rounded-lg border p-4">
-                      <h3 className="font-semibold mb-3">Lista de Transacciones Pendientes</h3>
-                      <div className="max-h-[500px] overflow-y-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Tipo</TableHead>
-                              <TableHead>Moneda</TableHead>
-                              <TableHead>Monto</TableHead>
-                              <TableHead>Fecha Esperada</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {monthlyData.pendingRecords.map((record) => (
-                              <TableRow key={record.id}>
-                                <TableCell>
-                                  <Badge variant={record.type === 'cobro' ? 'default' : 'destructive'}>
-                                    {record.type}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant={record.moneda === 'usd' ? 'outline' : 'secondary'}>
-                                    {record.moneda.toUpperCase()}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="font-mono">
-                                  {formatCurrency(record.montoEspera, record.moneda)}
-                                </TableCell>
-                                <TableCell>{formatDate(record.fechaEspera)}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                        <span className={monthlyData.ingresos.ars - monthlyData.egresos.ars >= 0 ? 'text-green-600' : 'text-red-600'}>
+                          {formatCurrency(monthlyData.ingresos.ars - monthlyData.egresos.ars, 'ars')}
+                        </span>
                       </div>
                     </div>
                   </div>
+
+                  {/* USD */}
+                  <div>
+                    <h4 className="font-medium mb-2">USD</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Ingresos:</span>
+                        <span className="text-green-600">{formatCurrency(monthlyData.ingresos.usd, 'usd')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Egresos:</span>
+                        <span className="text-red-600">{formatCurrency(monthlyData.egresos.usd, 'usd')}</span>
+                      </div>
+                      <div className="flex justify-between font-bold border-t pt-1">
+                            <span>Balance del Mes:</span>
+                        <span className={monthlyData.ingresos.usd - monthlyData.egresos.usd >= 0 ? 'text-green-600' : 'text-red-600'}>
+                          {formatCurrency(monthlyData.ingresos.usd - monthlyData.egresos.usd, 'usd')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Transacciones Pendientes */}
+                <div className="rounded-lg border p-4">
+                  <h3 className="font-semibold mb-3">Transacciones Pendientes</h3>
+                  
+                  {/* ARS Pendientes */}
+                  <div className="mb-4">
+                    <h4 className="font-medium mb-2">ARS</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Por Cobrar:</span>
+                        <span className="text-blue-600">{formatCurrency(monthlyData.pendientes.ingresos.ars, 'ars')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Por Pagar:</span>
+                        <span className="text-orange-600">{formatCurrency(monthlyData.pendientes.egresos.ars, 'ars')}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* USD Pendientes */}
+                  <div>
+                    <h4 className="font-medium mb-2">USD</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Por Cobrar:</span>
+                        <span className="text-blue-600">{formatCurrency(monthlyData.pendientes.ingresos.usd, 'usd')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Por Pagar:</span>
+                        <span className="text-orange-600">{formatCurrency(monthlyData.pendientes.egresos.usd, 'usd')}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Transacciones Pendientes Lista */}
+              <div className="rounded-lg border p-4">
+                <h3 className="font-semibold mb-3">Lista de Transacciones Pendientes</h3>
+                <div className="max-h-[500px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Moneda</TableHead>
+                        <TableHead>Monto</TableHead>
+                        <TableHead>Fecha Esperada</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {monthlyData.pendingRecords.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell>
+                            <Badge variant={record.type === 'cobro' ? 'default' : 'destructive'}>
+                              {record.type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={record.moneda === 'usd' ? 'outline' : 'secondary'}>
+                              {record.moneda.toUpperCase()}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-mono">
+                            {formatCurrency(record.montoEspera, record.moneda)}
+                          </TableCell>
+                          <TableCell>{formatDate(record.fechaEspera)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  </div>
+                </div>
+              </div>
                 </>
               )}
             </div>

@@ -227,7 +227,7 @@ export default function ProveedoresPage() {
   useEffect(() => {
     setFilteredProveedores(proveedores);
   }, [proveedores]);
-
+  
   return (
     <SidebarProvider
       style={
@@ -252,12 +252,12 @@ export default function ProveedoresPage() {
                       Gestionar Categorías
                     </Button>
                     <Button onClick={() => setIsNewDialogOpen(true)} className="w-full sm:w-auto">
-                      <IconPlus className="mr-2 h-4 w-4" />
-                      Nuevo Proveedor
-                    </Button>
+                    <IconPlus className="mr-2 h-4 w-4" />
+                    Nuevo Proveedor
+                  </Button>
                   </div>
                 </div>
-
+                
                 {/* Barra de búsqueda y filtros */}
                 <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <div className="flex-1">

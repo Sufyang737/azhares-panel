@@ -349,7 +349,7 @@ export default function EventsPage() {
     // Si es un cumpleaños
     if (event.id.startsWith('birthday-')) {
       return {
-        style: {
+    style: {
           backgroundColor: '#FFB6C1',
           color: '#000000',
           border: 'none',
@@ -384,7 +384,7 @@ export default function EventsPage() {
         border: 'none',
         borderRadius: '4px',
         fontSize: '0.9em'
-      }
+    }
     };
   };
 
@@ -413,7 +413,7 @@ export default function EventsPage() {
                     <TabsList className="w-full sm:w-auto">
                       <TabsTrigger value="list" className="flex-1 sm:flex-none">Lista</TabsTrigger>
                       <TabsTrigger value="calendar" className="flex-1 sm:flex-none">Calendario</TabsTrigger>
-                    </TabsList>
+                  </TabsList>
                   </div>
 
                   <TabsContent value="list" className="space-y-4">
@@ -480,12 +480,12 @@ export default function EventsPage() {
                       </div>
 
                       <div className="w-full overflow-x-auto">
-                        <EventFilters onFiltersChange={handleFiltersChange} />
+                    <EventFilters onFiltersChange={handleFiltersChange} />
                       </div>
                     </div>
 
                     <div className="overflow-x-auto">
-                      <EventsDataTable data={filteredEvents} />
+                    <EventsDataTable data={filteredEvents} />
                     </div>
                   </TabsContent>
 
@@ -495,7 +495,7 @@ export default function EventsPage() {
                       <CreateEventDialog onEventCreated={handleEventCreated} />
                     </div>
                     <div className="w-full overflow-x-auto">
-                      <EventFilters onFiltersChange={handleFiltersChange} />
+                    <EventFilters onFiltersChange={handleFiltersChange} />
                     </div>
                     <div className="h-[600px] bg-white rounded-lg border p-4">
                       <Calendar
@@ -558,7 +558,7 @@ export default function EventsPage() {
       )}
     </SidebarProvider>
   );
-}
+} 
 
 // Agregar estos estilos globales en tu archivo CSS global
 const styles = `

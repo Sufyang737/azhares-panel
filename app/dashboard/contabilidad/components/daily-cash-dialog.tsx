@@ -198,7 +198,7 @@ export function DailyCashDialog() {
             </DialogDescription>
           </div>
         </DialogHeader>
-
+        
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -258,7 +258,7 @@ export function DailyCashDialog() {
                 </div>
               </div>
             </div>
-
+            
             {/* Resumen del Día */}
             <div className="rounded-lg border p-4 mb-4">
               <h3 className="font-semibold text-lg mb-3">Movimientos del Día</h3>
@@ -290,20 +290,20 @@ export function DailyCashDialog() {
               <div className="space-y-4">
                 <div className="rounded-lg border p-4">
                   <h3 className="font-semibold mb-3">Efectivo</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">ARS</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="flex justify-between items-center">
-                          <span className="text-green-600">Ingresos:</span>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">ARS</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-green-600">Ingresos:</span>
                           <span className="font-medium">{formatCurrency(totals.efectivo.ars.ingresos, 'ars')}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-red-600">Egresos:</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-red-600">Egresos:</span>
                           <span className="font-medium">{formatCurrency(totals.efectivo.ars.egresos, 'ars')}</span>
-                        </div>
-                        <div className="col-span-2 flex justify-between items-center border-t pt-1">
-                          <span>Balance:</span>
+                    </div>
+                    <div className="col-span-2 flex justify-between items-center border-t pt-1">
+                      <span>Balance:</span>
                           <span className={`font-medium ${
                             totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos >= 0 
                               ? 'text-green-600' 
@@ -311,22 +311,22 @@ export function DailyCashDialog() {
                           }`}>
                             {formatCurrency(totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos, 'ars')}
                           </span>
-                        </div>
-                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">USD</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="flex justify-between items-center">
-                          <span className="text-green-600">Ingresos:</span>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-2">USD</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-green-600">Ingresos:</span>
                           <span className="font-medium">{formatCurrency(totals.efectivo.usd.ingresos, 'usd')}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-red-600">Egresos:</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-red-600">Egresos:</span>
                           <span className="font-medium">{formatCurrency(totals.efectivo.usd.egresos, 'usd')}</span>
-                        </div>
-                        <div className="col-span-2 flex justify-between items-center border-t pt-1">
-                          <span>Balance:</span>
+                    </div>
+                    <div className="col-span-2 flex justify-between items-center border-t pt-1">
+                      <span>Balance:</span>
                           <span className={`font-medium ${
                             totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos >= 0 
                               ? 'text-green-600' 
@@ -334,30 +334,30 @@ export function DailyCashDialog() {
                           }`}>
                             {formatCurrency(totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos, 'usd')}
                           </span>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div className="space-y-4">
-                <div className="rounded-lg border p-4">
+          <div className="space-y-4">
+            <div className="rounded-lg border p-4">
                   <h3 className="font-semibold mb-3">Transferencia</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">ARS</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="flex justify-between items-center">
-                          <span className="text-green-600">Ingresos:</span>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">ARS</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-green-600">Ingresos:</span>
                           <span className="font-medium">{formatCurrency(totals.transferencia.ars.ingresos, 'ars')}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-red-600">Egresos:</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-red-600">Egresos:</span>
                           <span className="font-medium">{formatCurrency(totals.transferencia.ars.egresos, 'ars')}</span>
-                        </div>
-                        <div className="col-span-2 flex justify-between items-center border-t pt-1">
-                          <span>Balance:</span>
+                    </div>
+                    <div className="col-span-2 flex justify-between items-center border-t pt-1">
+                      <span>Balance:</span>
                           <span className={`font-medium ${
                             totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos >= 0 
                               ? 'text-green-600' 
@@ -365,22 +365,22 @@ export function DailyCashDialog() {
                           }`}>
                             {formatCurrency(totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos, 'ars')}
                           </span>
-                        </div>
-                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">USD</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="flex justify-between items-center">
-                          <span className="text-green-600">Ingresos:</span>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-2">USD</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-green-600">Ingresos:</span>
                           <span className="font-medium">{formatCurrency(totals.transferencia.usd.ingresos, 'usd')}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-red-600">Egresos:</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-red-600">Egresos:</span>
                           <span className="font-medium">{formatCurrency(totals.transferencia.usd.egresos, 'usd')}</span>
-                        </div>
-                        <div className="col-span-2 flex justify-between items-center border-t pt-1">
-                          <span>Balance:</span>
+                    </div>
+                    <div className="col-span-2 flex justify-between items-center border-t pt-1">
+                      <span>Balance:</span>
                           <span className={`font-medium ${
                             totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos >= 0 
                               ? 'text-green-600' 
