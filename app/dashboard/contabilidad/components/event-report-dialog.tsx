@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getEventos } from "@/app/services/relations";
 
 interface EventReportDialogProps {
   records: ContabilidadRecord[];
@@ -66,53 +67,56 @@ interface EventTotals {
   records: ContabilidadRecord[];
 }
 
-export function EventReportDialog({ records }: EventReportDialogProps) {
+export function EventReportDialog() {
   const [open, setOpen] = useState(false);
+  const [allRecords, setAllRecords] = useState<ContabilidadRecord[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<'evento' | 'oficina'>('evento');
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<string>('all');
   const [loading, setLoading] = useState(false);
   const [eventos, setEventos] = useState<any[]>([]);
 
-  // Cargar eventos al abrir el diálogo
+  // Cargar todos los datos al abrir el diálogo
   useEffect(() => {
-    async function fetchEventos() {
-      if (open && selectedCategory === 'evento') {
+    async function loadInitialData() {
+      if (open) {
         setLoading(true);
         try {
-          const response = await fetch('/api/eventos');
-          const result = await response.json();
-          if (result.success) {
-            console.log("Eventos cargados:", result.data);
-            setEventos(result.data);
-          }
+          // Cargar todos los registros contables
+          const recordsResponse = await fetch('/api/contabilidad?perPage=999999');
+          const recordsData = await recordsResponse.json();
+          if (!recordsResponse.ok) throw new Error('Error al cargar registros');
+          setAllRecords(recordsData.items);
+          
+          // Cargar todos los eventos
+          const eventosData = await getEventos();
+          setEventos(eventosData);
+
         } catch (error) {
-          console.error("Error al cargar eventos:", error);
+          console.error("Error al cargar datos:", error);
         } finally {
           setLoading(false);
         }
       }
     }
-    fetchEventos();
-  }, [open, selectedCategory]);
+    loadInitialData();
+  }, [open]);
 
   // Filtrar registros por categoría y evento
-  const filteredRecords = records.filter(r => {
+  const filteredRecords = allRecords.filter(r => {
     // Primero verificamos la categoría
     if (r.categoria !== selectedCategory) return false;
     
+    // Si la categoría es 'oficina', no filtramos por evento
+    if (selectedCategory === 'oficina') return true;
+    
     // Si hay un evento seleccionado, filtramos por ese evento específico
-    if (selectedEvent && r.evento_id) {
-      // El evento_id puede ser un string o un objeto con un id
+    if (selectedEvent) {
       const eventId = typeof r.evento_id === 'object' ? r.evento_id.id : r.evento_id;
-      console.log('Comparando evento:', {
-        recordEventId: eventId,
-        selectedEvent: selectedEvent,
-        match: eventId === selectedEvent
-      });
       return eventId === selectedEvent;
     }
     
+    // Si no hay evento seleccionado, mostramos todos los de la categoría 'evento'
     return true;
   });
 
@@ -153,7 +157,9 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
     .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   // Calcular totales por evento
-  const eventTotals = filteredRecords.reduce((acc, record) => {
+  const eventTotals = allRecords
+    .filter(r => r.categoria === 'evento' && r.evento_id)
+    .reduce((acc, record) => {
     const evento = record.evento_id;
     if (!evento) return acc;
     
@@ -202,7 +208,7 @@ export function EventReportDialog({ records }: EventReportDialogProps) {
   const totals = selectedEvent ? {
     ingresos: selectedEventData?.ingresos || { ars: 0, usd: 0 },
     egresos: selectedEventData?.egresos || { ars: 0, usd: 0 }
-  } : filteredRecords.reduce((acc, record) => {
+  } : allRecords.reduce((acc, record) => {
     const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
     const moneda = record.moneda.toLowerCase() as 'ars' | 'usd';
     const monto = record.montoEspera || 0;
