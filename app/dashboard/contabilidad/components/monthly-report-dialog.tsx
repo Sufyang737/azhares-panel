@@ -199,9 +199,14 @@ export function MonthlyReportDialog() {
       if (record.fechaEfectuado) {
         const recordDate = parseISO(record.fechaEfectuado);
         if (recordDate <= endDate) {
-          const moneda = record.moneda.toLowerCase() as 'ars' | 'usd';
+          const moneda = record.moneda?.toLowerCase() as 'ars' | 'usd';
+          if (!moneda) return;
+
           const amount = record.montoEspera;
-          const especie = record.especie?.toLowerCase() || 'efectivo';
+          let especie = record.especie?.toLowerCase() || 'efectivo';
+          if (especie === 'trasferencia') {
+            especie = 'transferencia';
+          }
           const isIngreso = record.type === 'cobro';
 
           // Actualizar balance por especie

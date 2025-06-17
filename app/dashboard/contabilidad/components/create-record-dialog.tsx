@@ -140,7 +140,8 @@ const getAvailableDetalles = (type: string, categoria: string, subcargo: string)
   }
   if (type === 'cobro' && categoria === 'evento' && subcargo === 'clientes') {
     return [
-      { value: 'comision', label: 'Comisión' }
+      { value: 'comision', label: 'Comisión' },
+      { value: 'honorarios', label: 'Honorarios' }
     ];
   }
   if (type === 'pago' && categoria === 'oficina' && subcargo === 'deriva') {
