@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import PocketBase from 'pocketbase';
 
-// Inicialización de PocketBase
-const pb = new PocketBase('https://pocketbase.suite.azaresweb.com.ar');
+// Inicialización de PocketBase usando la variable de entorno
+const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || '';
 
 // Obtener un evento específico
 export async function GET(request: NextRequest) {
-  // Obtener ID desde la URL
   const url = request.url;
   const idFromUrl = url.split('/').pop();
   
@@ -18,6 +17,16 @@ export async function GET(request: NextRequest) {
   }
   
   try {
+    const pb = new PocketBase(pocketbaseUrl);
+    
+    // Autenticar como administrador
+    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
+    if (adminToken) {
+      pb.authStore.save(adminToken, null);
+    } else {
+      throw new Error('Token de administrador no configurado');
+    }
+
     const record = await pb.collection('evento').getOne(idFromUrl);
     
     return NextResponse.json({ 
@@ -46,6 +55,16 @@ export async function PATCH(request: NextRequest) {
   }
   
   try {
+    const pb = new PocketBase(pocketbaseUrl);
+    
+    // Autenticar como administrador
+    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
+    if (adminToken) {
+      pb.authStore.save(adminToken, null);
+    } else {
+      throw new Error('Token de administrador no configurado');
+    }
+
     const data = await request.json();
     
     const record = await pb.collection('evento').update(idFromUrl, data);
@@ -55,9 +74,9 @@ export async function PATCH(request: NextRequest) {
       data: record
     });
   } catch (error) {
-    console.error(`Error:`, error);
+    console.error(`Error al actualizar evento:`, error);
     return NextResponse.json(
-      { success: false, error: 'Error' },
+      { success: false, error: 'Error al actualizar el evento' },
       { status: 500 }
     );
   }
@@ -76,16 +95,26 @@ export async function DELETE(request: NextRequest) {
   }
   
   try {
+    const pb = new PocketBase(pocketbaseUrl);
+    
+    // Autenticar como administrador
+    const adminToken = process.env.POCKETBASE_ADMIN_TOKEN;
+    if (adminToken) {
+      pb.authStore.save(adminToken, null);
+    } else {
+      throw new Error('Token de administrador no configurado');
+    }
+
     await pb.collection('evento').delete(idFromUrl);
     
     return NextResponse.json({ 
       success: true,
-      message: 'Operación simulada correctamente'
+      message: 'Evento eliminado correctamente'
     });
   } catch (error) {
-    console.error(`Error:`, error);
+    console.error(`Error al eliminar evento:`, error);
     return NextResponse.json(
-      { success: false, error: 'Error' },
+      { success: false, error: 'Error al eliminar el evento' },
       { status: 500 }
     );
   }

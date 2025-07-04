@@ -55,6 +55,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { EditEventForm } from "./edit-event-form"
+import { Switch } from "@/components/ui/switch"
 
 // Define schema para datos de eventos desde la API
 export const eventoSchema = z.object({
@@ -65,6 +66,7 @@ export const eventoSchema = z.object({
   estado: z.string(),
   comentario: z.string().nullable(),
   drive: z.string().nullable(),
+  formulario: z.boolean(),
   cliente: z.object({
     id: z.string(),
     nombre: z.string()
@@ -303,6 +305,59 @@ export function EventsDataTable({
       },
     },
     {
+      accessorKey: "formulario",
+      header: "Formulario",
+      cell: ({ row }) => {
+        const formulario = row.getValue("formulario") as boolean;
+        const eventId = row.original.id;
+
+        const handleFormularioChange = async (checked: boolean) => {
+          try {
+            const response = await fetch(`/api/eventos/${eventId}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                formulario: checked
+              }),
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+              toast.success("Estado del formulario actualizado");
+              // Update the local state
+              setData(prevData => 
+                prevData.map(event => 
+                  event.id === eventId 
+                    ? { ...event, formulario: checked }
+                    : event
+                )
+              );
+            } else {
+              toast.error(`Error al actualizar: ${result.error || 'Error desconocido'}`);
+            }
+          } catch (error) {
+            console.error('Error al actualizar estado del formulario:', error);
+            toast.error("Error al comunicarse con el servidor");
+          }
+        };
+
+        return (
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={formulario}
+              onCheckedChange={handleFormularioChange}
+            />
+            <span className={formulario ? "text-green-600" : "text-red-600"}>
+              {formulario ? "Completo" : "Pendiente"}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
       id: "acciones",
       header: "Acciones",
       cell: ({ row }) => {
@@ -460,6 +515,8 @@ export function EventsDataTable({
                         ? "Comentarios"
                         : column.id === "drive"
                         ? "Carpeta Drive"
+                        : column.id === "formulario"
+                        ? "Formulario"
                         : column.id}
                     </DropdownMenuCheckboxItem>
                   )

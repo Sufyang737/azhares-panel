@@ -59,6 +59,7 @@ interface Evento {
   fecha: string;
   estado: string;
   comentario?: string;
+  formulario: boolean;
   cliente?: {
     id: string;
     nombre: string;
@@ -82,6 +83,7 @@ interface CalendarEvent {
   resource?: {
     tipo?: string;
     estado?: string;
+    formulario?: boolean;
   };
 }
 
@@ -349,7 +351,7 @@ export default function EventsPage() {
     // Si es un cumpleaños
     if (event.id.startsWith('birthday-')) {
       return {
-    style: {
+        style: {
           backgroundColor: '#FFB6C1',
           color: '#000000',
           border: 'none',
@@ -361,6 +363,7 @@ export default function EventsPage() {
 
     // Para eventos regulares, color según estado
     let backgroundColor = '#3B82F6'; // Azul por defecto
+    let borderColor = 'transparent';
     
     switch (event.resource?.estado?.toLowerCase()) {
       case 'pendiente':
@@ -377,14 +380,19 @@ export default function EventsPage() {
         break;
     }
 
+    // Agregar borde rojo si el formulario está pendiente
+    if (event.resource && !event.resource.formulario) {
+      borderColor = '#EF4444';
+    }
+
     return {
       style: {
         backgroundColor,
         color: 'white',
-        border: 'none',
+        border: `2px solid ${borderColor}`,
         borderRadius: '4px',
         fontSize: '0.9em'
-    }
+      }
     };
   };
 
@@ -476,6 +484,26 @@ export default function EventsPage() {
                               <SelectItem value="created-asc">Creación (más antigua)</SelectItem>
                             </SelectContent>
                           </Select>
+                          <Select
+                            defaultValue="todos"
+                            onValueChange={(value) => {
+                              const filtered = events.filter(event => {
+                                if (value === "todos") return true;
+                                if (value === "completo") return event.formulario;
+                                return !event.formulario;
+                              });
+                              setFilteredEvents(filtered);
+                            }}
+                          >
+                            <SelectTrigger className="w-full sm:w-[200px]">
+                              <SelectValue placeholder="Estado del formulario" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="todos">Todos los formularios</SelectItem>
+                              <SelectItem value="completo">Formulario completo</SelectItem>
+                              <SelectItem value="incompleto">Formulario pendiente</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 
@@ -513,7 +541,7 @@ export default function EventsPage() {
                         views={['month', 'week', 'day', 'agenda']}
                         defaultView="month"
                         tooltipAccessor={event => 
-                          `${event.title}${event.resource?.tipo ? `\nTipo: ${event.resource.tipo}` : ''}${event.resource?.estado ? `\nEstado: ${event.resource.estado}` : ''}`
+                          `${event.title}${event.resource?.tipo ? `\nTipo: ${event.resource.tipo}` : ''}${event.resource?.estado ? `\nEstado: ${event.resource.estado}` : ''}${event.resource?.formulario === false ? '\n⚠️ Formulario pendiente' : ''}`
                         }
                         eventPropGetter={eventStyleGetter}
                         dayPropGetter={(date) => ({

@@ -46,6 +46,7 @@ export async function GET() {
       fecha: evento.fecha,
       estado: evento.estado,
       comentario: evento.comentario,
+      formulario: evento.formulario || false,
       cliente: evento.expand?.cliente_id,
       planner: evento.expand?.planner_id ? {
         id: evento.expand.planner_id.id,
