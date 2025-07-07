@@ -164,8 +164,21 @@ const getAvailableDetalles = (type: string, categoria: string, subcargo: string)
     ];
   }
   if (type === 'pago' && categoria === 'oficina') {
-    if (subcargo === 'impuestos') return [{value: 'iva', label: 'IVA'}, {value: 'ganancias', label: 'Ganancias'}];
-    if (subcargo === 'servicios') return [{value: 'luz', label: 'Luz'}, {value: 'gas', label: 'Gas'}, {value: 'internet', label: 'Internet'}];
+    if (subcargo === 'impuestos') return [
+      {value: 'iva', label: 'IVA'},
+      {value: 'ingresos_brutos', label: 'Ingresos Brutos'},
+      {value: 'autonomo', label: 'Autónomo'},
+      {value: 'formulario_931', label: 'Formulario 931'},
+      {value: 'ofceca', label: 'OFCECA'}
+    ];
+    if (subcargo === 'servicios') return [
+      {value: 'luz', label: 'Luz'},
+      {value: 'agua', label: 'Agua'},
+      {value: 'otros', label: 'Otros'},
+      {value: 'internet', label: 'Internet'},
+      {value: 'abl', label: 'ABL'},
+      {value: 'telefono', label: 'Teléfono'}
+    ];
     return [{ value: 'otros', label: 'Otros' }];
   }
   return [{ value: 'otros', label: 'Otros' }];
@@ -708,7 +721,11 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                     <FormMessage />
                   </FormItem>
               )} />
-              {(currentType === 'cobro' || (currentType === 'pago' && currentCategoria === 'oficina' && currentSubcargo === 'deriva')) && (
+              {(currentType === 'cobro' || 
+                (currentType === 'pago' && currentCategoria === 'oficina' && 
+                  (currentSubcargo === 'deriva' || currentSubcargo === 'servicios' || currentSubcargo === 'impuestos')
+                )
+              ) && (
                  <FormField control={form.control} name="detalle" render={({ field }) => (
                     <FormItem className="space-y-1">
                       <FormLabel>🔍 Detalle</FormLabel>
