@@ -64,13 +64,12 @@ export function DailyCashDialog() {
   const loadRecordsForDay = async (date: Date) => {
     setLoading(true);
     try {
-      const endOfSelectedDay = endOfDay(date);
-
-      // Obtener registros del día seleccionado
+      // Obtener TODOS los registros hasta la fecha seleccionada
       const response = await fetch('/api/contabilidad?' + new URLSearchParams({
         sort: '-created',
         expand: 'cliente_id,evento_id,proveedor_id',
-        filter: `fechaEfectuado <= "${format(endOfSelectedDay, 'yyyy-MM-dd')} 23:59:59"`,
+        perPage: '1000',
+        filter: `fechaEfectuado != null && fechaEfectuado <= "${format(endOfDay(date), 'yyyy-MM-dd')} 23:59:59"`,
       }));
 
       if (!response.ok) {
@@ -78,6 +77,30 @@ export function DailyCashDialog() {
       }
 
       const data = await response.json();
+      
+      // Log para debugging
+      console.log('=== DEBUG: Registros cargados ===');
+      console.log('Total registros:', data.items.length);
+      
+      // Contar registros USD en efectivo
+      const usdCashRecords = data.items.filter(record => 
+        record.moneda === 'usd' && 
+        record.especie === 'efectivo'
+      );
+      
+      const usdCashIngresos = usdCashRecords
+        .filter(record => record.type === 'cobro')
+        .reduce((sum, record) => sum + (record.montoEspera || 0), 0);
+      
+      const usdCashEgresos = usdCashRecords
+        .filter(record => record.type === 'pago')
+        .reduce((sum, record) => sum + (record.montoEspera || 0), 0);
+      
+      console.log('USD Efectivo - Ingresos:', usdCashIngresos);
+      console.log('USD Efectivo - Egresos:', usdCashEgresos);
+      console.log('USD Efectivo - Balance:', usdCashIngresos - usdCashEgresos);
+      console.log('============================');
+
       setAllRecords(data.items);
     } catch (error) {
       console.error('Error al cargar los registros:', error);
@@ -109,10 +132,7 @@ export function DailyCashDialog() {
       if (!record.fechaEfectuado) return acc;
 
       const amount = record.montoEspera || 0;
-      let especie = record.especie?.toLowerCase() || 'efectivo';
-      if (especie === 'trasferencia') {
-        especie = 'transferencia';
-      }
+      const especie = record.especie?.toLowerCase() || 'efectivo';
       const moneda = record.moneda?.toLowerCase();
       const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
       const effectiveDate = new Date(record.fechaEfectuado);
@@ -135,12 +155,14 @@ export function DailyCashDialog() {
       }
 
       // Actualizar balance acumulado para TODOS los registros hasta la fecha
-      if (type === 'ingresos') {
-        acc.acumulado[especie][moneda] += amount;
-        acc.acumulado.total[moneda] += amount;
-      } else {
-        acc.acumulado[especie][moneda] -= amount;
-        acc.acumulado.total[moneda] -= amount;
+      if (effectiveDate <= endOfDay(selectedDate)) {
+        if (type === 'ingresos') {
+          acc.acumulado[especie][moneda] += amount;
+          acc.acumulado.total[moneda] += amount;
+        } else {
+          acc.acumulado[especie][moneda] -= amount;
+          acc.acumulado.total[moneda] -= amount;
+        }
       }
 
     } catch (error) {

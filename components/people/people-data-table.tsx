@@ -122,12 +122,14 @@ function getTipoPersonaBadge(tipo: string | null) {
 }
 
 export function PeopleDataTable({
-  data: initialData
+  data,
+  onPersonDeleted,
+  onPersonUpdated
 }: {
-  data: Persona[]
+  data: Persona[];
+  onPersonDeleted?: () => void;
+  onPersonUpdated?: () => void;
 }) {
-  const [data, setData] = React.useState<Persona[]>(initialData)
-  const [clientes, setClientes] = React.useState<any[]>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
@@ -136,6 +138,7 @@ export function PeopleDataTable({
     cumpleanio: true,
     ubicacion: true,
     instagram: true,
+    direccion: true,
     tipo_persona: true,
     cliente: true,
     comentario: true,
@@ -157,93 +160,34 @@ export function PeopleDataTable({
       
       if (resultClientes.success) {
         const clientes = resultClientes.data;
-        console.log('=== DATOS COMPLETOS DE CLIENTES ===');
-        clientes.forEach((cliente: any) => {
-          console.log('Cliente:', {
-            id: cliente.id,
-            nombre: cliente.nombre,
-            persona_id: cliente.persona_id,
-            datosCompletos: cliente
+        // Actualizar los datos con la información de clientes
+        const personasActualizadas = data.map((persona: any) => {
+          const clientesDePersona = clientes.filter((cliente: any) => {
+            const tienePersonaId = Array.isArray(cliente.persona_id);
+            return tienePersonaId && cliente.persona_id.includes(persona.id);
           });
+
+          return {
+            ...persona,
+            clientes: clientesDePersona.map((cliente: any) => ({
+              id: cliente.id,
+              nombre: cliente.nombre
+            }))
+          };
         });
 
-        // Obtener la lista de personas
-        const responsePersonas = await fetch('/api/personas');
-        const resultPersonas = await responsePersonas.json();
-        
-        if (resultPersonas.success) {
-          console.log('=== DATOS COMPLETOS DE PERSONAS ===');
-          resultPersonas.data.forEach((persona: any) => {
-            console.log('Persona:', {
-              id: persona.id,
-              nombre: persona.nombre,
-              datosCompletos: persona
-            });
-          });
-
-          // Crear un mapa de personas con sus clientes asociados
-          const personasActualizadas = resultPersonas.data.map((persona: any) => {
-            // Encontrar todos los clientes que tienen esta persona en su persona_id
-            const clientesDePersona = clientes.filter((cliente: any) => {
-              const tienePersonaId = Array.isArray(cliente.persona_id);
-              const incluye = tienePersonaId && cliente.persona_id.includes(persona.id);
-              
-              console.log(`Verificando relación para ${persona.nombre}:`, {
-                personaId: persona.id,
-                clienteId: cliente.id,
-                clienteNombre: cliente.nombre,
-                personaIds: cliente.persona_id,
-                tienePersonaId,
-                incluye
-              });
-              
-              return incluye;
-            });
-
-            console.log(`Clientes encontrados para ${persona.nombre}:`, 
-              clientesDePersona.map(c => ({
-                id: c.id,
-                nombre: c.nombre,
-                persona_ids: c.persona_id
-              }))
-            );
-
-            return {
-              ...persona,
-              clientes: clientesDePersona.map((cliente: any) => ({
-                id: cliente.id,
-                nombre: cliente.nombre
-              }))
-            };
-          });
-
-          console.log('=== RESULTADO FINAL ===', 
-            personasActualizadas.map(p => ({
-              persona: p.nombre,
-              id: p.id,
-              clientesAsociados: p.clientes.map(c => c.nombre)
-            }))
-          );
-
-          setData(personasActualizadas);
-        }
+        return personasActualizadas;
       }
     } catch (error) {
       console.error('Error al obtener datos:', error);
+      return data;
     }
   };
 
-  // Llamar a fetchClientesYPersonas cuando el componente se monta
+  // Llamar a fetchClientesYPersonas cuando cambian los datos
   React.useEffect(() => {
     fetchClientesYPersonas();
-  }, []);
-
-  // Actualizar cuando cambian los datos iniciales
-  React.useEffect(() => {
-    console.log("Datos iniciales recibidos:", initialData);
-    setData(initialData);
-    fetchClientesYPersonas();
-  }, [initialData]);
+  }, [data]);
 
   const handleDeletePerson = (id: string) => {
     setPersonToDelete(id);
@@ -262,8 +206,7 @@ export function PeopleDataTable({
       
       if (result.success) {
         toast.success("Persona eliminada correctamente");
-        // Actualizar la lista de personas eliminando la persona borrada
-        setData((prevPersons) => prevPersons.filter(person => person.id !== personToDelete));
+        onPersonDeleted?.();
       } else {
         toast.error(`Error al eliminar: ${result.error || 'Error desconocido'}`);
       }
@@ -287,12 +230,7 @@ export function PeopleDataTable({
   }
 
   const handlePersonUpdated = (updatedPerson: Persona) => {
-    // Actualizar los datos locales con la persona actualizada
-    setData(prevData => 
-      prevData.map(p => 
-        p.id === updatedPerson.id ? updatedPerson : p
-      )
-    );
+    onPersonUpdated?.();
   }
 
   const columns: ColumnDef<Persona>[] = [
@@ -470,6 +408,21 @@ export function PeopleDataTable({
       },
     },
     {
+      accessorKey: "direccion",
+      header: "Dirección",
+      cell: ({ row }) => {
+        const direccion = row.getValue("direccion") as string | null;
+        if (!direccion) return <div className="text-muted-foreground">No disponible</div>;
+        
+        return (
+          <div className="flex items-center">
+            <IconMapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+            <span>{direccion}</span>
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: "cliente",
       header: "Cliente Asociado",
       cell: ({ row }) => {
@@ -577,7 +530,6 @@ export function PeopleDataTable({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     state: {
       sorting,
       columnFilters,
@@ -646,6 +598,8 @@ export function PeopleDataTable({
                         ? "Tipo"
                         : column.id === "instagram"
                         ? "Instagram"
+                        : column.id === "direccion"
+                        ? "Dirección"
                         : column.id === "cliente"
                         ? "Cliente"
                         : column.id === "comentario"
@@ -707,24 +661,6 @@ export function PeopleDataTable({
         <div className="text-muted-foreground flex-1 text-sm">
           {table.getFilteredSelectedRowModel().rows.length} de{" "}
           {table.getFilteredRowModel().rows.length} fila(s) seleccionada(s).
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Siguiente
-          </Button>
         </div>
       </div>
 

@@ -11,7 +11,7 @@ import { DailyCashDialog } from "./components/daily-cash-dialog";
 import { EventReportDialog } from "./components/event-report-dialog";
 import { MonthlyReportDialog } from "./components/monthly-report-dialog";
 import { FiltersDialog } from "./components/filters-dialog";
-import { getContabilidadRecords, deleteContabilidadRecord } from "@/app/services/contabilidad";
+import { getContabilidadRecords, getFullContabilidadList, ContabilidadRecord, deleteContabilidadRecord } from "@/app/services/contabilidad";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2, ListFilter } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -34,6 +34,8 @@ export default function ContabilidadPage() {
   const [activeFilters, setActiveFilters] = useState<FilterValues>({});
   const [showAllRecords, setShowAllRecords] = useState(false);
   const { toast } = useToast();
+  
+  const MAX_RECORDS = 1000; // Maximum number of records to fetch when showing all
 
   const loadRecords = async (page = 1, filters: FilterValues = {}) => {
     setLoading(true);
@@ -70,29 +72,76 @@ export default function ContabilidadPage() {
         filter += `fechaEfectuado <= "${filters.fechaHasta} 23:59:59"`;
       }
 
+      // Primero, obtener todos los registros para el cálculo
+      console.log('Obteniendo todos los registros para cálculos...');
+      const allRecords = await getFullContabilidadList({
+        filter,
+        expand: 'cliente_id,evento_id,proveedor_id,equipo_id'
+      });
+
+      if (!allRecords) {
+        throw new Error('No se pudieron obtener los registros');
+      }
+
+      // Calcular totales en dólares efectivo
+      console.log('Calculando totales...');
+      const dollarCashRecords = allRecords.filter(record => 
+        record.moneda === 'usd' && record.especie === 'efectivo'
+      );
+
+      const ingresos = dollarCashRecords
+        .filter(record => record.type === 'cobro')
+        .reduce((sum, record) => sum + (record.montoEspera || 0), 0);
+
+      const egresos = dollarCashRecords
+        .filter(record => record.type === 'pago')
+        .reduce((sum, record) => sum + (record.montoEspera || 0), 0);
+
+      const balance = ingresos - egresos;
+
+      console.log('=== BALANCE DE DÓLARES EN EFECTIVO ===');
+      console.log(`Total Cobros (USD): $${ingresos.toFixed(2)}`);
+      console.log(`Total Pagos (USD): $${egresos.toFixed(2)}`);
+      console.log(`Balance Final (USD): $${balance.toFixed(2)}`);
+      console.log('Total registros procesados:', dollarCashRecords.length);
+      console.log('====================================');
+
+      // Luego, obtener los registros paginados para la tabla
+      console.log('Obteniendo registros paginados para la tabla...');
       const options = {
         sort: '-created',
         expand: 'cliente_id,evento_id,proveedor_id,equipo_id',
         filter,
-        skipTotal: false,
         page,
-        perPage: showAllRecords ? 999999 : 50 // Un número grande para obtener todos los registros
+        perPage: showAllRecords ? MAX_RECORDS : 50
       };
 
-      // Usar getContabilidadRecords para ambos casos
-      const data = await getContabilidadRecords(options);
+      const paginatedData = await getContabilidadRecords(options);
       
-      setRecords(data?.items || []);
-      setTotalPages(data?.totalPages || 1);
-      setTotalItems(data?.totalItems || 0);
+      if (!paginatedData) {
+        throw new Error('No se pudieron obtener los registros paginados');
+      }
+
+      setRecords(paginatedData.items || []);
+      setTotalPages(paginatedData.totalPages || 1);
+      setTotalItems(paginatedData.totalItems || 0);
       setCurrentPage(showAllRecords ? 1 : page);
+
+      // Mostrar advertencia si hay demasiados registros
+      if (showAllRecords && paginatedData.totalItems > MAX_RECORDS) {
+        toast({
+          title: "Advertencia",
+          description: `Se están mostrando los primeros ${MAX_RECORDS} registros de un total de ${paginatedData.totalItems}. Use los filtros para reducir la cantidad de registros.`,
+          variant: "default",
+        });
+      }
       
     } catch (error) {
       console.error("Error loading records:", error);
       setRecords([]);
       toast({
         title: "Error al cargar registros",
-        description: "No se pudieron cargar los registros contables. Inténtalo de nuevo.",
+        description: error instanceof Error ? error.message : "No se pudieron cargar los registros contables. Inténtalo de nuevo.",
         variant: "destructive",
       });
     } finally {

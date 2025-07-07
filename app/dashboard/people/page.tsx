@@ -141,6 +141,16 @@ export default function PeoplePage() {
     setCurrentPage(newPage);
   };
 
+  const handlePersonDeleted = () => {
+    // Refetch data after deletion
+    fetchPersonas(currentPage);
+  };
+
+  const handlePersonUpdated = () => {
+    // Refetch data after update
+    fetchPersonas(currentPage);
+  };
+
   return (
     <SidebarProvider
       style={
@@ -192,7 +202,11 @@ export default function PeoplePage() {
                   </div>
                 ) : (
                   <>
-                    <PeopleDataTable data={personas} />
+                    <PeopleDataTable 
+                      data={personas}
+                      onPersonDeleted={handlePersonDeleted}
+                      onPersonUpdated={handlePersonUpdated}
+                    />
                     <div className="mt-4 flex items-center justify-between">
                       <div className="text-sm text-muted-foreground">
                         Página {currentPage} de {totalPages}
