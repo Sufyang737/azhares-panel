@@ -105,7 +105,7 @@ const getAvailableSubcargos = (type: string, categoria: string) => {
       { value: 'contador', label: 'Contador' },
       { value: 'mantenimiento-pc', label: 'Mantenimiento PC' },
       { value: 'impuestos', label: 'Impuestos' },
-      { value: 'servicio', label: 'Servicios' },
+      { value: 'servicios', label: 'Servicios' },
       { value: 'regaleria', label: 'Regalería' },
       { value: 'compras', label: 'Compras' },
       { value: 'sueldos', label: 'Sueldos' }
