@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       "cambio-divisas", "ajuste-caja", "obra-social-empleada",
       "mantencion-cuenta-corriente", "seguro-galicia", "tarjeta-credito",
       "deriva", "expensas", "alquiler", "prepaga", "contador",
-      "mantenimiento-pc", "impuestos", "servicio", "regaleria", "compras"
+      "mantenimiento-pc", "impuestos", "servicios", "regaleria", "compras"
     ];
 
     if (body.subcargo && !validSubcargos.includes(body.subcargo)) {
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       const validDetalles = [
         "compra-usd", "comision", "handy","otros", "honorarios", "maquillaje", "Loli", "Noe",
         "planner", "staff", "viandas", "venta-usd", "viatico", "seguro",
-        "iva", "ganancias", "luz", "gas", "internet", "general"
+        "iva", "ganancias", "luz", "gas", "internet", "general", "telefono"
       ];
 
       if (!validDetalles.includes(body.detalle)) {
