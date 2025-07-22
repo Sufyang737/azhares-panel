@@ -79,7 +79,8 @@ export async function POST(req: NextRequest) {
       const validDetalles = [
         "compra-usd", "comision", "handy","otros", "honorarios", "maquillaje", "Loli", "Noe",
         "planner", "staff", "viandas", "venta-usd", "viatico", "seguro",
-        "iva", "ganancias", "luz", "gas", "internet", "general", "telefono"
+        "iva", "ganancias", "luz", "gas", "internet", "general", "telefono",
+        "prosegur", "mayorista", "coto", "libreria", "cerrajeria", "cafe"
       ];
 
       if (!validDetalles.includes(body.detalle)) {

@@ -87,7 +87,7 @@ const getAvailableSubcargos = (type: string, categoria: string) => {
     return [
       { value: 'cambio-divisas', label: 'Cambio de Divisas' },
       { value: 'ajuste-caja', label: 'Ajuste de Caja' },
-      { value: 'mensajeria', label: 'Mensajería' }
+      { value: 'caja-chica', label: 'Caja Chica' }
     ];
   }
   
@@ -108,7 +108,8 @@ const getAvailableSubcargos = (type: string, categoria: string) => {
       { value: 'servicios', label: 'Servicios' },
       { value: 'regaleria', label: 'Regalería' },
       { value: 'compras', label: 'Compras' },
-      { value: 'sueldos', label: 'Sueldos' }
+      { value: 'sueldos', label: 'Sueldos' },
+      { value: 'mensajeria', label: 'Mensajería' }
     ];
   }
 
@@ -174,10 +175,19 @@ const getAvailableDetalles = (type: string, categoria: string, subcargo: string)
     if (subcargo === 'servicios') return [
       {value: 'luz', label: 'Luz'},
       {value: 'agua', label: 'Agua'},
-      {value: 'otros', label: 'Otros'},
+      {value: 'prosegur', label: 'Prosegur'},
       {value: 'internet', label: 'Internet'},
       {value: 'abl', label: 'ABL'},
-      {value: 'telefono', label: 'Teléfono'}
+      {value: 'telefono', label: 'Teléfono'},
+      {value: 'otros', label: 'Otros'}
+    ];
+    if (subcargo === 'compras') return [
+      {value: 'mayorista', label: 'Mayorista'},
+      {value: 'coto', label: 'Coto'},
+      {value: 'libreria', label: 'Librería'},
+      {value: 'cerrajeria', label: 'Cerrajería'},
+      {value: 'cafe', label: 'Café'},
+      {value: 'otros', label: 'Otros'}
     ];
     return [{ value: 'otros', label: 'Otros' }];
   }
@@ -723,7 +733,8 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
               )} />
               {(currentType === 'cobro' || 
                 (currentType === 'pago' && currentCategoria === 'oficina' && 
-                  (currentSubcargo === 'deriva' || currentSubcargo === 'servicios' || currentSubcargo === 'impuestos')
+                  (currentSubcargo === 'deriva' || currentSubcargo === 'servicios' || 
+                   currentSubcargo === 'impuestos' || currentSubcargo === 'compras')
                 )
               ) && (
                  <FormField control={form.control} name="detalle" render={({ field }) => (
