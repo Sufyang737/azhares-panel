@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -11,13 +11,16 @@ import { DailyCashDialog } from "./components/daily-cash-dialog";
 import { EventReportDialog } from "./components/event-report-dialog";
 import { MonthlyReportDialog } from "./components/monthly-report-dialog";
 import { FiltersDialog } from "./components/filters-dialog";
-import { getContabilidadRecords, getFullContabilidadList, ContabilidadRecord, deleteContabilidadRecord } from "@/app/services/contabilidad";
+import { getContabilidadRecords, getFullContabilidadList, deleteContabilidadRecord } from "@/app/services/contabilidad";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2, ListFilter } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface FilterValues {
+  type?: 'cobro' | 'pago';
   categoria?: string;
+  subcargo?: string;
+  detalle?: string;
   cliente_id?: string;
   proveedor_id?: string;
   evento_id?: string;
@@ -37,14 +40,29 @@ export default function ContabilidadPage() {
   
   const MAX_RECORDS = 1000; // Maximum number of records to fetch when showing all
 
-  const loadRecords = async (page = 1, filters: FilterValues = {}) => {
+  const loadRecords = useCallback(async (page = 1, filters: FilterValues = {}) => {
     setLoading(true);
     try {
       // Construir el filtro para PocketBase
       let filter = '';
       
+      if (filters.type) {
+        filter += `type = "${filters.type}"`;
+      }
+
       if (filters.categoria) {
+        if (filter) filter += ' && ';
         filter += `categoria = "${filters.categoria}"`;
+      }
+
+      if (filters.subcargo) {
+        if (filter) filter += ' && ';
+        filter += `subcargo = "${filters.subcargo}"`;
+      }
+
+      if (filters.detalle) {
+        if (filter) filter += ' && ';
+        filter += `detalle = "${filters.detalle}"`;
       }
       
       if (filters.cliente_id) {
@@ -147,11 +165,11 @@ export default function ContabilidadPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showAllRecords, toast]);
 
   useEffect(() => {
-    loadRecords(currentPage, activeFilters);
-  }, [currentPage, activeFilters]);
+    loadRecords(1, activeFilters);
+  }, [activeFilters, loadRecords]);
 
   const handleRecordUpdate = () => {
     loadRecords(currentPage, activeFilters);

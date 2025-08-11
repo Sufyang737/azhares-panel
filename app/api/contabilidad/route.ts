@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
         "compra-usd", "comision", "handy","otros", "honorarios", "maquillaje", "Loli", "Noe",
         "planner", "staff", "viandas", "venta-usd", "viatico", "seguro",
         "iva", "ganancias", "luz", "gas", "internet", "general", "telefono",
-        "prosegur", "mayorista", "coto", "libreria", "cerrajeria", "cafe"
+        "prosegur", "mayorista", "coto", "libreria", "cerrajeria", "cafe", "agua", "autonomo"
       ];
 
       if (!validDetalles.includes(body.detalle)) {
@@ -98,18 +98,16 @@ export async function POST(req: NextRequest) {
       moneda: body.moneda,
       categoria: body.categoria,
       subcargo: body.subcargo,
-      detalle: body.detalle,
+      detalle: body.detalle || null,
       montoEspera: Number(body.montoEspera),
       fechaEspera: body.fechaEspera || new Date().toISOString(),
       dolarEsperado: body.dolarEsperado ? Number(body.dolarEsperado) : 0,
-      // Only include optional fields if they have a value
-      ...(body.comentario ? { comentario: body.comentario } : {}),
-      ...(body.fechaEfectuado ? { fechaEfectuado: body.fechaEfectuado } : {}),
-      // Only include relation fields if they have a valid value
-      ...(body.cliente_id && body.cliente_id !== "RELATION_RECORD_ID" ? { cliente_id: body.cliente_id } : {}),
-      ...(body.proveedor_id && body.proveedor_id !== "RELATION_RECORD_ID" ? { proveedor_id: body.proveedor_id } : {}),
-      ...(body.evento_id && body.evento_id !== "RELATION_RECORD_ID" ? { evento_id: body.evento_id } : {}),
-      ...(body.equipo_id && body.equipo_id !== "RELATION_RECORD_ID" ? { equipo_id: body.equipo_id } : {})
+      comentario: body.comentario || null,
+      fechaEfectuado: body.fechaEfectuado || null,
+      cliente_id: body.cliente_id || null,
+      proveedor_id: body.proveedor_id || null,
+      evento_id: body.evento_id || null,
+      equipo_id: body.equipo_id || null,
     };
 
     console.log('Intentando crear registro con datos:', data);

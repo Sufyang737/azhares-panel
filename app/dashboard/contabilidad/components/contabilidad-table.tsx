@@ -13,10 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { format, isValid, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Loader2, Check, Edit, MoreHorizontal, Trash2, User, Building, PartyPopper, Users } from "lucide-react";
+import { CheckCircle, Loader2, Check, MoreHorizontal, Trash2, User, Building, PartyPopper, Users } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
-import { CreateRecordDialog } from "./create-record-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +45,7 @@ const formatDate = (dateString: string | null | undefined): string => {
   }
 };
 
-const getRelationName = (expandData: any, relationKey: string): string => {
+const getRelationName = (expandData: ContabilidadRecord['expand'], relationKey: string): string => {
   if (expandData && expandData[relationKey] && typeof expandData[relationKey] === 'object' && expandData[relationKey].nombre) {
     return expandData[relationKey].nombre;
   }
@@ -57,48 +56,8 @@ export function ContabilidadTable({ records, onRecordUpdate, onRecordDelete }: C
   const { toast } = useToast();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const handleMarkAsCompleted = async (record: ContabilidadRecord) => {
-    try {
-      setUpdatingId(record.id);
-      toast({
-        title: "Actualizando registro...",
-        description: "Por favor espere mientras se procesa la actualización.",
-      });
-
-      const fechaEfectuado = new Date().toISOString();
-      await updateContabilidadRecord(record.id, {
-        fechaEfectuado
-      });
-      
-      toast({
-        title: "¡Registro efectuado!",
-        description: (
-          <div className="mt-2">
-            <p>Se ha marcado como efectuado:</p>
-            <p className="font-medium">{record.type === 'cobro' ? 'Cobro' : 'Pago'} de {record.montoEspera.toLocaleString('es-AR', {
-              style: 'currency',
-              currency: record.moneda === 'ars' ? 'ARS' : 'USD'
-            })}</p>
-            <p className="text-sm text-muted-foreground">Fecha: {formatDate(fechaEfectuado)}</p>
-          </div>
-        ),
-      });
-
-      if (onRecordUpdate) {
-        onRecordUpdate();
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Error al actualizar el registro",
-        variant: "destructive",
-      });
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
   const handleMarkAsCollected = async (record: ContabilidadRecord) => {
+    setUpdatingId(record.id);
     try {
       await updateContabilidadRecord(record.id, {
         fechaEfectuado: new Date().toISOString(),
@@ -108,6 +67,10 @@ export function ContabilidadTable({ records, onRecordUpdate, onRecordDelete }: C
         title: "Registro actualizado",
         description: "El registro ha sido marcado como cobrado/pagado.",
       });
+
+      if (onRecordUpdate) {
+        onRecordUpdate();
+      }
     } catch (error) {
       console.error('Error al marcar como cobrado:', error);
       toast({
@@ -115,6 +78,8 @@ export function ContabilidadTable({ records, onRecordUpdate, onRecordDelete }: C
         description: "No se pudo actualizar el registro.",
         variant: "destructive",
       });
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -138,6 +103,7 @@ export function ContabilidadTable({ records, onRecordUpdate, onRecordDelete }: C
               <TableHead>Categoría</TableHead>
               <TableHead>Subcargo</TableHead>
               <TableHead>Detalle</TableHead>
+              <TableHead>Comentario</TableHead>
               <TableHead className="text-right">Monto</TableHead>
               <TableHead>Fecha Esperada</TableHead>
               <TableHead><User className="h-4 w-4 inline-block mr-1"/>Cliente</TableHead>
@@ -172,6 +138,7 @@ export function ContabilidadTable({ records, onRecordUpdate, onRecordDelete }: C
                   <TableCell>{record.categoria}</TableCell>
                   <TableCell>{record.subcargo}</TableCell>
                   <TableCell>{record.detalle}</TableCell>
+                  <TableCell>{record.comentario}</TableCell>
                   <TableCell className="text-right font-mono">
                     {record.montoEspera.toLocaleString('es-AR', {
                       style: 'currency',
