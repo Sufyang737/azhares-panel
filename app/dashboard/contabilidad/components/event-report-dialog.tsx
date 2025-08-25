@@ -23,14 +23,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { getEventos } from "@/app/services/relations";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
+import { ReactSearchAutocomplete } from 'react-search-autocomplete';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TrendingUp, TrendingDown, Scale } from "lucide-react";
+import { searchEventos } from "@/app/services/relations";
 
 interface Evento {
   id: string;
@@ -73,7 +71,9 @@ export function EventReportDialog() {
   const [allRecords, setAllRecords] = useState<ContabilidadRecord[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<'evento' | 'oficina'>('evento');
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
-  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [eventResults, setEventResults] = useState<Evento[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [selectedEventName, setSelectedEventName] = useState<string | null>(null);
 
   // Cargar todos los datos al abrir el diálogo
   useEffect(() => {
@@ -86,9 +86,8 @@ export function EventReportDialog() {
           if (!recordsResponse.ok) throw new Error('Error al cargar registros');
           setAllRecords(recordsData.items);
           
-          // Cargar todos los eventos
-          const eventosData = await getEventos();
-          setEventos(eventosData);
+          // Ya no cargamos todos los eventos aquí para evitar listas enormes.
+          // Dejamos la búsqueda bajo demanda con el input.
 
         } catch (error) {
           console.error("Error al cargar datos:", error);
@@ -98,7 +97,24 @@ export function EventReportDialog() {
     loadInitialData();
   }, [open]);
 
-  const filteredEvents = (eventos || []).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  // Búsqueda de eventos por texto (igual que en Crear movimiento)
+  const searchEventosHandler = async (value: string) => {
+    if (selectedCategory !== 'evento') return;
+    if (!value.trim()) {
+      setEventResults([]);
+      return;
+    }
+    setEventsLoading(true);
+    try {
+      const results = await searchEventos(value);
+      setEventResults(results);
+    } catch (error) {
+      console.error('Error buscando eventos:', error);
+      setEventResults([]);
+    } finally {
+      setEventsLoading(false);
+    }
+  };
 
   // Filtrar registros por categoría y evento
   const filteredRecords = useMemo(() => allRecords.filter(r => {
@@ -118,7 +134,7 @@ export function EventReportDialog() {
     return true;
   }), [allRecords, selectedCategory, selectedEvent]);
 
-  const recordsToShow = selectedEvent ? filteredRecords.filter(r => r.evento_id === selectedEvent) : filteredRecords;
+  const recordsToShow = filteredRecords;
 
   // Calcular totales para la categoría seleccionada
   const totals = useMemo(() => {
@@ -177,52 +193,124 @@ export function EventReportDialog() {
               </Select>
             </div>
 
-            {/* Selección de evento (solo si la categoría es evento) */}
+            {/* Búsqueda de evento (idéntica al crear movimiento) */}
             {selectedCategory === 'evento' && (
               <div>
-                <h4 className="mb-2 text-sm font-medium">Eventos</h4>
-                <Select
-                  value={selectedEvent || ''}
-                  onValueChange={setSelectedEvent}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar Evento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredEvents.map((event) => (
-                      <SelectItem key={event.id} value={event.id}>
-                        {event.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <h4 className="mb-2 text-sm font-medium">🎉 Evento</h4>
+                {eventsLoading && (
+                  <div className="p-2 text-sm flex items-center">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando...
+                  </div>
+                )}
+                <ReactSearchAutocomplete
+                  items={eventResults.map(e => ({ ...e, name: e.nombre }))}
+                  onSearch={(string) => searchEventosHandler(string)}
+                  onSelect={(item: Evento) => {
+                    setSelectedEvent(item.id);
+                    setSelectedEventName(item.nombre);
+                  }}
+                  onClear={() => {
+                    setSelectedEvent(null);
+                    setSelectedEventName(null);
+                    setEventResults([]);
+                  }}
+                  placeholder="Buscar evento..."
+                  autoFocus={false}
+                  resultStringKeyName="name"
+                  inputSearchString={selectedEventName || ""}
+                  styling={{
+                    height: "38px",
+                    border: "1px solid #E5E7EB",
+                    borderRadius: "6px",
+                    backgroundColor: "white",
+                    boxShadow: "none",
+                    hoverBackgroundColor: "#F3F4F6",
+                    color: "#111827",
+                    fontSize: "14px",
+                    fontFamily: "inherit",
+                    clearIconMargin: "3px 8px 0 0",
+                    zIndex: 20,
+                  }}
+                />
               </div>
             )}
 
-            {/* Totales (mostrar siempre que haya una categoría seleccionada) */}
+            {/* Totales (mejor UI) */}
             {selectedCategory && (
-              <div className="grid grid-cols-3 gap-8">
-                <div>
-                  <h4 className="mb-2 text-sm font-medium">Ingresos Totales</h4>
-                  <div className="space-y-1">
-                    <p>ARS: {formatCurrency(totals.ingresos.ars, 'ars')}</p>
-                    <p>USD: {formatCurrency(totals.ingresos.usd, 'usd')}</p>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="mb-2 text-sm font-medium">Egresos Totales</h4>
-                  <div className="space-y-1">
-                    <p>ARS: {formatCurrency(totals.egresos.ars, 'ars')}</p>
-                    <p>USD: {formatCurrency(totals.egresos.usd, 'usd')}</p>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="mb-2 text-sm font-medium">Ganancia Obtenida</h4>
-                  <div className="space-y-1">
-                    <p>ARS: {formatCurrency(totals.ingresos.ars - totals.egresos.ars, 'ars')}</p>
-                    <p>USD: {formatCurrency(totals.ingresos.usd - totals.egresos.usd, 'usd')}</p>
-                  </div>
-                </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {/* Ingresos */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-emerald-600" />
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xs text-muted-foreground">ARS</span>
+                      <span className="font-mono text-base">
+                        {formatCurrency(totals.ingresos.ars, 'ars')}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xs text-muted-foreground">USD</span>
+                      <span className="font-mono text-base">
+                        {formatCurrency(totals.ingresos.usd, 'usd')}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Egresos */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Egresos Totales</CardTitle>
+                    <TrendingDown className="h-4 w-4 text-red-600" />
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xs text-muted-foreground">ARS</span>
+                      <span className="font-mono text-base">
+                        {formatCurrency(totals.egresos.ars, 'ars')}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xs text-muted-foreground">USD</span>
+                      <span className="font-mono text-base">
+                        {formatCurrency(totals.egresos.usd, 'usd')}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Ganancia */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Ganancia Obtenida</CardTitle>
+                    <Scale className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {(() => {
+                      const netArs = totals.ingresos.ars - totals.egresos.ars;
+                      const netUsd = totals.ingresos.usd - totals.egresos.usd;
+                      return (
+                        <>
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-xs text-muted-foreground">ARS</span>
+                            <span className={`font-mono text-base ${netArs >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                              {formatCurrency(netArs, 'ars')}
+                            </span>
+                          </div>
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-xs text-muted-foreground">USD</span>
+                            <span className={`font-mono text-base ${netUsd >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                              {formatCurrency(netUsd, 'usd')}
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
               </div>
             )}
           </div>

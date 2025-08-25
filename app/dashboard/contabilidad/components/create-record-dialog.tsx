@@ -116,7 +116,7 @@ const getAvailableSubcargos = (type: string, categoria: string) => {
   // Caso 3: Pago en evento
   if (type === 'pago' && categoria === 'evento') {
     return [
-      { value: 'otros', label: 'Otros' },
+      { value: 'otros', label: 'Otro' },
       { value: 'sueldos', label: 'Sueldos' }
     ];
   }
@@ -152,8 +152,7 @@ const getAvailableDetalles = (type: string, categoria: string, subcargo: string)
     ];
   }
   if (type === 'pago' && categoria === 'evento') {
-    return [
-      { value: 'maquillaje', label: 'Maquillaje' },
+    return [      { value: 'maquillaje', label: 'Maquillaje' },
       { value: 'viandas', label: 'Viandas' },
       { value: 'viatico', label: 'Viático' },
       { value: 'handy', label: 'Handy' },
@@ -732,10 +731,10 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                   </FormItem>
               )} />
               {(currentType === 'cobro' || 
-                (currentType === 'pago' && currentCategoria === 'oficina' && 
-                  (currentSubcargo === 'deriva' || currentSubcargo === 'servicios' || 
-                   currentSubcargo === 'impuestos' || currentSubcargo === 'compras')
-                )
+                (currentType === 'pago' && (
+                  (currentCategoria === 'oficina' && (currentSubcargo === 'deriva' || currentSubcargo === 'servicios' || currentSubcargo === 'impuestos' || currentSubcargo === 'compras')) ||
+                  (currentCategoria === 'evento')
+                ))
               ) && (
                  <FormField control={form.control} name="detalle" render={({ field }) => (
                     <FormItem className="space-y-1">
