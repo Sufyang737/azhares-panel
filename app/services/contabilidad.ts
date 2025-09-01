@@ -10,7 +10,8 @@ export type ContabilidadRecord = {
   created: string;
   updated: string;
   type: 'cobro' | 'pago';
-  especie: 'efectivo' | 'trasferencia';
+  // Acepta ambas variantes por compatibilidad, usar 'transferencia' como estándar
+  especie: 'efectivo' | 'transferencia' | 'trasferencia';
   moneda: 'ars' | 'usd';
   categoria: 'evento' | 'oficina';
   subcargo: 'clientes' | 'otros' | 'proveedores' | 'sueldos' | 'mensajeria' | 

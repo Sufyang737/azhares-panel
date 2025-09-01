@@ -132,17 +132,21 @@ export function DailyCashDialog() {
       if (!record.fechaEfectuado) return acc;
 
       const amount = record.montoEspera || 0;
-      const especie = record.especie?.toLowerCase() || 'efectivo';
+      // Normaliza variantes de 'transferencia' y maneja faltantes
+      const normalizeEspecie = (value?: string) => {
+        const v = (value || '').toLowerCase().trim();
+        if (v === 'transferencia' || v === 'trasferencia') return 'transferencia' as const;
+        if (v.startsWith('transfe') || v.startsWith('trasfe')) return 'transferencia' as const;
+        return 'efectivo' as const;
+      };
+      const especie = normalizeEspecie(record.especie as unknown as string);
       const moneda = record.moneda?.toLowerCase();
       const type = record.type === 'cobro' ? 'ingresos' : 'egresos';
       const effectiveDate = new Date(record.fechaEfectuado);
       const isSelectedDay = effectiveDate >= startOfDay(selectedDate) && effectiveDate <= endOfDay(selectedDate);
 
       // Validar que los valores sean correctos
-      if (especie !== 'efectivo' && especie !== 'transferencia') {
-        console.warn('Especie inválida:', especie, record);
-        return acc;
-      }
+      // especie ya está normalizada a 'efectivo' o 'transferencia'
 
       if (!moneda || (moneda !== 'ars' && moneda !== 'usd')) {
         console.warn('Moneda inválida:', moneda, record);

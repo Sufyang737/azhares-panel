@@ -58,7 +58,7 @@ interface DolarBlue {
 
 type FormData = {
   type: 'cobro' | 'pago';
-  especie: 'efectivo' | 'trasferencia';
+  especie: 'efectivo' | 'transferencia';
   moneda: 'ars' | 'usd';
   categoria: 'evento' | 'oficina';
   subcargo: string;
@@ -282,7 +282,7 @@ const getAvailableDetalles = (type: string, categoria: string, subcargo: string)
 
 const formSchema = z.object({
   type: z.enum(['cobro', 'pago']),
-  especie: z.enum(['efectivo', 'trasferencia']),
+  especie: z.enum(['efectivo', 'transferencia']),
   moneda: z.enum(['ars', 'usd']),
   categoria: z.enum(['evento', 'oficina']),
   subcargo: z.string().min(1, "Subcargo es requerido"),
@@ -323,7 +323,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
 
   const defaultFormValues = useMemo(() => ({
     type: "cobro" as 'cobro' | 'pago',
-    especie: "efectivo" as 'efectivo' | 'trasferencia',
+    especie: "efectivo" as 'efectivo' | 'transferencia',
     moneda: "ars" as 'ars' | 'usd',
     categoria: "oficina" as 'evento' | 'oficina',
     subcargo: "",
@@ -351,7 +351,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
       
       form.reset({
         type: recordToEdit.type,
-        especie: recordToEdit.especie,
+        especie: (recordToEdit.especie === 'trasferencia' ? 'transferencia' : recordToEdit.especie) as 'efectivo' | 'transferencia',
         moneda: recordToEdit.moneda,
         categoria: recordToEdit.categoria,
         subcargo: recordToEdit.subcargo,

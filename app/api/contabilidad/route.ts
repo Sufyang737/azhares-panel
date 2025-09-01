@@ -39,9 +39,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (body.especie && !["efectivo", "trasferencia"].includes(body.especie)) {
+    // Aceptar ambas variantes y normalizar más adelante
+    if (body.especie && !["efectivo", "transferencia", "trasferencia"].includes(body.especie)) {
       return NextResponse.json(
-        { error: "El campo 'especie' debe ser 'efectivo' o 'trasferencia'" },
+        { error: "El campo 'especie' debe ser 'efectivo' o 'transferencia'" },
         { status: 400 }
       );
     }
@@ -92,9 +93,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Create the record with proper type handling
+    const especieNormalized = body.especie === 'trasferencia' ? 'transferencia' : body.especie;
     const data = {
       type: body.type,
-      especie: body.especie,
+      especie: especieNormalized,
       moneda: body.moneda,
       categoria: body.categoria,
       subcargo: body.subcargo,

@@ -33,7 +33,7 @@ interface EditRecordDialogProps {
 
 type FormData = {
   type: 'cobro' | 'pago';
-  especie: 'efectivo' | 'trasferencia';
+  especie: 'efectivo' | 'transferencia';
   moneda: 'ars' | 'usd';
   categoria: 'evento' | 'oficina';
   subcargo: 'clientes' | 'otros' | 'proveedores' | 'sueldos' | 'mensajeria' | 
@@ -53,7 +53,7 @@ export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogPro
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     type: record.type,
-    especie: record.especie,
+    especie: (record.especie === 'trasferencia' ? 'transferencia' : record.especie) as 'efectivo' | 'transferencia',
     moneda: record.moneda,
     montoEspera: record.montoEspera,
     categoria: record.categoria,
@@ -130,7 +130,7 @@ export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogPro
                 <Label htmlFor="especie">Especie</Label>
                 <Select
                   value={formData.especie}
-                  onValueChange={(value: 'efectivo' | 'trasferencia') => setFormData({ ...formData, especie: value })}
+                  onValueChange={(value: 'efectivo' | 'transferencia') => setFormData({ ...formData, especie: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar especie" />
