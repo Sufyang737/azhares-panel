@@ -630,9 +630,9 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
               <FormField control={form.control} name="especie" render={({ field }) => (
                   <FormItem className="space-y-1">
                     <FormLabel>💳 Método *</FormLabel>
-                  <Select onValueChange={(value) => field.onChange(value as 'efectivo' | 'trasferencia')} value={field.value}>
+                  <Select onValueChange={(value) => field.onChange(value as 'efectivo' | 'transferencia')} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger></FormControl>
-                    <SelectContent><SelectItem value="efectivo">Efectivo</SelectItem><SelectItem value="trasferencia">Transferencia</SelectItem></SelectContent>
+                    <SelectContent><SelectItem value="efectivo">Efectivo</SelectItem><SelectItem value="transferencia">Transferencia</SelectItem></SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
