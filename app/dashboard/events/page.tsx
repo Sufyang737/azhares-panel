@@ -217,7 +217,7 @@ export default function EventsPage() {
               apellido: string; 
               cumpleanio: string 
             }) => {
-              const birthDate = new Date(persona.cumpleanio);
+              const birthDate = new Date(persona.cumpleanio.replace(/-/g, '/'));
               const currentYear = new Date().getFullYear();
               // Crear fecha del cumpleaños para este año
               const thisYearBirthday = new Date(currentYear, birthDate.getMonth(), birthDate.getDate());
@@ -618,6 +618,23 @@ const styles = `
   .rbc-button-link {
     padding: 4px;
     font-weight: 500;
+  }
+  
+  .rbc-show-more {
+    color: #3b82f6;
+    font-weight: 500;
+  }
+  
+  .rbc-event {
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+  }
+}
+`; 
+
+
+0;
   }
   
   .rbc-show-more {
