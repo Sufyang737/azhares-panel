@@ -36,6 +36,7 @@ export default function ContabilidadPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [activeFilters, setActiveFilters] = useState<FilterValues>({});
   const [showAllRecords, setShowAllRecords] = useState(false);
+  const [totalsByCurrency, setTotalsByCurrency] = useState<Record<string, { cobros: number; pagos: number; balance: number }>>({});
   const { toast } = useToast();
   
   const MAX_RECORDS = 1000; // Maximum number of records to fetch when showing all
@@ -101,28 +102,34 @@ export default function ContabilidadPage() {
         throw new Error('No se pudieron obtener los registros');
       }
 
-      // Calcular totales en dólares efectivo
-      console.log('Calculando totales...');
-      const dollarCashRecords = allRecords.filter(record => 
-        record.moneda === 'usd' && record.especie === 'efectivo'
-      );
+      // Calcular totales por moneda según los filtros actuales
+      const currencyTotals = allRecords.reduce((acc, record) => {
+        const currencyKey = (record.moneda || 'N/A').toUpperCase();
+        const amount = record.montoEspera || 0;
 
-      const ingresos = dollarCashRecords
-        .filter(record => record.type === 'cobro')
-        .reduce((sum, record) => sum + (record.montoEspera || 0), 0);
+        if (!acc[currencyKey]) {
+          acc[currencyKey] = { cobros: 0, pagos: 0 };
+        }
 
-      const egresos = dollarCashRecords
-        .filter(record => record.type === 'pago')
-        .reduce((sum, record) => sum + (record.montoEspera || 0), 0);
+        if (record.type === 'cobro') {
+          acc[currencyKey].cobros += amount;
+        } else if (record.type === 'pago') {
+          acc[currencyKey].pagos += amount;
+        }
 
-      const balance = ingresos - egresos;
+        return acc;
+      }, {} as Record<string, { cobros: number; pagos: number }>);
 
-      console.log('=== BALANCE DE DÓLARES EN EFECTIVO ===');
-      console.log(`Total Cobros (USD): $${ingresos.toFixed(2)}`);
-      console.log(`Total Pagos (USD): $${egresos.toFixed(2)}`);
-      console.log(`Balance Final (USD): $${balance.toFixed(2)}`);
-      console.log('Total registros procesados:', dollarCashRecords.length);
-      console.log('====================================');
+      const totalsWithBalance = Object.entries(currencyTotals).reduce((acc, [currency, totals]) => {
+        acc[currency] = {
+          cobros: totals.cobros,
+          pagos: totals.pagos,
+          balance: totals.cobros - totals.pagos,
+        };
+        return acc;
+      }, {} as Record<string, { cobros: number; pagos: number; balance: number }>);
+
+      setTotalsByCurrency(totalsWithBalance);
 
       // Luego, obtener los registros paginados para la tabla
       console.log('Obteniendo registros paginados para la tabla...');
@@ -157,6 +164,7 @@ export default function ContabilidadPage() {
     } catch (error) {
       console.error("Error loading records:", error);
       setRecords([]);
+      setTotalsByCurrency({});
       toast({
         title: "Error al cargar registros",
         description: error instanceof Error ? error.message : "No se pudieron cargar los registros contables. Inténtalo de nuevo.",
@@ -184,6 +192,18 @@ export default function ContabilidadPage() {
   const handleFiltersChange = (filters: FilterValues) => {
     setActiveFilters(filters);
     setCurrentPage(1); // Resetear a la primera página cuando se aplican filtros
+  };
+
+  const formatCurrency = (amount: number, currency: string) => {
+    const normalizedCurrency = currency.toUpperCase();
+    const currencyCode = normalizedCurrency === 'ARS' || normalizedCurrency === 'USD'
+      ? normalizedCurrency
+      : normalizedCurrency === 'PESOS' ? 'ARS' : normalizedCurrency;
+
+    return amount.toLocaleString('es-AR', {
+      style: 'currency',
+      currency: currencyCode === 'USD' ? 'USD' : 'ARS'
+    });
   };
 
   const handleDeleteRecord = async (recordId: string) => {
@@ -233,6 +253,22 @@ export default function ContabilidadPage() {
                     <p className="text-sm text-muted-foreground">
                       Total: {totalItems} registros
                     </p>
+                    {Object.keys(totalsByCurrency).length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-3">
+                        {Object.entries(totalsByCurrency).map(([currency, totals]) => (
+                          <div key={currency} className="rounded-md border bg-muted/40 px-3 py-2 text-xs sm:text-sm">
+                            <div className="font-semibold uppercase tracking-wider text-muted-foreground">
+                              {currency}
+                            </div>
+                            <div className="mt-1 grid gap-1">
+                              <span>Cobros: {formatCurrency(totals.cobros, currency)}</span>
+                              <span>Pagos: {formatCurrency(totals.pagos, currency)}</span>
+                              <span className="font-medium">Balance: {formatCurrency(totals.balance, currency)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
