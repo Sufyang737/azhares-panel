@@ -80,6 +80,14 @@ interface CreateRecordDialogProps {
   recordToEdit?: ContabilidadRecord;
 }
 
+const normalizeDetailValue = (subcargo: string | undefined, detail?: string | null) => {
+  if (!detail) return detail;
+  if (subcargo === 'impuestos' && detail.toLowerCase() === 'ofceca') {
+    return 'OFCECA';
+  }
+  return detail;
+};
+
 // Funciones memoizadas para las opciones
 const getAvailableSubcargos = (type: string, categoria: string) => {
   // Caso 1: Cobro en oficina
@@ -169,7 +177,7 @@ const getAvailableDetalles = (type: string, categoria: string, subcargo: string)
       {value: 'ingresos_brutos', label: 'Ingresos Brutos'},
       {value: 'autonomo', label: 'Autónomo'},
       {value: 'formulario_931', label: 'Formulario 931'},
-      {value: 'ofceca', label: 'OFCECA'}
+      {value: 'OFCECA', label: 'OFCECA'}
     ];
     if (subcargo === 'servicios') return [
       {value: 'luz', label: 'Luz'},
@@ -355,7 +363,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
         moneda: recordToEdit.moneda,
         categoria: recordToEdit.categoria,
         subcargo: recordToEdit.subcargo,
-        detalle: recordToEdit.detalle,
+        detalle: normalizeDetailValue(recordToEdit.subcargo, recordToEdit.detalle) || '',
         montoEspera: recordToEdit.montoEspera,
         dolarEsperado: recordToEdit.dolarEsperado,
         fechaEspera: recordToEdit.fechaEspera ? new Date(recordToEdit.fechaEspera) : new Date(),
@@ -536,7 +544,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
         moneda: values.moneda,
         categoria: values.categoria,
         subcargo: values.subcargo as ContabilidadRecord['subcargo'],
-        detalle: (values.detalle || 'otros') as ContabilidadRecord['detalle'],
+        detalle: normalizeDetailValue(values.subcargo, values.detalle || 'otros') as ContabilidadRecord['detalle'],
         montoEspera: Number(values.montoEspera),
         dolarEsperado: Number(values.dolarEsperado),
         fechaEspera: values.fechaEspera.toISOString(),

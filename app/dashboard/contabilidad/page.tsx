@@ -186,6 +186,7 @@ export default function ContabilidadPage() {
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
+      loadRecords(newPage, activeFilters);
     }
   };
 
@@ -253,22 +254,6 @@ export default function ContabilidadPage() {
                     <p className="text-sm text-muted-foreground">
                       Total: {totalItems} registros
                     </p>
-                    {Object.keys(totalsByCurrency).length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-3">
-                        {Object.entries(totalsByCurrency).map(([currency, totals]) => (
-                          <div key={currency} className="rounded-md border bg-muted/40 px-3 py-2 text-xs sm:text-sm">
-                            <div className="font-semibold uppercase tracking-wider text-muted-foreground">
-                              {currency}
-                            </div>
-                            <div className="mt-1 grid gap-1">
-                              <span>Cobros: {formatCurrency(totals.cobros, currency)}</span>
-                              <span>Pagos: {formatCurrency(totals.pagos, currency)}</span>
-                              <span className="font-medium">Balance: {formatCurrency(totals.balance, currency)}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -296,6 +281,22 @@ export default function ContabilidadPage() {
                     <CreateRecordDialog onRecordCreated={handleRecordUpdate} />
                   </div>
                 </div>
+                {Object.keys(totalsByCurrency).length > 0 && (
+                  <div className="mb-4 flex flex-wrap gap-3">
+                    {Object.entries(totalsByCurrency).map(([currency, totals]) => (
+                      <div key={currency} className="rounded-md border bg-muted/40 px-3 py-2 text-xs sm:text-sm">
+                        <div className="font-semibold uppercase tracking-wider text-muted-foreground">
+                          {currency}
+                        </div>
+                        <div className="mt-1 grid gap-1">
+                          <span>Cobros: {formatCurrency(totals.cobros, currency)}</span>
+                          <span>Pagos: {formatCurrency(totals.pagos, currency)}</span>
+                          <span className="font-medium">Balance: {formatCurrency(totals.balance, currency)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {loading ? (
                   <div className="text-center py-4 flex items-center justify-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />

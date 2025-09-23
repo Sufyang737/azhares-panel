@@ -77,19 +77,27 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.detalle) {
+      const detalleValue =
+        body.subcargo === 'impuestos' && typeof body.detalle === 'string'
+          ? body.detalle.toUpperCase()
+          : body.detalle;
+
       const validDetalles = [
         "compra-usd", "comision", "handy","otros", "honorarios", "maquillaje", "Loli", "Noe",
         "planner", "staff", "viandas", "venta-usd", "viatico", "seguro",
         "iva", "ganancias", "luz", "gas", "internet", "general", "telefono",
-        "prosegur", "mayorista", "coto", "libreria", "cerrajeria", "cafe", "agua", "autonomo"
+        "prosegur", "mayorista", "coto", "libreria", "cerrajeria", "cafe", "agua", "autonomo",
+        "OFCECA"
       ];
 
-      if (!validDetalles.includes(body.detalle)) {
+      if (!validDetalles.includes(detalleValue)) {
         return NextResponse.json(
           { error: `El campo 'detalle' debe ser uno de los valores permitidos: ${validDetalles.join(", ")}` },
           { status: 400 }
         );
       }
+
+      body.detalle = detalleValue;
     }
 
     // Create the record with proper type handling
