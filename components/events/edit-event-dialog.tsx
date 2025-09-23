@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
+import { parseDateFromDb } from "@/lib/date";
 
 interface EditEventDialogProps {
   event: {
@@ -45,10 +46,12 @@ interface EditEventDialogProps {
 
 export function EditEventDialog({ event, isOpen, onClose, onSuccess }: EditEventDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const initialDate = parseDateFromDb(event.fecha);
+
   const [formData, setFormData] = useState({
     nombre: event.nombre,
     tipo: event.tipo,
-    fecha: format(new Date(event.fecha), "yyyy-MM-dd"),
+    fecha: initialDate ? format(initialDate, "yyyy-MM-dd") : "",
     estado: event.estado,
     comentario: event.comentario || "",
   });

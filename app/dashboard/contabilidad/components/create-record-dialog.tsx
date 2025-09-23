@@ -86,14 +86,14 @@ const getAvailableSubcargos = (type: string, categoria: string) => {
   if (type === 'cobro' && categoria === 'oficina') {
     return [
       { value: 'cambio-divisas', label: 'Cambio de Divisas' },
-      { value: 'ajuste-caja', label: 'Ajuste de Caja' },
-      { value: 'caja-chica', label: 'Caja Chica' }
+      { value: 'ajuste-caja', label: 'Ajuste de Caja' }
     ];
   }
   
   // Caso 2: Pago en oficina
   if (type === 'pago' && categoria === 'oficina') {
     return [
+      { value: 'caja-chica', label: 'Caja Chica' },
       { value: 'obra-social-empleada', label: 'Obra Social Empleada' },
       { value: 'mantencion-cuenta-corriente', label: 'Mantención Cuenta Corriente' },
       { value: 'seguro-galicia', label: 'Seguro Galicia' },
@@ -402,6 +402,12 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
 
   const availableSubcargos = React.useMemo(() => getAvailableSubcargos(currentType, currentCategoria), [currentType, currentCategoria]);
   const availableDetalles = React.useMemo(() => getAvailableDetalles(currentType, currentCategoria, currentSubcargo), [currentType, currentCategoria, currentSubcargo]);
+
+  useEffect(() => {
+    if (currentSubcargo === 'caja-chica' && currentType !== 'pago') {
+      form.setValue('type', 'pago');
+    }
+  }, [currentSubcargo, currentType, form]);
 
   useEffect(() => {
     const currentSubcargoValue = form.getValues('subcargo');

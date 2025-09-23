@@ -44,7 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   Dialog,
@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/dialog"
 import { EditEventForm } from "./edit-event-form"
 import { Switch } from "@/components/ui/switch"
+import { parseDateFromDb } from "@/lib/date";
 
 // Define schema para datos de eventos desde la API
 export const eventoSchema = z.object({
@@ -237,13 +238,13 @@ export function EventsDataTable({
       cell: ({ row }) => {
         const fecha = row.getValue("fecha") as string | null;
         if (!fecha) return <div className="text-muted-foreground">No definida</div>;
-        
-        try {
-          return <div>{format(parseISO(fecha), "PP", { locale: es })}</div>;
-        } catch {
-          // En caso de error de parseo de fecha, mostramos el valor sin formato
+
+        const parsedDate = parseDateFromDb(fecha);
+        if (!parsedDate) {
           return <div className="text-muted-foreground">{fecha}</div>;
         }
+
+        return <div>{format(parsedDate, "PP", { locale: es })}</div>;
       },
     },
     {
@@ -637,7 +638,7 @@ export function EventsDataTable({
                 id: eventToEdit.id,
                 nombre: eventToEdit.nombre,
                 tipo: eventToEdit.tipo,
-                fecha: eventToEdit.fecha ? new Date(eventToEdit.fecha) : undefined,
+                fecha: eventToEdit.fecha ? parseDateFromDb(eventToEdit.fecha) ?? undefined : undefined,
                 estado: eventToEdit.estado,
                 comentario: eventToEdit.comentario || "",
                 cliente_id: eventToEdit.cliente?.id,

@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { IconCalendarEvent, IconUser, IconNotes, IconClock } from "@tabler/icons-react";
+import { parseDateFromDb } from "@/lib/date";
 
 interface EventDetailsDialogProps {
   event: {
@@ -35,6 +36,8 @@ interface EventDetailsDialogProps {
 export function EventDetailsDialog({ event, isOpen, onClose }: EventDetailsDialogProps) {
   if (!event) return null;
 
+  const eventDate = parseDateFromDb(event.fecha);
+
   const getStatusColor = (estado: string) => {
     switch (estado) {
       case 'en-curso':
@@ -60,7 +63,9 @@ export function EventDetailsDialog({ event, isOpen, onClose }: EventDetailsDialo
             <div className="grid gap-1">
               <div className="font-medium">Fecha del Evento</div>
               <div className="text-sm text-muted-foreground">
-                {format(new Date(event.fecha), "EEEE d 'de' MMMM 'de' yyyy", { locale: es })}
+                {eventDate
+                  ? format(eventDate, "EEEE d 'de' MMMM 'de' yyyy", { locale: es })
+                  : 'Fecha no disponible'}
               </div>
             </div>
           </div>

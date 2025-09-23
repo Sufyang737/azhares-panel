@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { IconCalendarEvent, IconUser, IconNotes, IconClock, IconEdit } from "@tabler/icons-react";
 import { useState } from "react";
 import { EditEventForm } from "./edit-event-form";
+import { parseDateFromDb } from "@/lib/date";
 
 interface EventDetailsDialogProps {
   event: {
@@ -40,6 +41,8 @@ export function EventDetailsDialog({ event, isOpen, onClose, onEventUpdated }: E
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   if (!event) return null;
+
+  const eventDate = parseDateFromDb(event.fecha);
 
   const getStatusColor = (estado: string) => {
     switch (estado) {
@@ -82,7 +85,9 @@ export function EventDetailsDialog({ event, isOpen, onClose, onEventUpdated }: E
               <div className="grid gap-1">
                 <div className="font-medium">Fecha del Evento</div>
                 <div className="text-sm text-muted-foreground">
-                  {format(new Date(event.fecha), "EEEE d 'de' MMMM 'de' yyyy", { locale: es })}
+                  {eventDate
+                    ? format(eventDate, "EEEE d 'de' MMMM 'de' yyyy", { locale: es })
+                    : 'Fecha no disponible'}
                 </div>
               </div>
             </div>
@@ -149,7 +154,7 @@ export function EventDetailsDialog({ event, isOpen, onClose, onEventUpdated }: E
               id: event.id,
               nombre: event.nombre,
               tipo: event.tipo,
-              fecha: new Date(event.fecha),
+              fecha: eventDate ?? undefined,
               estado: event.estado,
               comentario: event.comentario || "",
               cliente_id: event.cliente?.id,

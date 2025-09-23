@@ -9,10 +9,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { format, isValid, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Eye } from "lucide-react";
 import { ContabilidadRecord } from "@/app/services/contabilidad";
+import { parseDateFromDb } from "@/lib/date";
 
 interface RecordDetailsDialogProps {
   record: ContabilidadRecord;
@@ -20,14 +21,9 @@ interface RecordDetailsDialogProps {
 
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return 'N/A';
-  try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return 'Fecha inválida';
-    return format(date, 'dd/MM/yyyy', { locale: es });
-  } catch (error) {
-    console.error('Error formatting date:', dateString, error);
-    return 'Error en fecha';
-  }
+  const date = parseDateFromDb(dateString);
+  if (!date) return 'Fecha inválida';
+  return format(date, 'dd/MM/yyyy', { locale: es });
 };
 
 export function RecordDetailsDialog({ record }: RecordDetailsDialogProps) {

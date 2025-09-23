@@ -11,7 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { format, isValid, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { BarChart3 } from "lucide-react";
 import { ContabilidadRecord } from "@/app/services/contabilidad";
@@ -29,6 +29,7 @@ import { ReactSearchAutocomplete } from 'react-search-autocomplete';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Scale } from "lucide-react";
 import { searchEventos } from "@/app/services/relations";
+import { parseDateFromDb } from "@/lib/date";
 
 interface Evento {
   id: string;
@@ -37,14 +38,9 @@ interface Evento {
 
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return 'N/A';
-  try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return 'Fecha inválida';
-    return format(date, 'dd/MM/yyyy', { locale: es });
-  } catch (error) {
-    console.error('Error formatting date:', dateString, error);
-    return 'Error en fecha';
-  }
+  const date = parseDateFromDb(dateString);
+  if (!date) return 'Fecha inválida';
+  return format(date, 'dd/MM/yyyy', { locale: es });
 };
 
 const formatCurrency = (amount: number, currency: string): string => {

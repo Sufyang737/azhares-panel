@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format, isValid, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Loader2, Check, MoreHorizontal, Trash2, User, Building, PartyPopper, Users } from "lucide-react";
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { RecordDetailsDialog } from "./record-details-dialog";
 import { EditRecordDialog } from "./edit-record-dialog";
+import { parseDateFromDb } from "@/lib/date";
 
 interface ContabilidadTableProps {
   records: ContabilidadRecord[];
@@ -35,14 +36,9 @@ interface ContabilidadTableProps {
 
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return 'N/A';
-  try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return 'Fecha inválida';
-    return format(date, 'dd/MM/yyyy', { locale: es });
-  } catch (error) {
-    console.error('Error formatting date:', dateString, error);
-    return 'Error en fecha';
-  }
+  const date = parseDateFromDb(dateString);
+  if (!date) return 'Fecha inválida';
+  return format(date, 'dd/MM/yyyy', { locale: es });
 };
 
 const getRelationName = (expandData: ContabilidadRecord['expand'], relationKey: string): string => {

@@ -11,7 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { format, isValid, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarClock, CheckCircle, Loader2 } from "lucide-react";
 import { ContabilidadRecord, updateContabilidadRecord } from "@/app/services/contabilidad";
@@ -24,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { parseDateFromDb } from "@/lib/date";
 
 interface ScheduledRecordsDialogProps {
   records: ContabilidadRecord[];
@@ -32,14 +33,9 @@ interface ScheduledRecordsDialogProps {
 
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return 'N/A';
-  try {
-    const date = parseISO(dateString);
-    if (!isValid(date)) return 'Fecha inválida';
-    return format(date, 'dd/MM/yyyy', { locale: es });
-  } catch (error) {
-    console.error('Error formatting date:', dateString, error);
-    return 'Error en fecha';
-  }
+  const date = parseDateFromDb(dateString);
+  if (!date) return 'Fecha inválida';
+  return format(date, 'dd/MM/yyyy', { locale: es });
 };
 
 const formatCurrency = (amount: number, currency: string): string => {

@@ -5,7 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Calendar, dateFnsLocalizer, View } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, isWithinInterval, addMonths } from 'date-fns';
+import { format, parse, startOfWeek, getDay, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IconSearch } from "@tabler/icons-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { parseDateFromDb } from "@/lib/date";
 
 // Configuración del localizador para el calendario
 const locales = {
@@ -163,7 +164,7 @@ export default function EventsPage() {
   const [events, setEvents] = useState<Evento[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Evento[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortConfig, setSortConfig] = useState<{
+  const [sortConfig, setSortConfig] = useState<{ 
     key: keyof Evento | 'cliente.nombre';
     direction: 'asc' | 'desc';
   }>({
@@ -171,7 +172,7 @@ export default function EventsPage() {
     direction: 'desc'
   });
   const [filterEstado, setFilterEstado] = useState<string>('todos');
-  const [birthdays, setBirthdays] = useState<Array<{
+  const [birthdays, setBirthdays] = useState<Array<{ 
     id: string;
     title: string;
     start: Date;
@@ -217,10 +218,11 @@ export default function EventsPage() {
               apellido: string; 
               cumpleanio: string 
             }) => {
-              const birthDate = new Date(persona.cumpleanio.replace(/-/g, '/'));
+              const birthDate = new Date(persona.cumpleanio);
+              const correctedBirthDate = new Date(birthDate.getTime() + birthDate.getTimezoneOffset() * 60000);
               const currentYear = new Date().getFullYear();
               // Crear fecha del cumpleaños para este año
-              const thisYearBirthday = new Date(currentYear, birthDate.getMonth(), birthDate.getDate());
+              const thisYearBirthday = new Date(currentYear, correctedBirthDate.getMonth(), correctedBirthDate.getDate());
               
               return {
                 id: `birthday-${persona.id}`,
@@ -275,7 +277,8 @@ export default function EventsPage() {
     // Filtrar por fechas
     if (startDate && endDate) {
       filtered = filtered.filter(event => {
-        const eventDate = new Date(event.fecha);
+        const eventDate = parseDateFromDb(event.fecha);
+        if (!eventDate) return false;
         return isWithinInterval(eventDate, { start: startDate, end: endDate });
       });
     }
@@ -302,7 +305,12 @@ export default function EventsPage() {
       }
 
       // Manejar ordenamiento de fechas
-      if (sortConfig.key === 'fecha' || sortConfig.key === 'created' || sortConfig.key === 'updated') {
+      if (sortConfig.key === 'fecha') {
+        const aDate = parseDateFromDb(aValue as string | null | undefined);
+        const bDate = parseDateFromDb(bValue as string | null | undefined);
+        aValue = aDate ? aDate.getTime() : -Infinity;
+        bValue = bDate ? bDate.getTime() : -Infinity;
+      } else if (sortConfig.key === 'created' || sortConfig.key === 'updated') {
         aValue = new Date(aValue || '').getTime();
         bValue = new Date(bValue || '').getTime();
       }
@@ -330,20 +338,26 @@ export default function EventsPage() {
   }, [events]);
 
   // Convertir eventos para el calendario
-  const calendarEvents = [
-    ...(events || []).map(event => ({
-      id: event.id,
-      title: `${event.nombre} ${event.cliente?.nombre ? `- ${event.cliente.nombre}` : ''}`,
-      start: new Date(event.fecha),
-      end: new Date(event.fecha),
-      allDay: true,
-      resource: {
-        ...event,
-        tipo: event.tipo,
-        estado: event.estado
-      },
-    })),
-    ...birthdays
+  const calendarEvents: CalendarEvent[] = [
+    ...(events || [])
+      .map((event) => {
+        const eventDate = parseDateFromDb(event.fecha);
+        if (!eventDate) return null;
+        return {
+          id: event.id,
+          title: `${event.nombre} ${event.cliente?.nombre ? `- ${event.cliente.nombre}` : ''}`,
+          start: eventDate,
+          end: eventDate,
+          allDay: true,
+          resource: {
+            ...event,
+            tipo: event.tipo,
+            estado: event.estado,
+          },
+        } as CalendarEvent;
+      })
+      .filter((event): event is CalendarEvent => event !== null),
+    ...birthdays,
   ];
 
   // Personalizar el estilo de los eventos según su tipo y estado
@@ -586,6 +600,4 @@ export default function EventsPage() {
       )}
     </SidebarProvider>
   );
-} 
-
-
+}

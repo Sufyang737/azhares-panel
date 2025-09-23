@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale';
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventDetailsDialog } from "./event-details-dialog";
+import { parseDateFromDb } from "@/lib/date";
 
 // Configuración del localizador para el calendario
 const locales = {
@@ -120,14 +121,20 @@ export function EventCalendar() {
 
   // Convertir eventos para el calendario
   const calendarEvents: CalendarEvent[] = [
-    ...events.map(event => ({
-      id: event.id,
-      title: event.nombre,
-      start: new Date(event.fecha),
-      end: new Date(event.fecha),
-      allDay: true,
-      resource: event,
-    })),
+    ...events
+      .map((event) => {
+        const eventDate = parseDateFromDb(event.fecha);
+        if (!eventDate) return null;
+        return {
+          id: event.id,
+          title: event.nombre,
+          start: eventDate,
+          end: eventDate,
+          allDay: true,
+          resource: event,
+        };
+      })
+      .filter((event): event is CalendarEvent => event !== null),
     ...birthdays
   ];
 
