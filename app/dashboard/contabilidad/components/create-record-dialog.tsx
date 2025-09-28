@@ -10,7 +10,6 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Popover,
@@ -37,17 +36,16 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { createContabilidadRecord, updateContabilidadRecord, ContabilidadRecord } from "@/app/services/contabilidad";
 import { useToast } from "@/components/ui/use-toast";
-import { useEffect, useState, useMemo, useCallback } from "react";
-import { CalendarIcon, Plus, Edit2, Search, Loader2, ChevronsUpDown } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { CalendarIcon, Plus, Edit2, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
-import { Cliente, Proveedor, Evento, Equipo, getClientes, getProveedores, getEventos, getEquipo, searchClientes, searchProveedores, searchEventos, searchEquipo } from "@/app/services/relations";
+import { Cliente, Proveedor, Evento, Equipo, searchClientes, searchProveedores, searchEventos, searchEquipo } from "@/app/services/relations";
 // import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"; // Comentado Command
 import { ReactSearchAutocomplete } from 'react-search-autocomplete';
-import debounce from 'lodash/debounce';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
@@ -82,10 +80,23 @@ interface CreateRecordDialogProps {
 
 const normalizeDetailValue = (subcargo: string | undefined, detail?: string | null) => {
   if (!detail) return detail;
-  if (subcargo === 'impuestos' && detail.toLowerCase() === 'ofceca') {
-    return 'OFCECA';
+  const trimmed = detail.trim();
+  if (!trimmed) return trimmed;
+
+  const normalized = trimmed.toLowerCase();
+
+  if (subcargo === 'impuestos') {
+    if (normalized === 'ofceca') return 'OFCECA';
+    if (normalized === 'ingresos_brutos' || normalized === 'ingresos-brutos') return 'ingresos-brutos';
+    if (['formulario_931', 'formulado_931', 'formulado-931'].includes(normalized)) {
+      return 'formulado-931';
+    }
   }
-  return detail;
+
+  if (normalized === 'noe') return 'Noe';
+  if (normalized === 'loli') return 'Loli';
+
+  return trimmed;
 };
 
 // Funciones memoizadas para las opciones
@@ -174,9 +185,9 @@ const getAvailableDetalles = (type: string, categoria: string, subcargo: string)
   if (type === 'pago' && categoria === 'oficina') {
     if (subcargo === 'impuestos') return [
       {value: 'iva', label: 'IVA'},
-      {value: 'ingresos_brutos', label: 'Ingresos Brutos'},
+      {value: 'ingresos-brutos', label: 'Ingresos Brutos'},
       {value: 'autonomo', label: 'Autónomo'},
-      {value: 'formulario_931', label: 'Formulario 931'},
+      {value: 'formulado-931', label: 'Formulario 931'},
       {value: 'OFCECA', label: 'OFCECA'}
     ];
     if (subcargo === 'servicios') return [
@@ -355,8 +366,6 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
 
   useEffect(() => {
     if (mode === 'edit' && recordToEdit) {
-      const getNombreFromId = (id: string, list: any[], nameKey = 'nombre') => list.find(item => item.id === id)?.[nameKey] || null;
-      
       form.reset({
         type: recordToEdit.type,
         especie: (recordToEdit.especie === 'trasferencia' ? 'transferencia' : recordToEdit.especie) as 'efectivo' | 'transferencia',
@@ -773,8 +782,8 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                   {isLoadingClientes && <div className="p-2 text-sm flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando...</div>}
                   <ReactSearchAutocomplete
                     items={clientesResult.map(c => ({ ...c, name: c.nombre }))}
-                    onSearch={(string, results) => {
-                      searchAPI.cliente(string);
+                    onSearch={(query) => {
+                      searchAPI.cliente(query);
                     }}
                     onSelect={(item: Cliente) => {
                       console.log("Cliente selected (RSA):", item);
@@ -813,7 +822,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                   {isLoadingProveedores && <div className="p-2 text-sm flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando...</div>}
                   <ReactSearchAutocomplete
                     items={proveedoresResult.map(p => ({ ...p, name: p.nombre }))}
-                    onSearch={(string, results) => searchAPI.proveedor(string)}
+                    onSearch={(query) => searchAPI.proveedor(query)}
                     onSelect={(item: Proveedor) => {
                       field.onChange(item.id);
                       setSelectedProveedorName(item.nombre);
@@ -854,7 +863,7 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                   {isLoadingEventos && <div className="p-2 text-sm flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando...</div>}
                   <ReactSearchAutocomplete
                     items={eventosResult.map(e => ({ ...e, name: e.nombre }))}
-                    onSearch={(string, results) => searchAPI.evento(string)}
+                    onSearch={(query) => searchAPI.evento(query)}
                     onSelect={(item: Evento) => {
                       field.onChange(item.id);
                       setSelectedEventoName(item.nombre);
@@ -889,9 +898,9 @@ export function CreateRecordDialog({ onRecordCreated, mode = 'create', recordToE
                 <FormItem className="flex flex-col space-y-1">
                     <FormLabel>👥 Equipo</FormLabel>
                   {isLoadingEquipo && <div className="p-2 text-sm flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando...</div>}
-                   <ReactSearchAutocomplete
+                  <ReactSearchAutocomplete
                     items={equipoResult.map(eq => ({ ...eq, name: eq.nombre }))}
-                    onSearch={(string, results) => searchAPI.equipo(string)}
+                    onSearch={(query) => searchAPI.equipo(query)}
                     onSelect={(item: Equipo) => {
                       field.onChange(item.id);
                       setSelectedEquipoName(item.nombre);

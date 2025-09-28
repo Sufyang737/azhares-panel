@@ -5,6 +5,30 @@ export interface ExpandedRecord {
   nombre: string;
 }
 
+const DETALLE_ALIASES: Record<string, string> = {
+  'ingresos_brutos': 'ingresos-brutos',
+  'ingresos brutos': 'ingresos-brutos',
+  'formulario_931': 'formulado-931',
+  'formulado_931': 'formulado-931',
+  'formulario 931': 'formulado-931',
+  'ofceca': 'OFCECA',
+  'noe': 'Noe',
+  'loli': 'Loli',
+};
+
+function normalizeDetalle(detalle?: string | null): string | null {
+  if (!detalle) return null;
+  const trimmed = detalle.trim();
+  if (!trimmed) return null;
+
+  const normalizedKey = trimmed.toLowerCase();
+  if (DETALLE_ALIASES[normalizedKey]) {
+    return DETALLE_ALIASES[normalizedKey];
+  }
+
+  return trimmed;
+}
+
 export type ContabilidadRecord = {
   id: string;
   created: string;
@@ -18,9 +42,12 @@ export type ContabilidadRecord = {
     'cambio-divisas' | 'ajuste-caja' | 'obra-social-empleada' | 
     'mantencion-cuenta-corriente' | 'seguro-galicia' | 'tarjeta-credito' | 
     'deriva' | 'expensas' | 'alquiler' | 'prepaga' | 'contador' | 
-    'mantenimiento-pc' | 'impuestos' | 'servicio' | 'regaleria' | 'compras';
-  detalle?: 'compra-usd' | 'comision' | 'handy' | 'honorarios' | 'maquillaje' | 
-    'planner' | 'staff' | 'viandas' | 'venta-usd' | 'viatico' | 'seguro';
+    'mantenimiento-pc' | 'impuestos' | 'servicios' | 'regaleria' | 'compras' | 'caja-chica';
+  detalle?: 'compra-usd' | 'comision' | 'handy' | 'honorarios' | 'maquillaje' |
+    'planner' | 'staff' | 'viandas' | 'venta-usd' | 'maquilllaje' | 'viatico' | 'seguro' |
+    'Noe' | 'Loli' | 'otros' | 'iva' | 'ingresos-brutos' | 'formulado-931' |
+    'OFCECA' | 'abl' | 'internet' | 'agua' | 'luz' | 'autonomo' | 'telefono' |
+    'prosegur' | 'mayorista' | 'coto' | 'libreria' | 'cerrajeria' | 'cafe' | null;
   montoEspera: number;
   dolarEsperado: number;
   fechaEspera: string;
@@ -46,14 +73,13 @@ export async function createContabilidadRecord(data: Omit<ContabilidadRecord, 'i
   try {
     // Validar datos antes de enviar
     console.log('Validando campos requeridos...');
-    if (!data.type || !data.especie || !data.moneda || !data.categoria || !data.subcargo || !data.detalle) {
+    if (!data.type || !data.especie || !data.moneda || !data.categoria || !data.subcargo) {
       console.error('Faltan campos requeridos:', {
         type: !data.type,
         especie: !data.especie,
         moneda: !data.moneda,
         categoria: !data.categoria,
         subcargo: !data.subcargo,
-        detalle: !data.detalle
       });
       throw new Error('Faltan campos requeridos');
     }
@@ -70,21 +96,22 @@ export async function createContabilidadRecord(data: Omit<ContabilidadRecord, 'i
     }
 
     // Preparar los datos
+    const detalle = normalizeDetalle(data.detalle ?? null);
     const recordData = {
       comentario: data.comentario || "",
       type: data.type,
-      especie: data.especie,
+      especie: data.especie === 'transferencia' ? 'trasferencia' : data.especie,
       moneda: data.moneda,
       categoria: data.categoria,
       subcargo: data.subcargo,
-      detalle: data.detalle,
+      detalle,
       montoEspera: Number(data.montoEspera),
       fechaEspera: data.fechaEspera || new Date().toISOString(),
-      dolarEsperado: data.dolarEsperado || 0,
-      cliente_id: data.cliente_id || "",
-      proveedor_id: data.proveedor_id || "",
-      evento_id: data.evento_id || "",
-      equipo_id: data.equipo_id || "",
+      dolarEsperado: Number(data.dolarEsperado ?? 0),
+      cliente_id: data.cliente_id || null,
+      proveedor_id: data.proveedor_id || null,
+      evento_id: data.evento_id || null,
+      equipo_id: data.equipo_id || null,
       fechaEfectuado: data.fechaEfectuado || null,
     };
 
@@ -236,13 +263,38 @@ export async function updateContabilidadRecord(
   }
 
   try {
+    const payload: Partial<ContabilidadRecord> = { ...data };
+
+    if (payload.especie === 'transferencia') {
+      payload.especie = 'trasferencia';
+    }
+
+    if (payload.detalle !== undefined) {
+      payload.detalle = normalizeDetalle(
+        typeof payload.detalle === 'string' ? payload.detalle : null
+      ) as ContabilidadRecord['detalle'];
+    }
+
+    if (payload.montoEspera !== undefined) {
+      payload.montoEspera = Number(payload.montoEspera);
+    }
+
+    if (payload.dolarEsperado !== undefined) {
+      payload.dolarEsperado = Number(payload.dolarEsperado ?? 0);
+    }
+
+    if (payload.cliente_id === '') payload.cliente_id = null;
+    if (payload.proveedor_id === '') payload.proveedor_id = null;
+    if (payload.evento_id === '') payload.evento_id = null;
+    if (payload.equipo_id === '') payload.equipo_id = null;
+
     const response = await fetch(`/api/contabilidad?id=${id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': token
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {

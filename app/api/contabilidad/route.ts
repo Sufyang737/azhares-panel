@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       "cambio-divisas", "ajuste-caja", "obra-social-empleada",
       "mantencion-cuenta-corriente", "seguro-galicia", "tarjeta-credito",
       "deriva", "expensas", "alquiler", "prepaga", "contador",
-      "mantenimiento-pc", "impuestos", "servicios", "regaleria", "compras"
+      "mantenimiento-pc", "impuestos", "servicios", "regaleria", "compras", "caja-chica"
     ];
 
     if (body.subcargo && !validSubcargos.includes(body.subcargo)) {
@@ -77,17 +77,34 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.detalle) {
-      const detalleValue =
-        body.subcargo === 'impuestos' && typeof body.detalle === 'string'
-          ? body.detalle.toUpperCase()
-          : body.detalle;
+      const rawDetalle = typeof body.detalle === 'string' ? body.detalle.trim() : body.detalle;
+      let detalleValue = rawDetalle;
+
+      if (typeof rawDetalle === 'string') {
+        const normalized = rawDetalle.toLowerCase();
+        const detalleAliases: Record<string, string> = {
+          'ingresos_brutos': 'ingresos-brutos',
+          'ingresos brutos': 'ingresos-brutos',
+          'formulario_931': 'formulado-931',
+          'formulado_931': 'formulado-931',
+          'formulario 931': 'formulado-931',
+          'ofceca': 'OFCECA',
+        };
+
+        if (detalleAliases[normalized]) {
+          detalleValue = detalleAliases[normalized];
+        } else if (normalized === 'ofceca') {
+          detalleValue = 'OFCECA';
+        }
+      }
 
       const validDetalles = [
-        "compra-usd", "comision", "handy","otros", "honorarios", "maquillaje", "Loli", "Noe",
-        "planner", "staff", "viandas", "venta-usd", "viatico", "seguro",
-        "iva", "ganancias", "luz", "gas", "internet", "general", "telefono",
-        "prosegur", "mayorista", "coto", "libreria", "cerrajeria", "cafe", "agua", "autonomo",
-        "OFCECA"
+        "compra-usd", "comision", "handy", "honorarios", "maquillaje",
+        "planner", "staff", "viandas", "venta-usd", "maquilllaje",
+        "viatico", "seguro", "Noe", "Loli", "otros", "iva",
+        "ingresos-brutos", "formulado-931", "OFCECA", "abl", "internet",
+        "agua", "luz", "autonomo", "telefono", "prosegur", "mayorista",
+        "coto", "libreria", "cerrajeria", "cafe"
       ];
 
       if (!validDetalles.includes(detalleValue)) {
@@ -101,7 +118,26 @@ export async function POST(req: NextRequest) {
     }
 
     // Create the record with proper type handling
-    const especieNormalized = body.especie === 'trasferencia' ? 'transferencia' : body.especie;
+    const especieNormalized = body.especie === 'transferencia' ? 'trasferencia' : body.especie;
+    const montoEsperaNumber = Number(body.montoEspera);
+    if (!Number.isFinite(montoEsperaNumber) || montoEsperaNumber <= 0) {
+      return NextResponse.json(
+        { error: "El campo 'montoEspera' debe ser un número mayor a 0" },
+        { status: 400 }
+      );
+    }
+
+    const dolarEsperadoNumber = body.dolarEsperado !== undefined && body.dolarEsperado !== null
+      ? Number(body.dolarEsperado)
+      : 0;
+
+    if (body.dolarEsperado !== undefined && !Number.isFinite(dolarEsperadoNumber)) {
+      return NextResponse.json(
+        { error: "El campo 'dolarEsperado' debe ser un número válido" },
+        { status: 400 }
+      );
+    }
+
     const data = {
       type: body.type,
       especie: especieNormalized,
@@ -109,9 +145,9 @@ export async function POST(req: NextRequest) {
       categoria: body.categoria,
       subcargo: body.subcargo,
       detalle: body.detalle || null,
-      montoEspera: Number(body.montoEspera),
+      montoEspera: montoEsperaNumber,
       fechaEspera: body.fechaEspera || new Date().toISOString(),
-      dolarEsperado: body.dolarEsperado ? Number(body.dolarEsperado) : 0,
+      dolarEsperado: dolarEsperadoNumber,
       comentario: body.comentario || null,
       fechaEfectuado: body.fechaEfectuado || null,
       cliente_id: body.cliente_id || null,

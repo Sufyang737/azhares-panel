@@ -23,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 
 interface EditRecordDialogProps {
@@ -32,17 +31,12 @@ interface EditRecordDialogProps {
 }
 
 type FormData = {
-  type: 'cobro' | 'pago';
-  especie: 'efectivo' | 'transferencia';
-  moneda: 'ars' | 'usd';
-  categoria: 'evento' | 'oficina';
-  subcargo: 'clientes' | 'otros' | 'proveedores' | 'sueldos' | 'mensajeria' | 
-    'cambio-divisas' | 'ajuste-caja' | 'obra-social-empleada' | 
-    'mantencion-cuenta-corriente' | 'seguro-galicia' | 'tarjeta-credito' | 
-    'deriva' | 'expensas' | 'alquiler' | 'prepaga' | 'contador' | 
-    'mantenimiento-pc' | 'impuestos' | 'servicio' | 'regaleria' | 'compras';
-  detalle?: 'compra-usd' | 'comision' | 'handy' | 'honorarios' | 'maquillaje' | 
-    'planner' | 'staff' | 'viandas' | 'venta-usd' | 'viatico' | 'seguro';
+  type: ContabilidadRecord['type'];
+  especie: Extract<ContabilidadRecord['especie'], 'efectivo' | 'transferencia'>;
+  moneda: ContabilidadRecord['moneda'];
+  categoria: ContabilidadRecord['categoria'];
+  subcargo: ContabilidadRecord['subcargo'];
+  detalle: ContabilidadRecord['detalle'] | '';
   montoEspera: number;
   fechaEspera: Date;
 };
@@ -53,12 +47,12 @@ export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogPro
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     type: record.type,
-    especie: (record.especie === 'trasferencia' ? 'transferencia' : record.especie) as 'efectivo' | 'transferencia',
+    especie: (record.especie === 'trasferencia' ? 'transferencia' : record.especie) as FormData['especie'],
     moneda: record.moneda,
     montoEspera: record.montoEspera,
     categoria: record.categoria,
     subcargo: record.subcargo,
-    detalle: record.detalle,
+    detalle: (record.detalle ?? '') as FormData['detalle'],
     fechaEspera: record.fechaEspera ? parseISO(record.fechaEspera) : new Date(),
   });
 
@@ -216,9 +210,10 @@ export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogPro
                     <SelectItem value="contador">Contador</SelectItem>
                     <SelectItem value="mantenimiento-pc">Mantenimiento PC</SelectItem>
                     <SelectItem value="impuestos">Impuestos</SelectItem>
-                    <SelectItem value="servicio">Servicios</SelectItem>
+                    <SelectItem value="servicios">Servicios</SelectItem>
                     <SelectItem value="regaleria">Regalería</SelectItem>
                     <SelectItem value="compras">Compras</SelectItem>
+                    <SelectItem value="caja-chica">Caja chica</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -249,12 +244,32 @@ export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogPro
                   <SelectItem value="handy">Handy</SelectItem>
                   <SelectItem value="honorarios">Honorarios</SelectItem>
                   <SelectItem value="maquillaje">Maquillaje</SelectItem>
+                  <SelectItem value="maquilllaje">Maquilllaje</SelectItem>
                   <SelectItem value="planner">Planner</SelectItem>
                   <SelectItem value="staff">Staff</SelectItem>
                   <SelectItem value="viandas">Viandas</SelectItem>
                   <SelectItem value="venta-usd">Venta USD</SelectItem>
                   <SelectItem value="viatico">Viático</SelectItem>
                   <SelectItem value="seguro">Seguro</SelectItem>
+                  <SelectItem value="Noe">Noe</SelectItem>
+                  <SelectItem value="Loli">Loli</SelectItem>
+                  <SelectItem value="otros">Otros</SelectItem>
+                  <SelectItem value="iva">IVA</SelectItem>
+                  <SelectItem value="ingresos-brutos">Ingresos Brutos</SelectItem>
+                  <SelectItem value="formulado-931">Formulario 931</SelectItem>
+                  <SelectItem value="OFCECA">OFCECA</SelectItem>
+                  <SelectItem value="abl">ABL</SelectItem>
+                  <SelectItem value="internet">Internet</SelectItem>
+                  <SelectItem value="agua">Agua</SelectItem>
+                  <SelectItem value="luz">Luz</SelectItem>
+                  <SelectItem value="autonomo">Autónomo</SelectItem>
+                  <SelectItem value="telefono">Teléfono</SelectItem>
+                  <SelectItem value="prosegur">Prosegur</SelectItem>
+                  <SelectItem value="mayorista">Mayorista</SelectItem>
+                  <SelectItem value="coto">Coto</SelectItem>
+                  <SelectItem value="libreria">Librería</SelectItem>
+                  <SelectItem value="cerrajeria">Cerrajería</SelectItem>
+                  <SelectItem value="cafe">Café</SelectItem>
                 </SelectContent>
               </Select>
             </div>
