@@ -120,7 +120,8 @@ export default function ContabilidadPage() {
         return acc;
       }, {} as Record<string, { cobros: number; pagos: number }>);
 
-      const totalsWithBalance = Object.entries(currencyTotals).reduce((acc, [currency, totals]) => {
+      const totalsWithBalance = Object.keys(currencyTotals).reduce((acc, currency) => {
+        const totals = currencyTotals[currency];
         acc[currency] = {
           cobros: totals.cobros,
           pagos: totals.pagos,
@@ -283,18 +284,24 @@ export default function ContabilidadPage() {
                 </div>
                 {Object.keys(totalsByCurrency).length > 0 && (
                   <div className="mb-4 flex flex-wrap gap-3">
-                    {Object.entries(totalsByCurrency).map(([currency, totals]) => (
-                      <div key={currency} className="rounded-md border bg-muted/40 px-3 py-2 text-xs sm:text-sm">
-                        <div className="font-semibold uppercase tracking-wider text-muted-foreground">
-                          {currency}
+                    {Object.keys(totalsByCurrency).map((currency) => {
+                      const totals = totalsByCurrency[currency];
+                      return (
+                        <div
+                          key={currency}
+                          className="rounded-md border bg-muted/40 px-3 py-2 text-xs sm:text-sm"
+                        >
+                          <div className="font-semibold uppercase tracking-wider text-muted-foreground">
+                            {currency}
+                          </div>
+                          <div className="mt-1 grid gap-1">
+                            <span>Cobros: {formatCurrency(totals.cobros, currency)}</span>
+                            <span>Pagos: {formatCurrency(totals.pagos, currency)}</span>
+                            <span className="font-medium">Balance: {formatCurrency(totals.balance, currency)}</span>
+                          </div>
                         </div>
-                        <div className="mt-1 grid gap-1">
-                          <span>Cobros: {formatCurrency(totals.cobros, currency)}</span>
-                          <span>Pagos: {formatCurrency(totals.pagos, currency)}</span>
-                          <span className="font-medium">Balance: {formatCurrency(totals.balance, currency)}</span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 {loading ? (

@@ -48,17 +48,19 @@ interface Evento {
   } | null;
 }
 
+type CalendarEventResource = Evento | {
+  tipo?: string;
+  estado?: string;
+  persona?: Persona;
+};
+
 interface CalendarEvent {
   id: string;
   title: string;
   start: Date;
   end: Date;
   allDay: boolean;
-  resource: {
-    tipo?: string;
-    estado?: string;
-    persona?: Persona;
-  };
+  resource: CalendarEventResource;
 }
 
 export function EventCalendar() {
@@ -121,20 +123,18 @@ export function EventCalendar() {
 
   // Convertir eventos para el calendario
   const calendarEvents: CalendarEvent[] = [
-    ...events
-      .map((event) => {
-        const eventDate = parseDateFromDb(event.fecha);
-        if (!eventDate) return null;
-        return {
-          id: event.id,
-          title: event.nombre,
-          start: eventDate,
-          end: eventDate,
-          allDay: true,
-          resource: event,
-        };
-      })
-      .filter((event): event is CalendarEvent => event !== null),
+    ...events.flatMap((event) => {
+      const eventDate = parseDateFromDb(event.fecha);
+      if (!eventDate) return [];
+      return [{
+        id: event.id,
+        title: event.nombre,
+        start: eventDate,
+        end: eventDate,
+        allDay: true,
+        resource: event,
+      } satisfies CalendarEvent];
+    }),
     ...birthdays
   ];
 

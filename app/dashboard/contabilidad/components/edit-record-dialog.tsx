@@ -61,9 +61,11 @@ export function EditRecordDialog({ record, onRecordUpdate }: EditRecordDialogPro
     setLoading(true);
 
     try {
+      const { detalle, fechaEspera, ...rest } = formData;
       await updateContabilidadRecord(record.id, {
-        ...formData,
-        fechaEspera: format(formData.fechaEspera, 'yyyy-MM-dd'),
+        ...rest,
+        detalle: detalle === '' ? null : detalle,
+        fechaEspera: format(fechaEspera, 'yyyy-MM-dd'),
       });
 
       toast({
