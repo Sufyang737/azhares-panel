@@ -24,6 +24,7 @@ interface FilterValues {
   cliente_id?: string;
   proveedor_id?: string;
   evento_id?: string;
+  equipo_id?: string;
   fechaDesde?: string;
   fechaHasta?: string;
 }
@@ -79,6 +80,11 @@ export default function ContabilidadPage() {
       if (filters.evento_id) {
         filter += filter ? ' && ' : '';
         filter += `evento_id = "${filters.evento_id}"`;
+      }
+
+      if (filters.equipo_id) {
+        filter += filter ? ' && ' : '';
+        filter += `equipo_id = "${filters.equipo_id}"`;
       }
       
       if (filters.fechaDesde) {

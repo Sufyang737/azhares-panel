@@ -113,9 +113,11 @@ import {
   searchClientes,
   searchProveedores,
   searchEventos,
+  searchEquipo,
   Cliente,
   Proveedor,
-  Evento
+  Evento,
+  Equipo
 } from "@/app/services/relations";
 import {
   Select,
@@ -138,6 +140,7 @@ interface FilterValues {
   cliente_id?: string;
   proveedor_id?: string;
   evento_id?: string;
+  equipo_id?: string;
   fechaDesde?: string;
   fechaHasta?: string;
 }
@@ -147,9 +150,11 @@ export function FiltersDialog({ onFiltersChange, activeFilters }: FiltersDialogP
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
+  const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [isLoadingClientes, setIsLoadingClientes] = useState(false);
   const [isLoadingProveedores, setIsLoadingProveedores] = useState(false);
   const [isLoadingEventos, setIsLoadingEventos] = useState(false);
+  const [isLoadingEquipos, setIsLoadingEquipos] = useState(false);
 
   const form = useForm<FilterValues>({
     defaultValues: {
@@ -160,6 +165,7 @@ export function FiltersDialog({ onFiltersChange, activeFilters }: FiltersDialogP
       cliente_id: undefined,
       proveedor_id: undefined,
       evento_id: undefined,
+      equipo_id: undefined,
       fechaDesde: undefined,
       fechaHasta: undefined,
     }
@@ -227,11 +233,28 @@ export function FiltersDialog({ onFiltersChange, activeFilters }: FiltersDialogP
     }
   };
 
+  const handleEquipoSearch = async (query: string) => {
+    setIsLoadingEquipos(true);
+    try {
+      const results = await searchEquipo(query);
+      setEquipos(results);
+    } catch (error) {
+      console.error('Error buscando equipo:', error);
+    } finally {
+      setIsLoadingEquipos(false);
+    }
+  };
+
   const onSubmit = (values: FilterValues) => {
-    // Limpiar valores undefined o vacíos
+    // Normalizar valores y limpiar campos vacíos
+    const normalizedValues = Object.fromEntries(
+      Object.entries(values).map(([key, value]) => [key, value === 'none' ? undefined : value])
+    ) as FilterValues;
+
     const cleanedValues = Object.fromEntries(
-      Object.entries(values).filter(([, value]) => value !== undefined && value !== '')
-    );
+      Object.entries(normalizedValues).filter(([, value]) => value !== undefined && value !== '')
+    ) as FilterValues;
+
     onFiltersChange(cleanedValues);
     setOpen(false);
   };
@@ -396,7 +419,7 @@ export function FiltersDialog({ onFiltersChange, activeFilters }: FiltersDialogP
                       placeholder="Buscar cliente..."
                       isLoading={isLoadingClientes}
                       items={clientes}
-                      onSelect={field.onChange}
+                      onSelect={(value) => field.onChange(value === 'none' ? undefined : value)}
                       formatLabel={(item) => `${item.nombre} ${item.apellido}`}
                     />
                   </FormControl>
@@ -417,7 +440,7 @@ export function FiltersDialog({ onFiltersChange, activeFilters }: FiltersDialogP
                       placeholder="Buscar proveedor..."
                       isLoading={isLoadingProveedores}
                       items={proveedores}
-                      onSelect={field.onChange}
+                      onSelect={(value) => field.onChange(value === 'none' ? undefined : value)}
                       formatLabel={(item) => item.nombre}
                     />
                   </FormControl>
@@ -438,8 +461,29 @@ export function FiltersDialog({ onFiltersChange, activeFilters }: FiltersDialogP
                       placeholder="Buscar evento..."
                       isLoading={isLoadingEventos}
                       items={eventos}
-                      onSelect={field.onChange}
+                      onSelect={(value) => field.onChange(value === 'none' ? undefined : value)}
                       formatLabel={(item) => item.nombre}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="equipo_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Equipo</FormLabel>
+                  <FormControl>
+                    <SearchInput
+                      value={field.value}
+                      onSearch={handleEquipoSearch}
+                      placeholder="Buscar miembro..."
+                      isLoading={isLoadingEquipos}
+                      items={equipos}
+                      onSelect={(value) => field.onChange(value === 'none' ? undefined : value)}
+                      formatLabel={(item) => `${item.nombre} ${item.apellido}`.trim()}
                     />
                   </FormControl>
                 </FormItem>
