@@ -28,20 +28,21 @@ const updateTeamMemberSchema = z.object({
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await request.json()
     console.log('Body recibido para actualización:', body)
-    
+
     // Validar los datos
     const validatedData = updateTeamMemberSchema.parse(body)
     console.log('Datos validados:', validatedData)
-    
+
     // Actualizar el miembro del equipo
-    const member = await updateTeamMember(params.id, validatedData as Partial<CreateTeamMemberData>)
+    const member = await updateTeamMember(id, validatedData as Partial<CreateTeamMemberData>)
     console.log('Miembro actualizado:', member)
-    
+
     return NextResponse.json(member)
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -51,7 +52,7 @@ export async function PATCH(
         { status: 400 }
       )
     }
-    
+
     console.error("Error updating team member:", error)
     return NextResponse.json(
       { error: "Error al actualizar el miembro del equipo" },
