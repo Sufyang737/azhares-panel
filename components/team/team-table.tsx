@@ -12,28 +12,33 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { TeamMember } from "@/app/services/team"
+import { EditMemberDialog } from "@/components/team/edit-member-dialog"
 
 export function TeamTable() {
   const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchMembers = async () => {
-      try {
-        const response = await fetch('/api/team')
-        const data = await response.json()
-        setMembers(data.items || [])
-      } catch (err) {
-        console.error('Error fetching team members:', err)
-        setError('Error al cargar los miembros del equipo')
-      } finally {
-        setLoading(false)
-      }
+  const fetchMembers = async () => {
+    try {
+      const response = await fetch('/api/team')
+      const data = await response.json()
+      setMembers(data.items || [])
+    } catch (err) {
+      console.error('Error fetching team members:', err)
+      setError('Error al cargar los miembros del equipo')
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchMembers()
   }, [])
+
+  const handleSuccess = () => {
+    fetchMembers()
+  }
 
   if (loading) {
     return <div>Cargando...</div>
@@ -53,6 +58,7 @@ export function TeamTable() {
             <TableHead>País</TableHead>
             <TableHead>Ciudad</TableHead>
             <TableHead>Contacto</TableHead>
+            <TableHead className="w-[80px]">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -78,6 +84,9 @@ export function TeamTable() {
                   <span>DNI: {member.dni}</span>
                   <span>Tel: {member.telefono}</span>
                 </div>
+              </TableCell>
+              <TableCell>
+                <EditMemberDialog member={member} onSuccess={handleSuccess} />
               </TableCell>
             </TableRow>
           ))}
