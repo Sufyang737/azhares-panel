@@ -68,7 +68,7 @@ export function DailyCashDialog() {
       const response = await fetch('/api/contabilidad?' + new URLSearchParams({
         sort: '-created',
         expand: 'cliente_id,evento_id,proveedor_id',
-        perPage: '1000',
+        skipTotal: 'true',
         filter: `fechaEfectuado != null && fechaEfectuado <= "${format(endOfDay(date), 'yyyy-MM-dd')} 23:59:59"`,
       }));
 
@@ -77,25 +77,25 @@ export function DailyCashDialog() {
       }
 
       const data = await response.json();
-      
+
       // Log para debugging
       console.log('=== DEBUG: Registros cargados ===');
       console.log('Total registros:', data.items.length);
-      
+
       // Contar registros USD en efectivo
-      const usdCashRecords = data.items.filter(record => 
-        record.moneda === 'usd' && 
+      const usdCashRecords = data.items.filter(record =>
+        record.moneda === 'usd' &&
         record.especie === 'efectivo'
       );
-      
+
       const usdCashIngresos = usdCashRecords
         .filter(record => record.type === 'cobro')
         .reduce((sum, record) => sum + (record.montoEspera || 0), 0);
-      
+
       const usdCashEgresos = usdCashRecords
         .filter(record => record.type === 'pago')
         .reduce((sum, record) => sum + (record.montoEspera || 0), 0);
-      
+
       console.log('USD Efectivo - Ingresos:', usdCashIngresos);
       console.log('USD Efectivo - Egresos:', usdCashEgresos);
       console.log('USD Efectivo - Balance:', usdCashIngresos - usdCashEgresos);
@@ -217,7 +217,7 @@ export function DailyCashDialog() {
             </DialogDescription>
           </div>
         </DialogHeader>
-        
+
         <div className="flex-1 overflow-y-auto -mx-6 px-6">
           {loading ? (
             <div className="flex items-center justify-center py-8 h-full">
@@ -278,7 +278,7 @@ export function DailyCashDialog() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Resumen del Día */}
               <div className="rounded-lg border p-4 mb-4 min-w-[500px]">
                 <h3 className="font-semibold text-lg mb-3">Movimientos del Día</h3>
@@ -324,11 +324,10 @@ export function DailyCashDialog() {
                           </div>
                           <div className="col-span-2 flex justify-between items-center border-t pt-1">
                             <span>Balance:</span>
-                            <span className={`font-medium ${
-                              totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos >= 0 
-                                ? 'text-green-600' 
+                            <span className={`font-medium ${totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos >= 0
+                                ? 'text-green-600'
                                 : 'text-red-600'
-                            }`}>
+                              }`}>
                               {formatCurrency(totals.efectivo.ars.ingresos - totals.efectivo.ars.egresos, 'ars')}
                             </span>
                           </div>
@@ -347,11 +346,10 @@ export function DailyCashDialog() {
                           </div>
                           <div className="col-span-2 flex justify-between items-center border-t pt-1">
                             <span>Balance:</span>
-                            <span className={`font-medium ${
-                              totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos >= 0 
-                                ? 'text-green-600' 
+                            <span className={`font-medium ${totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos >= 0
+                                ? 'text-green-600'
                                 : 'text-red-600'
-                            }`}>
+                              }`}>
                               {formatCurrency(totals.efectivo.usd.ingresos - totals.efectivo.usd.egresos, 'usd')}
                             </span>
                           </div>
@@ -378,11 +376,10 @@ export function DailyCashDialog() {
                           </div>
                           <div className="col-span-2 flex justify-between items-center border-t pt-1">
                             <span>Balance:</span>
-                            <span className={`font-medium ${
-                              totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos >= 0 
-                                ? 'text-green-600' 
+                            <span className={`font-medium ${totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos >= 0
+                                ? 'text-green-600'
                                 : 'text-red-600'
-                            }`}>
+                              }`}>
                               {formatCurrency(totals.transferencia.ars.ingresos - totals.transferencia.ars.egresos, 'ars')}
                             </span>
                           </div>
@@ -401,11 +398,10 @@ export function DailyCashDialog() {
                           </div>
                           <div className="col-span-2 flex justify-between items-center border-t pt-1">
                             <span>Balance:</span>
-                            <span className={`font-medium ${
-                              totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos >= 0 
-                                ? 'text-green-600' 
+                            <span className={`font-medium ${totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos >= 0
+                                ? 'text-green-600'
                                 : 'text-red-600'
-                            }`}>
+                              }`}>
                               {formatCurrency(totals.transferencia.usd.ingresos - totals.transferencia.usd.egresos, 'usd')}
                             </span>
                           </div>
