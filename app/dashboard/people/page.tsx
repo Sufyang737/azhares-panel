@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { 
+import {
   IconUserPlus
 } from '@tabler/icons-react'
 import { PeopleDataTable, personaSchema } from '@/components/people/people-data-table'
@@ -89,23 +89,24 @@ export default function PeoplePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [search, setSearch] = useState("");
   const perPage = 10;
-  
+
   // Función para obtener personas desde la API
-  const fetchPersonas = async (page: number = 1) => {
+  const fetchPersonas = async (page: number = 1, searchQuery: string = search) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/personas?page=${page}&perPage=${perPage}&sort=-created&expand=cliente_id`);
-      
+      const response = await fetch(`/api/personas?page=${page}&perPage=${perPage}&sort=-created&expand=cliente_id&search=${encodeURIComponent(searchQuery)}`);
+
       if (!response.ok) {
         throw new Error(`Error en la petición: ${response.status}`);
       }
-      
+
       const rawData = await response.json();
       console.log("Datos recibidos de la API:", rawData);
-      
+
       // Limpiar y validar los datos antes de la validación de Zod
       const cleanData = {
         ...rawData,
@@ -124,7 +125,7 @@ export default function PeoplePage() {
         // Si hay error de validación, usamos los datos limpios de todas formas
         setPersonas(cleanData.data);
       }
-      
+
     } catch (err) {
       console.error('Error fetching personas:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -137,8 +138,18 @@ export default function PeoplePage() {
     fetchPersonas(currentPage);
   }, [currentPage]);
 
+  // Si cambia el search, también queremos refrescar (pero eso ya lo manejamos en handleSearch con page=1)
+  // O podemos añadir search a useEffect dependencies si queremos reactividad automática
+  // pero handleSearch es mejor para controlar cuando se dispara (debounce viene del hijo)
+
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
+  };
+
+  const handleSearch = (query: string) => {
+    setSearch(query);
+    setCurrentPage(1);
+    fetchPersonas(1, query); // Force fetch with new query immediately
   };
 
   const handlePersonDeleted = () => {
@@ -185,16 +196,16 @@ export default function PeoplePage() {
                 </div>
               </div>
               <div className="px-4 lg:px-6">
-                {loading ? (
+                {(loading && personas.length === 0) ? (
                   <div className="flex items-center justify-center py-8">
                     <Spinner size="lg" />
                   </div>
                 ) : error ? (
                   <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-8 text-center">
                     <p className="text-destructive">Error: {error}</p>
-                    <Button 
+                    <Button
                       variant="outline"
-                      className="mt-4" 
+                      className="mt-4"
                       onClick={() => fetchPersonas(currentPage)}
                     >
                       Reintentar
@@ -202,10 +213,12 @@ export default function PeoplePage() {
                   </div>
                 ) : (
                   <>
-                    <PeopleDataTable 
+                    <PeopleDataTable
                       data={personas}
                       onPersonDeleted={handlePersonDeleted}
                       onPersonUpdated={handlePersonUpdated}
+                      onSearch={handleSearch}
+                      isLoading={loading}
                     />
                     <div className="mt-4 flex items-center justify-between">
                       <div className="text-sm text-muted-foreground">

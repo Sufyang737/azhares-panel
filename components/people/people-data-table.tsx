@@ -98,10 +98,10 @@ type Persona = z.infer<typeof personaSchema>
 // Función para determinar el tipo de persona
 function getTipoPersonaBadge(tipo: string | null) {
   if (!tipo) return null;
-  
+
   const tipoLower = tipo.toLowerCase();
   let color = "";
-  
+
   if (tipoLower.includes("cliente") || tipoLower.includes("principal")) {
     color = "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300";
   } else if (tipoLower.includes("padre") || tipoLower.includes("madre")) {
@@ -113,7 +113,7 @@ function getTipoPersonaBadge(tipo: string | null) {
   } else {
     color = "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300";
   }
-  
+
   return (
     <Badge variant="outline" className={`px-2 py-0.5 ${color}`}>
       {tipo}
@@ -124,11 +124,15 @@ function getTipoPersonaBadge(tipo: string | null) {
 export function PeopleDataTable({
   data,
   onPersonDeleted,
-  onPersonUpdated
+  onPersonUpdated,
+  onSearch,
+  isLoading = false
 }: {
   data: Persona[];
   onPersonDeleted?: () => void;
   onPersonUpdated?: () => void;
+  onSearch?: (query: string) => void;
+  isLoading?: boolean;
 }) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -157,7 +161,7 @@ export function PeopleDataTable({
       // Obtener la lista de clientes
       const responseClientes = await fetch('/api/clientes');
       const resultClientes = await responseClientes.json();
-      
+
       if (resultClientes.success) {
         const clientes = resultClientes.data;
         // Actualizar los datos con la información de clientes
@@ -193,17 +197,17 @@ export function PeopleDataTable({
     setPersonToDelete(id);
     setDeleteDialogOpen(true);
   }
-  
+
   const confirmDelete = async () => {
     if (!personToDelete) return;
-    
+
     try {
       const response = await fetch(`/api/personas?id=${personToDelete}`, {
         method: 'DELETE',
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         toast.success("Persona eliminada correctamente");
         onPersonDeleted?.();
@@ -243,8 +247,8 @@ export function PeopleDataTable({
               table.getIsAllPageRowsSelected()
                 ? true
                 : table.getIsSomePageRowsSelected()
-                ? "indeterminate"
-                : false
+                  ? "indeterminate"
+                  : false
             }
             onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
             aria-label="Seleccionar todo"
@@ -265,13 +269,13 @@ export function PeopleDataTable({
     },
     {
       accessorFn: (row) => `${row.nombre} ${row.apellido || ''}`.trim(),
-      id: "nombreCompleto", 
+      id: "nombreCompleto",
       header: "Nombre",
       cell: ({ row }) => {
         const nombre = row.original.nombre;
         const apellido = row.original.apellido;
         const nombreCompleto = `${nombre} ${apellido || ''}`.trim();
-        
+
         return (
           <div className="flex items-center">
             <IconUser className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -287,9 +291,9 @@ export function PeopleDataTable({
       cell: ({ row }) => {
         const tipo = row.getValue("tipo_persona") as string | null;
         if (!tipo) return <div className="text-muted-foreground">No especificado</div>;
-        
+
         let descripcion = "";
-        
+
         if (tipo.toLowerCase().includes("cliente principal")) {
           descripcion = "Persona principal de contacto del cliente";
         } else if (tipo.toLowerCase().includes("padre")) {
@@ -303,7 +307,7 @@ export function PeopleDataTable({
         } else {
           descripcion = "Rol de la persona";
         }
-        
+
         return (
           <div title={descripcion}>
             {getTipoPersonaBadge(tipo)}
@@ -317,7 +321,7 @@ export function PeopleDataTable({
       cell: ({ row }) => {
         const email = row.getValue("email") as string | null;
         if (!email) return <div className="text-muted-foreground">No disponible</div>;
-        
+
         return (
           <div className="flex items-center">
             <IconMail className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -332,7 +336,7 @@ export function PeopleDataTable({
       cell: ({ row }) => {
         const telefono = row.getValue("telefono") as string | number | null;
         if (!telefono) return <div className="text-muted-foreground">No disponible</div>;
-        
+
         return (
           <div className="flex items-center">
             <IconPhone className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -347,7 +351,7 @@ export function PeopleDataTable({
       cell: ({ row }) => {
         const cumpleanio = row.getValue("cumpleanio") as string | null;
         if (!cumpleanio) return <div className="text-muted-foreground">No disponible</div>;
-        
+
         try {
           return (
             <div className="flex items-center">
@@ -371,13 +375,13 @@ export function PeopleDataTable({
       cell: ({ row }) => {
         const instagram = row.original.instagram;
         if (!instagram) return <div className="text-muted-foreground">No disponible</div>;
-        
+
         return (
           <div className="flex items-center">
             <IconBrandInstagram className="mr-2 h-4 w-4 text-muted-foreground" />
-            <a 
-              href={`https://instagram.com/${instagram.replace('@', '')}`} 
-              target="_blank" 
+            <a
+              href={`https://instagram.com/${instagram.replace('@', '')}`}
+              target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline"
             >
@@ -394,11 +398,11 @@ export function PeopleDataTable({
       cell: ({ row }) => {
         const ciudad = row.original.ciudad;
         const pais = row.original.pais;
-        
+
         if (!ciudad && !pais) return <div className="text-muted-foreground">No disponible</div>;
-        
+
         const ubicacion = [ciudad, pais].filter(Boolean).join(", ");
-        
+
         return (
           <div className="flex items-center">
             <IconMapPin className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -413,7 +417,7 @@ export function PeopleDataTable({
       cell: ({ row }) => {
         const direccion = row.getValue("direccion") as string | null;
         if (!direccion) return <div className="text-muted-foreground">No disponible</div>;
-        
+
         return (
           <div className="flex items-center">
             <IconMapPin className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -434,11 +438,11 @@ export function PeopleDataTable({
           clientesArray: Array.isArray(persona.clientes) ? persona.clientes : [],
           tieneClientes: Boolean(persona.clientes && persona.clientes.length > 0)
         });
-        
+
         if (!persona.clientes || !Array.isArray(persona.clientes) || persona.clientes.length === 0) {
           return <div className="text-muted-foreground">No asociado</div>;
         }
-        
+
         return (
           <div className="flex flex-col gap-2">
             {persona.clientes.map((cliente) => (
@@ -455,9 +459,9 @@ export function PeopleDataTable({
       filterFn: (row, id, filterValue) => {
         const persona = row.original;
         if (!persona.clientes || !Array.isArray(persona.clientes)) return false;
-        
+
         const searchValue = filterValue.toLowerCase();
-        return persona.clientes.some(cliente => 
+        return persona.clientes.some(cliente =>
           cliente.nombre.toLowerCase().includes(searchValue)
         );
       }
@@ -468,11 +472,11 @@ export function PeopleDataTable({
       cell: ({ row }) => {
         const comentario = row.original.comentario;
         if (!comentario) return <div className="text-muted-foreground">Sin comentarios</div>;
-        
-        const comentarioCorto = comentario.length > 50 
-          ? `${comentario.substring(0, 47)}...` 
+
+        const comentarioCorto = comentario.length > 50
+          ? `${comentario.substring(0, 47)}...`
           : comentario;
-        
+
         return (
           <div className="flex items-center">
             <IconNotes className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -486,7 +490,7 @@ export function PeopleDataTable({
       header: "Acciones",
       cell: ({ row }) => {
         const person = row.original;
-        
+
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -506,7 +510,7 @@ export function PeopleDataTable({
                 <span>Editar persona</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => handleDeletePerson(person.id)}
                 className="text-red-600 focus:bg-red-50"
               >
@@ -544,13 +548,29 @@ export function PeopleDataTable({
         <div className="flex gap-2 items-center">
           <Input
             placeholder="Buscar por nombre..."
-            value={(table.getColumn("nombreCompleto")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("nombreCompleto")?.setFilterValue(event.target.value)
-            }
+            onChange={(event) => {
+              // Si tenemos onSearch (búsqueda server-side), la usamos
+              if (onSearch) {
+                const value = event.target.value;
+                // Pequeño debounce manual o directo si se prefiere
+                const timeoutId = setTimeout(() => {
+                  onSearch(value);
+                }, 500);
+                // @ts-ignore - Guardamos el timeout en el elemento para limpiarlo
+                if (event.target._timeoutId) clearTimeout(event.target._timeoutId);
+                // @ts-ignore
+                event.target._timeoutId = timeoutId;
+              } else {
+                // Comportamiento original (client-side) como fallback
+                table.getColumn("nombreCompleto")?.setFilterValue(event.target.value)
+              }
+            }}
             className="max-w-sm"
           />
-          
+          {isLoading && (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+          )}
+
           <Input
             placeholder="Filtrar por cliente..."
             value={(table.getColumn("cliente")?.getFilterValue() as string) ?? ""}
@@ -584,27 +604,27 @@ export function PeopleDataTable({
                         column.toggleVisibility(!!value)
                       }
                     >
-                      {column.id === "nombreCompleto" 
-                        ? "Nombre" 
-                        : column.id === "email" 
-                        ? "Email"
-                        : column.id === "telefono"
-                        ? "Teléfono"
-                        : column.id === "cumpleanio"
-                        ? "Cumpleaños"
-                        : column.id === "ubicacion"
-                        ? "Ubicación"
-                        : column.id === "tipo_persona"
-                        ? "Tipo"
-                        : column.id === "instagram"
-                        ? "Instagram"
-                        : column.id === "direccion"
-                        ? "Dirección"
-                        : column.id === "cliente"
-                        ? "Cliente"
-                        : column.id === "comentario"
-                        ? "Comentarios"
-                        : column.id}
+                      {column.id === "nombreCompleto"
+                        ? "Nombre"
+                        : column.id === "email"
+                          ? "Email"
+                          : column.id === "telefono"
+                            ? "Teléfono"
+                            : column.id === "cumpleanio"
+                              ? "Cumpleaños"
+                              : column.id === "ubicacion"
+                                ? "Ubicación"
+                                : column.id === "tipo_persona"
+                                  ? "Tipo"
+                                  : column.id === "instagram"
+                                    ? "Instagram"
+                                    : column.id === "direccion"
+                                      ? "Dirección"
+                                      : column.id === "cliente"
+                                        ? "Cliente"
+                                        : column.id === "comentario"
+                                          ? "Comentarios"
+                                          : column.id}
                     </DropdownMenuCheckboxItem>
                   )
                 })}
@@ -623,16 +643,16 @@ export function PeopleDataTable({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   )
                 })}
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
+          <TableBody className={isLoading ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
@@ -649,14 +669,14 @@ export function PeopleDataTable({
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No se encontraron personas.
+                  {isLoading ? "Cargando..." : "No se encontraron personas."}
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      
+
       <div className="flex items-center justify-end space-x-2">
         <div className="text-muted-foreground flex-1 text-sm">
           {table.getFilteredSelectedRowModel().rows.length} de{" "}
@@ -709,7 +729,7 @@ export function PeopleDataTable({
                 </h3>
                 <p>{`${personDetails.nombre} ${personDetails.apellido || ''}`}</p>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold flex items-center mb-1">
                   <IconUserCircle className="mr-2 h-4 w-4" />
@@ -717,7 +737,7 @@ export function PeopleDataTable({
                 </h3>
                 <p>{personDetails.tipo_persona || 'No especificado'}</p>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold flex items-center mb-1">
                   <IconPhone className="mr-2 h-4 w-4" />
@@ -725,7 +745,7 @@ export function PeopleDataTable({
                 </h3>
                 <p>{personDetails.telefono || 'No disponible'}</p>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold flex items-center mb-1">
                   <IconMail className="mr-2 h-4 w-4" />
@@ -733,7 +753,7 @@ export function PeopleDataTable({
                 </h3>
                 <p>{personDetails.email || 'No disponible'}</p>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold flex items-center mb-1">
                   <IconCake className="mr-2 h-4 w-4" />
@@ -745,7 +765,7 @@ export function PeopleDataTable({
                   ) : 'No disponible'}
                 </p>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold flex items-center mb-1">
                   <IconBrandInstagram className="mr-2 h-4 w-4" />
@@ -753,7 +773,7 @@ export function PeopleDataTable({
                 </h3>
                 <p>{personDetails.instagram || 'No disponible'}</p>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold flex items-center mb-1">
                   <IconMapPin className="mr-2 h-4 w-4" />
@@ -765,7 +785,7 @@ export function PeopleDataTable({
                     .join(', ') || 'No disponible'}
                 </p>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold flex items-center mb-1">
                   <IconBuilding className="mr-2 h-4 w-4" />
@@ -786,7 +806,7 @@ export function PeopleDataTable({
                   <p className="text-muted-foreground">No asociado a ningún cliente</p>
                 )}
               </div>
-              
+
               <div className="col-span-2">
                 <h3 className="font-semibold flex items-center mb-1">
                   <IconNotes className="mr-2 h-4 w-4" />
@@ -794,7 +814,7 @@ export function PeopleDataTable({
                 </h3>
                 <p className="whitespace-pre-wrap">{personDetails.comentario || 'Sin comentarios'}</p>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold flex items-center mb-1">
                   <IconCalendarTime className="mr-2 h-4 w-4" />
@@ -802,7 +822,7 @@ export function PeopleDataTable({
                 </h3>
                 <p>{format(parseISO(personDetails.created), "PPpp", { locale: es })}</p>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold flex items-center mb-1">
                   <IconCalendarTime className="mr-2 h-4 w-4" />
